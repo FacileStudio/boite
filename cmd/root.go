@@ -117,7 +117,7 @@ runcmd:
   - chmod -x /etc/update-motd.d/* 2>/dev/null || true
   - rm -f /etc/legal /etc/motd
   - touch /home/boite/.hushlogin
-  - touch /home/ubuntu/.hushlogin
+  
   - |
     cat > /etc/motd << 'MOTD_EOF'
     ▄▄
@@ -154,10 +154,10 @@ alias grep="grep --color=auto"
 INNER_EOF
       chown boite:boite /home/boite/.zshrc
     fi
-  - "id boite >/dev/null 2>&1 && echo \x27exec sudo -i -u boite\x27 >> /home/ubuntu/.zshrc"
-  - echo 'if [ "$USER" = "ubuntu" ] && id boite >/dev/null 2>&1; then exec sudo -i -u boite; fi' >> /home/ubuntu/.bashrc
+  
+  
   - mkdir -p /home/boite/.ssh
-  - test -f /home/ubuntu/.ssh/authorized_keys && cp /home/ubuntu/.ssh/authorized_keys /home/boite/.ssh/authorized_keys
+  
   - chown -R boite:boite /home/boite/.ssh
   - chmod 700 /home/boite/.ssh
   - test -f /home/boite/.ssh/authorized_keys && chmod 600 /home/boite/.ssh/authorized_keys

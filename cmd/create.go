@@ -132,7 +132,7 @@ func syncWorkspaceZshrc(name string) {
 		"if id boite >/dev/null 2>&1; then " +
 		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
 		"else " +
-		"cp /workspace/.zshrc_local /home/ubuntu/.zshrc && chown ubuntu:ubuntu /home/ubuntu/.zshrc; " +
+		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
 		"fi; fi"
 	RunCommand("multipass", "exec", name, "--", "sudo", "bash", "-c", cmdStr)
 }
