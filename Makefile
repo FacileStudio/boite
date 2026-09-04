@@ -1,4 +1,4 @@
-.PHONY: all build install clean docker-image version shell
+.PHONY: all build install clean version shell
 
 BINARY=boite
 VERSION?=dev
@@ -12,9 +12,6 @@ build:
 install: build
 	cp $(BINARY) /usr/local/bin/$(BINARY)
 
-docker-image:
-	docker build -t dev-sandbox:latest .
-
 version:
 	@echo $(VERSION)
 
@@ -23,5 +20,4 @@ clean:
 
 shell:
 	@echo "Build successful! Use './boite --help' to get started."
-	@echo "To build Docker image: make docker-image"
 	@echo "To install: make install"
