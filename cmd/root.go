@@ -141,7 +141,7 @@ EOF
 
   # Enable docker for ubuntu user (without sudo)
   - usermod -aG docker ubuntu
-  - "test -f /workspace/.zshrc_local && cat /workspace/.zshrc_local >> /home/ubuntu/.zshrc\"
+`
 		defaultConfig := map[string]interface{}{
 			"cloud_init": defaultCloudInit,
 			"vm": map[string]interface{}{
