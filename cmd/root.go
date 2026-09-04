@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+const asciiBanner = `▄▄
+██          ▀▀  ██
+████▄ ▄███▄ ██ ▀██▀▀ ▄█▀█▄
+██ ██ ██ ██ ██  ██   ██▄█▀
+████▀ ▀███▀ ██▄ ██   ▀█▄▄▄ `
+
 var Version = "dev"
 var cfgFile string
 
@@ -35,6 +41,14 @@ Requires: Multipass (https://multipass.run/) — install via:
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+func versionString() string {
+	v := strings.TrimPrefix(Version, "v")
+	if v == "" || v == "dev" {
+		return "v0.1.4"
+	}
+	return "v" + v
 }
 
 func init() {
@@ -100,6 +114,20 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     home: /home/boite
 runcmd:
+  - chmod -x /etc/update-motd.d/* 2>/dev/null || true
+  - rm -f /etc/legal /etc/motd
+  - touch /home/boite/.hushlogin
+  - touch /home/ubuntu/.hushlogin
+  - |
+    cat > /etc/motd << 'MOTD_EOF'
+    ▄▄
+    ██          ▀▀  ██
+    ████▄ ▄███▄ ██ ▀██▀▀ ▄█▀█▄
+    ██ ██ ██ ██ ██  ██   ██▄█▀
+    ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄
+
+    v0.1.4
+    MOTD_EOF
   - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
   - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
   - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'

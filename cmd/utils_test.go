@@ -31,3 +31,10 @@ func TestDefaultCloudInit(t *testing.T) {
 		t.Fatal("expected non-empty cloud-init config")
 	}
 }
+
+func TestVersionString(t *testing.T) {
+	v := versionString()
+	if v == "" {
+		t.Fatal("expected non-empty version string")
+	}
+}

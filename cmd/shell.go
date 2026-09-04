@@ -31,7 +31,9 @@ func runShell(name string) error {
 	if err := ensureVMRunning(name); err != nil {
 		return err
 	}
-	fmt.Println("Connecting to VM... Exit with 'exit' or Ctrl+D.")
+
+	fmt.Println(asciiBanner)
+	fmt.Printf("%s\n\n", versionString())
 
 	shellArgs := []string{"multipass", "shell", name}
 	if _, err := RunCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
