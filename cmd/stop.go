@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// stopCmd represents the stop command
 var stopCmd = &cobra.Command{
 	Use:   "stop [name]",
 	Short: "Stop a development sandbox VM",
@@ -24,13 +23,17 @@ var stopCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		_ = Spinner(fmt.Sprintf("Stopping VM '%s'", name), func() error {
+		err := Spinner(fmt.Sprintf("Stopping VM '%s'", name), func() error {
 			output, err := RunCommand("multipass", "stop", name)
 			if err != nil {
 				return fmt.Errorf("%v\n%s", err, string(output))
 			}
 			return nil
 		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error stopping VM: %v\n", err)
+			os.Exit(1)
+		}
 
 		fmt.Printf("VM '%s' stopped\n", name)
 	},

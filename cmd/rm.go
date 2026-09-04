@@ -8,11 +8,11 @@ import (
 )
 
 var rmCmd = &cobra.Command{
-	Use:   "remove [name]",
+	Use:     "remove [name]",
 	Aliases: []string{"rm"},
-	Short: "Remove a development sandbox VM",
-	Long:  `Remove the specified sandbox VM. This will delete the VM permanently.`,
-	Args:  cobra.MaximumNArgs(1),
+	Short:   "Remove a development sandbox VM",
+	Long:    `Remove the specified sandbox VM. This will delete the VM permanently.`,
+	Args:    cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := "dev-box"
 		if len(args) > 0 {
@@ -24,26 +24,19 @@ var rmCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Stop VM first if running
-		_ = Spinner(fmt.Sprintf("Stopping VM '%s'", name), func() error {
-			_, err := RunCommand("multipass", "stop", name)
-			return err
-		})
+		RunCommand("multipass", "stop", name)
 
-		// Remove VM
-		_ = Spinner(fmt.Sprintf("Removing VM '%s'", name), func() error {
-			output, err := RunCommand("multipass", "delete", name)
+		err := Spinner(fmt.Sprintf("Removing VM '%s'", name), func() error {
+			output, err := RunCommand("multipass", "delete", "--purge", name)
 			if err != nil {
 				return fmt.Errorf("%v\n%s", err, string(output))
 			}
 			return nil
 		})
-
-		// Purge (actually delete)
-		_ = Spinner(fmt.Sprintf("Purging VM '%s'", name), func() error {
-			_, err := RunCommand("multipass", "purge", name)
-			return err
-		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error removing VM: %v\n", err)
+			os.Exit(1)
+		}
 
 		fmt.Printf("VM '%s' removed\n", name)
 	},

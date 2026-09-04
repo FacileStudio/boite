@@ -1,0 +1,6 @@
+boite
+bin/
+dist/
+*.log
+.DS_Store
+cloud-init-debug.yml

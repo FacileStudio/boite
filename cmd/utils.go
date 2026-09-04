@@ -9,53 +9,55 @@ import (
 	"time"
 )
 
-// RunCommand runs a command and returns output
-func RunCommand(args ...string) ([]byte, error) {
-	// If multipass, try to find it in common locations
-	if args[0] == "multipass" {
-		if _, err := os.Stat("/snap/bin/multipass"); err == nil {
-			fmt.Fprintf(os.Stderr, "Using multipass at /snap/bin/multipass\n")
-			args[0] = "/snap/bin/multipass"
+func multipassPath() string {
+	if p, err := exec.LookPath("multipass"); err == nil {
+		return p
+	}
+	candidates := []string{
+		"/snap/bin/multipass",
+		filepath.Join(homeDir(), "snap", "bin", "multipass"),
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p
 		}
 	}
-	cmd := exec.Command(args[0], args[1:]...)
+	return "multipass"
+}
+
+// RunCommand executes a command and returns its combined stdout and stderr.
+func RunCommand(args ...string) ([]byte, error) {
+	bin := args[0]
+	if bin == "multipass" {
+		bin = multipassPath()
+	}
+	cmd := exec.Command(bin, args[1:]...)
 	return cmd.CombinedOutput()
 }
 
-// checkCommand checks if a command is available and returns error if not
 func checkCommand(name string) error {
-	_, err := exec.LookPath(name)
-	if err == nil {
-		return nil
-	}
-
-	// Check common snap locations
 	if name == "multipass" {
-		snapPaths := []string{
-			"/snap/bin/multipass",
-			filepath.Join(os.Getenv("HOME"), "snap", "bin", "multipass"),
-		}
-		for _, p := range snapPaths {
-			if _, err := os.Stat(p); err == nil {
-				return nil
-			}
+		if p := multipassPath(); p != "multipass" {
+			return nil
 		}
 	}
+	_, err := exec.LookPath(name)
 	return err
 }
 
-// homeDir returns the home directory of the current user
 func homeDir() string {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return os.Getenv("HOME")
+	}
 	return home
 }
 
-// isRoot checks if the current user is root
 func isRoot() bool {
 	return os.Geteuid() == 0
 }
 
-// Spinner displays a simple spinner while a function runs
+// Spinner displays an activity indicator while an action runs.
 func Spinner(action string, f func() error) error {
 	done := make(chan bool)
 	go func() {
@@ -64,7 +66,7 @@ func Spinner(action string, f func() error) error {
 		for {
 			select {
 			case <-done:
-				fmt.Fprint(os.Stderr, "\r"+strings.Repeat(" ", len(action)+20)+"\r") // clear line
+				fmt.Fprint(os.Stderr, "\r"+strings.Repeat(" ", len(action)+20)+"\r")
 				return
 			default:
 				fmt.Fprintf(os.Stderr, "\r%s %c", action, runes[i%len(runes)])
@@ -76,4 +78,38 @@ func Spinner(action string, f func() error) error {
 	err := f()
 	done <- true
 	return err
+}
+
+func runInteractive(args ...string) error {
+	bin := args[0]
+	if bin == "multipass" {
+		bin = multipassPath()
+	}
+	cmd := exec.Command(bin, args[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func ensureVMRunning(name string) error {
+	if err := checkCommand("multipass"); err != nil {
+		return fmt.Errorf("multipass not found in PATH")
+	}
+
+	output, err := RunCommand("multipass", "info", name)
+	if err != nil {
+		if strings.Contains(string(output), "not found") || strings.Contains(string(output), "no instance named") {
+			return fmt.Errorf("VM '%s' not found. Create it first: boite create %s", name, name)
+		}
+		return fmt.Errorf("checking VM: %w", err)
+	}
+
+	if !strings.Contains(string(output), "Status: Running") {
+		fmt.Printf("VM '%s' is not running, starting...\n", name)
+		if _, err := RunCommand("multipass", "start", name); err != nil {
+			return fmt.Errorf("starting VM: %w", err)
+		}
+	}
+	return nil
 }
