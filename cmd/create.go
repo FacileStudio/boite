@@ -103,14 +103,13 @@ func createNewVM(name string, noMount bool) {
 
 	fmt.Printf("Creating VM '%s'...\n", name)
 	fmt.Println("This may take a few minutes to provision...")
+	fmt.Println("=== Cloud-init output ===")
 
 	launchArgs := vmLaunchArgs(name, cloudInitPath, workspacePath, noMount)
-	spinnerErr := Spinner(fmt.Sprintf("Creating VM '%s'", name), func() error {
-		_, err := RunCommand(append([]string{"multipass", "launch"}, launchArgs...)...)
-		return err
-	})
-	if spinnerErr != nil {
-		fmt.Fprintf(os.Stderr, "Error creating VM: %v\n\n", spinnerErr)
+	err := runInteractive(append([]string{"multipass", "launch"}, launchArgs...)...)
+	fmt.Println("=== End cloud-init output ===")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating VM: %v\n\n", err)
 		fmt.Fprintln(os.Stderr, "Try with sudo:")
 		fmt.Fprintf(os.Stderr, "  sudo multipass launch 24.04 --name %s --cloud-init %s", name, cloudInitPath)
 		if !noMount {
@@ -130,8 +129,6 @@ func createNewVM(name string, noMount bool) {
 func syncWorkspaceZshrc(name string) {
 	cmdStr := "if [ -f /workspace/.zshrc_local ]; then " +
 		"if id boite >/dev/null 2>&1; then " +
-		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
-		"else " +
 		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
 		"fi; fi"
 	RunCommand("multipass", "exec", name, "--", "sudo", "bash", "-c", cmdStr)

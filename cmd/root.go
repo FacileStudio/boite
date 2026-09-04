@@ -126,7 +126,7 @@ runcmd:
     ██ ██ ██ ██ ██  ██   ██▄█▀
     ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄
 
-    v0.1.5
+    v0.1.6
     MOTD_EOF
   - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
   - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
