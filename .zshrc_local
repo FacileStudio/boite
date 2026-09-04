@@ -1,0 +1,48 @@
+# Zsh config for dev containers
+export PATH="/usr/local/go/bin:/root/.cargo/bin:/root/.local/bin:$HOME/.bun/bin:$PATH"
+
+# Starship prompt (optional - install if desired)
+eval "$(starship init zsh)"
+
+# Mise activation
+eval "$(/root/.local/bin/mise activate zsh)"
+
+# Alias
+alias ll='ls -l'
+alias lla='ls -la'
+alias lal='ls -la'
+alias la='ls -a'
+alias l="ls"
+
+alias c='clear'
+alias q='exit'
+alias :q="exit"
+
+alias ..='cd ..'
+alias ...='cd ../..'
+alias h='clear && cd $HOME'
+
+alias gs="git status"
+alias gp="git push"
+alias ga="git add"
+alias gc="git clone"
+alias gd="git diff"
+alias gb="git branch"
+alias gba="git branch -a"
+alias gco="git checkout"
+alias gr="git rm"
+alias gitu="git add . && git commit"
+alias gitup="git add . && git commit && git push"
+alias gituf='git add . && git commit -m "$(date +"%Y-%m-%d %T")" && git push'
+
+alias zreload='clear && source $HOME/.zshrc'
+alias zrel="zreload"
+alias breload='clear && source $HOME/.bashrc'
+alias brel="breload"
+
+# Work directly in /workspace
+export WORKSPACE=/workspace
+export PATH="$WORKSPACE/bin:$PATH"
+
+# Enable completion
+autoload -Uz compinit && compinit

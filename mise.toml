@@ -1,0 +1,42 @@
+[tools]
+# Go version
+go = "1.26"
+
+# Node.js/Bun
+bun = "1.3.14"
+
+# Rust is managed by system rustup, not via mise
+# rust = "stable"
+
+# Other useful tools
+jq = "latest"
+tmux = "latest"
+fzf = "latest"
+make = "latest"
+# git and wget: install via system package manager or aqua
+# aqua:git = "latest"
+# aqua:wget = "latest"
+
+# Task definitions for common operations
+[tasks]
+# General development
+dev = { run = "echo 'Development server started'" }
+build = { run = "echo 'Building project'" }
+test = { run = "echo 'Running tests'" }
+fmt = { run = "echo 'Formatting code'" }
+lint = { run = "echo 'Linting code'" }
+
+# Aliases not needed - tasks can be run directly as `mise dev`, `mise build`, etc.
+
+# Environment variables
+[env]
+# Enable Go modules
+GO111MODULE = "on"
+# Bun registry
+BUN_REGISTRY = "https://registry.npmjs.org"
+# Rust config (use default location)
+# CARGO_HOME = "/home/devuser/.cargo"
+# Bun install location (use default)
+# BUN_INSTALL = "/home/devuser/.bun"
+# Skatos config
+SKATOS_CONFIG_DIR = "/home/devuser/.config/skatos"
