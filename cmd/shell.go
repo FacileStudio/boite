@@ -32,7 +32,13 @@ func runShell(name string) error {
 		return err
 	}
 	fmt.Println("Connecting to VM... Exit with 'exit' or Ctrl+D.")
-	if err := runInteractive("multipass", "shell", name); err != nil {
+
+	shellArgs := []string{"multipass", "shell", name}
+	if _, err := RunCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
+		shellArgs = []string{"multipass", "exec", name, "--", "sudo", "-i", "-u", "boite"}
+	}
+
+	if err := runInteractive(shellArgs...); err != nil {
 		if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "Access denied") {
 			return fmt.Errorf("permission denied accessing VM '%s'. Try with sudo: sudo boite shell %s", name, name)
 		}

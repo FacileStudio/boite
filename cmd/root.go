@@ -90,35 +90,49 @@ packages:
   - build-essential
   - zsh
   - zsh-antigen
+  - neovim
+users:
+  - default
+  - name: boite
+    gecos: Boite
+    groups: [sudo, docker]
+    shell: /usr/bin/zsh
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    home: /home/boite
 runcmd:
   - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
   - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
-  - su - ubuntu -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
-  - su - ubuntu -c 'curl -fsSL https://bun.sh/install | bash'
-  - curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash
-  - git config --global init.defaultBranch main
-  - git config --global safe.directory '*'
-  - chsh -s /usr/bin/zsh ubuntu
+  - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+  - su - boite -c 'curl -fsSL https://bun.sh/install | bash'
+  - su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'
+  - su - boite -c 'git config --global init.defaultBranch main'
+  - su - boite -c 'git config --global safe.directory "*"'
   - >
-    su - ubuntu -c
+    su - boite -c
     'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" --unattended'
   - mkdir -p /workspace
-  - chown ubuntu:ubuntu /workspace
+  - chown -R boite:boite /workspace
   - |
     if [ -f /workspace/.zshrc_local ]; then
-      cp /workspace/.zshrc_local /home/ubuntu/.zshrc
-      chown ubuntu:ubuntu /home/ubuntu/.zshrc
+      cp /workspace/.zshrc_local /home/boite/.zshrc
+      chown boite:boite /home/boite/.zshrc
     else
-      cat > /home/ubuntu/.zshrc << 'INNER_EOF'
-export PATH="/usr/local/go/bin:/home/ubuntu/.cargo/bin:/usr/local/bin:$HOME/.bun/bin:$PATH"
+      cat > /home/boite/.zshrc << 'INNER_EOF'
+export PATH="/usr/local/go/bin:/home/boite/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
 eval "$(/usr/local/bin/mise activate zsh)"
 alias ll="ls -la"
 alias ls="ls --color=auto"
 alias grep="grep --color=auto"
 INNER_EOF
-      chown ubuntu:ubuntu /home/ubuntu/.zshrc
+      chown boite:boite /home/boite/.zshrc
     fi
-  - usermod -aG docker ubuntu
+  - "id boite >/dev/null 2>&1 && echo \x27exec sudo -i -u boite\x27 >> /home/ubuntu/.zshrc"
+  - echo 'if [ "$USER" = "ubuntu" ] && id boite >/dev/null 2>&1; then exec sudo -i -u boite; fi' >> /home/ubuntu/.bashrc
+  - mkdir -p /home/boite/.ssh
+  - test -f /home/ubuntu/.ssh/authorized_keys && cp /home/ubuntu/.ssh/authorized_keys /home/boite/.ssh/authorized_keys
+  - chown -R boite:boite /home/boite/.ssh
+  - chmod 700 /home/boite/.ssh
+  - test -f /home/boite/.ssh/authorized_keys && chmod 600 /home/boite/.ssh/authorized_keys
 `
 }
 

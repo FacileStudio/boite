@@ -31,7 +31,11 @@ var execCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		execArgs := append([]string{"multipass", "exec", name, "--"}, args[1:]...)
+		execPrefix := []string{"multipass", "exec", name, "--"}
+		if _, err := RunCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
+			execPrefix = append(execPrefix, "sudo", "-i", "-u", "boite")
+		}
+		execArgs := append(execPrefix, args[1:]...)
 		if err := runInteractive(execArgs...); err != nil {
 			if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "Access denied") {
 				fmt.Fprintf(os.Stderr, "Error: Permission denied accessing VM '%s'\n", name)

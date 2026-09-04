@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -12,7 +11,7 @@ import (
 
 var createCmd = &cobra.Command{
 	Use:   "create <name>",
-	Short: "Create a new development sandbox (VM)",
+	Short: "Create a new development sandbox",
 	Long: `Create a new development sandbox VM with development tools pre-installed.
 Use --no-mount to create a VM without mounting the current workspace.`,
 	Args: cobra.ExactArgs(1),
@@ -33,11 +32,6 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 			os.Exit(1)
 		}
 
-		currentUser, err := user.Current()
-		if err != nil {
-			currentUser = &user.User{Uid: "1000", Gid: "1000", Username: "devuser", HomeDir: "/home/devuser"}
-		}
-
 		output, err := RunCommand("multipass", "list")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error checking VMs: %v\n", err)
@@ -51,7 +45,7 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 		}
 
 		fmt.Printf("VM: %s\n", name)
-		fmt.Printf("User: %s\n", currentUser.Username)
+		fmt.Println("User: boite (/home/boite)")
 		if !noMount {
 			fmt.Printf("Workspace: /workspace\n")
 		}
@@ -135,9 +129,12 @@ func createNewVM(name string, noMount bool) {
 
 func syncWorkspaceZshrc(name string) {
 	cmdStr := "if [ -f /workspace/.zshrc_local ]; then " +
-		"cp /workspace/.zshrc_local /home/ubuntu/.zshrc && " +
-		"chown ubuntu:ubuntu /home/ubuntu/.zshrc; fi"
-	RunCommand("multipass", "exec", name, "--", "bash", "-c", cmdStr)
+		"if id boite >/dev/null 2>&1; then " +
+		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
+		"else " +
+		"cp /workspace/.zshrc_local /home/ubuntu/.zshrc && chown ubuntu:ubuntu /home/ubuntu/.zshrc; " +
+		"fi; fi"
+	RunCommand("multipass", "exec", name, "--", "sudo", "bash", "-c", cmdStr)
 }
 
 func init() {
