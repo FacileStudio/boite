@@ -18,7 +18,7 @@ const asciiBanner = `▄▄
 ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄ `
 
 var (
-	Version = "0.1.6"
+	Version = "0.1.7"
 	version = ""
 )
 var cfgFile string
@@ -86,81 +86,6 @@ func initConfig() error {
 	}
 
 	return nil
-}
-
-func defaultCloudInit() string {
-	return `#cloud-config
-apt:
-  sources:
-    docker.list:
-      source: https://download.docker.com/linux/ubuntu/gpg
-      keyid: 9DC858229FC7DD38854AE2D88D81807C1AAF0A5B
-packages:
-  - docker-ce
-  - docker-ce-cli
-  - containerd.io
-  - git
-  - curl
-  - unzip
-  - ca-certificates
-  - bash-completion
-  - fzf
-  - jq
-  - tmux
-  - wget
-  - make
-  - build-essential
-  - zsh
-  - zsh-antigen
-  - neovim
-users:
-  - default
-  - name: boite
-    gecos: Boite
-    groups: [sudo, docker]
-    shell: /usr/bin/zsh
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    home: /home/boite
-runcmd:
-  - chmod -x /etc/update-motd.d/* 2>/dev/null || true
-  - rm -f /etc/legal /etc/motd
-  - touch /home/boite/.hushlogin
-  - |
-    cat > /etc/motd << 'MOTD_EOF'
-    ▄▄
-    ██          ▀▀  ██
-    ████▄ ▄███▄ ██ ▀██▀▀ ▄█▀█▄
-    ██ ██ ██ ██ ██  ██   ██▄█▀
-    ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄
-
-    v0.1.6
-    MOTD_EOF
-  - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
-  - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
-  - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
-  - su - boite -c 'curl -fsSL https://bun.sh/install | bash'
-  - su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'
-  - su - boite -c 'git config --global init.defaultBranch main'
-  - su - boite -c 'git config --global safe.directory "*"'
-  - >
-    su - boite -c
-    'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" --unattended'
-  - mkdir -p /workspace
-  - chown -R boite:boite /workspace
-  - |
-    cat > /home/boite/.zshrc << 'EOF'
-    export PATH="/usr/local/go/bin:/home/boite/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
-    eval "$(/usr/local/bin/mise activate zsh)"
-    alias ll="ls -la"
-    alias ls="ls --color=auto"
-    alias grep="grep --color=auto"
-    EOF
-    chown boite:boite /home/boite/.zshrc
-  - mkdir -p /home/boite/.ssh
-  - chown -R boite:boite /home/boite/.ssh
-  - chmod 700 /home/boite/.ssh
-  - test -f /home/boite/.ssh/authorized_keys && chmod 600 /home/boite/.ssh/authorized_keys
-`
 }
 
 func createDefaultConfig(home string) error {
