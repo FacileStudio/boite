@@ -18,22 +18,25 @@ var listCmd = &cobra.Command{
 			fmt.Fprintln(os.Stderr, "Install: sudo snap install multipass")
 			os.Exit(1)
 		}
-
-		output, err := RunCommand("multipass", "list")
+		jsonOutput, err := runCommand("multipass", "list", "--format", "json")
 		if err != nil {
-			if strings.Contains(string(output), "permission denied") || strings.Contains(string(output), "Access denied") {
-				fmt.Fprintf(os.Stderr, "Error: Permission denied accessing Multipass\n\n")
-				fmt.Fprintln(os.Stderr, "Try with sudo:")
-				fmt.Fprintln(os.Stderr, "  sudo boite list")
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, "Or add your user to the multipass group:")
+			errText := strings.ToLower(string(jsonOutput))
+			if strings.Contains(errText, "permission denied") || strings.Contains(errText, "access denied") {
+				printError("Permission denied accessing Multipass")
+				printInfo("Add your user to the multipass group:")
 				fmt.Fprintln(os.Stderr, "  sudo usermod -aG multipass $USER")
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, "Error listing VMs: %v\n", err)
+			printError(fmt.Sprintf("Failed to list sandboxes: %v", err))
 			os.Exit(1)
 		}
-		fmt.Print(string(output))
+
+		if rendered, ok := renderInstanceTable(jsonOutput); ok {
+			fmt.Println(rendered)
+			return
+		}
+
+		fmt.Print(string(jsonOutput))
 	},
 }
 

@@ -17,26 +17,11 @@ make = "latest"
 # aqua:git = "latest"
 # aqua:wget = "latest"
 
-# Task definitions for common operations
 [tasks]
-# General development
-dev = { run = "echo 'Development server started'" }
-build = { run = "echo 'Building project'" }
-test = { run = "echo 'Running tests'" }
-fmt = { run = "echo 'Formatting code'" }
-lint = { run = "echo 'Linting code'" }
+build = { run = "go build -o boite ." }
+test = { run = "go test ./..." }
+check = { run = "sh scripts/check.sh" }
+fmt = { run = "sh scripts/check.sh --format" }
 
-# Aliases not needed - tasks can be run directly as `mise dev`, `mise build`, etc.
-
-# Environment variables
 [env]
-# Enable Go modules
 GO111MODULE = "on"
-# Bun registry
-BUN_REGISTRY = "https://registry.npmjs.org"
-# Rust config (use default location)
-# CARGO_HOME = "/home/devuser/.cargo"
-# Bun install location (use default)
-# BUN_INSTALL = "/home/devuser/.bun"
-# Skatos config
-SKATOS_CONFIG_DIR = "/home/devuser/.config/skatos"

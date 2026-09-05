@@ -38,27 +38,28 @@ Prerequisites:
 		copyCmd := exec.Command("cp", exePath, destPath)
 		output, err := copyCmd.CombinedOutput()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error installing boite: %v\n%s\n\n", err, string(output))
-			fmt.Fprintln(os.Stderr, "Try with sudo:")
-			fmt.Fprintf(os.Stderr, "  sudo %s install\n", exePath)
+			printError(fmt.Sprintf("Failed to install boite: %v\n%s", err, string(output)))
+			printInfo(fmt.Sprintf("If installing to /usr/local/bin, try: sudo %s install", exePath))
 			os.Exit(1)
 		}
 
 		execCmd := exec.Command("chmod", "+x", destPath)
 		if err := execCmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to chmod +x %s: %v\n", destPath, err)
+			printError(fmt.Sprintf("Failed to chmod +x %s: %v", destPath, err))
 		}
 
-		fmt.Printf("boite installed to %s\n", destPath)
-		fmt.Println("You can now run 'boite' from anywhere")
+		printSuccess(fmt.Sprintf("boite installed to %s", destPath))
+		printInfo("You can now run 'boite' from anywhere")
 
 		pathEnv := os.Getenv("PATH")
 		if !strings.Contains(pathEnv, installDir) {
-			fmt.Fprintf(os.Stderr, "\nNote: Add to your PATH:\n")
-			fmt.Fprintf(os.Stderr, "  export PATH=\"%s:$PATH\"\n", installDir)
-			fmt.Fprintln(os.Stderr, "Add this to your ~/.zshrc or ~/.bashrc")
+			printInfo(fmt.Sprintf("Add to your PATH: export PATH=\"%s:$PATH\"", installDir))
 		}
 	},
+}
+
+func isRoot() bool {
+	return os.Geteuid() == 0
 }
 
 func init() {

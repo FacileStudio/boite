@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 const asciiBanner = `▄▄
@@ -16,7 +17,10 @@ const asciiBanner = `▄▄
 ██ ██ ██ ██ ██  ██   ██▄█▀
 ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄ `
 
-var Version = "dev"
+var (
+	Version = "0.1.6"
+	version = ""
+)
 var cfgFile string
 
 var rootCmd = &cobra.Command{
@@ -46,12 +50,16 @@ func Execute() error {
 func versionString() string {
 	v := strings.TrimPrefix(Version, "v")
 	if v == "" || v == "dev" {
-		return "v0.1.4"
+		return Version
 	}
 	return "v" + v
 }
 
 func init() {
+	if version != "" {
+		Version = version
+	}
+	rootCmd.Version = Version
 	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.boite.yml)")
 }
@@ -77,7 +85,7 @@ func initConfig() error {
 		}
 	}
 
-	return ensureCloudInit(home)
+	return nil
 }
 
 func defaultCloudInit() string {
@@ -117,7 +125,6 @@ runcmd:
   - chmod -x /etc/update-motd.d/* 2>/dev/null || true
   - rm -f /etc/legal /etc/motd
   - touch /home/boite/.hushlogin
-  
   - |
     cat > /etc/motd << 'MOTD_EOF'
     ▄▄
@@ -141,23 +148,15 @@ runcmd:
   - mkdir -p /workspace
   - chown -R boite:boite /workspace
   - |
-    if [ -f /workspace/.zshrc_local ]; then
-      cp /workspace/.zshrc_local /home/boite/.zshrc
-      chown boite:boite /home/boite/.zshrc
-    else
-      cat > /home/boite/.zshrc << 'INNER_EOF'
-export PATH="/usr/local/go/bin:/home/boite/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
-eval "$(/usr/local/bin/mise activate zsh)"
-alias ll="ls -la"
-alias ls="ls --color=auto"
-alias grep="grep --color=auto"
-INNER_EOF
-      chown boite:boite /home/boite/.zshrc
-    fi
-  
-  
+    cat > /home/boite/.zshrc << 'EOF'
+    export PATH="/usr/local/go/bin:/home/boite/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
+    eval "$(/usr/local/bin/mise activate zsh)"
+    alias ll="ls -la"
+    alias ls="ls --color=auto"
+    alias grep="grep --color=auto"
+    EOF
+    chown boite:boite /home/boite/.zshrc
   - mkdir -p /home/boite/.ssh
-  
   - chown -R boite:boite /home/boite/.ssh
   - chmod 700 /home/boite/.ssh
   - test -f /home/boite/.ssh/authorized_keys && chmod 600 /home/boite/.ssh/authorized_keys
@@ -165,49 +164,77 @@ INNER_EOF
 }
 
 func createDefaultConfig(home string) error {
+	configPath := filepath.Join(home, ".boite.yml")
+	var cloudInitObj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(defaultCloudInit()), &cloudInitObj); err != nil {
+		return fmt.Errorf("failed to parse default cloud-init: %w", err)
+	}
 	defaultConfig := map[string]interface{}{
-		"cloud_init": defaultCloudInit(),
 		"vm": map[string]interface{}{
+			"cpus":   2,
 			"memory": "4G",
 			"disk":   "40G",
-			"cpus":   2,
 		},
+		"cloud_init": cloudInitObj,
 	}
-	for k, v := range defaultConfig {
-		viper.SetDefault(k, v)
+	data, err := yaml.Marshal(defaultConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal default config: %w", err)
 	}
-	configPath := filepath.Join(home, ".boite.yml")
-	if err := viper.WriteConfigAs(configPath); err != nil {
+	if err := os.WriteFile(configPath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write default config: %w", err)
 	}
-	fmt.Printf("Created default config at %s\n", configPath)
+	printSuccess(fmt.Sprintf("Created default config at %s", configPath))
 	return nil
 }
 
-func ensureCloudInit(home string) error {
-	cloudInitStr := viper.GetString("cloud_init")
-	if cloudInitStr == "" {
+func ensureCloudInit(home string) (string, error) {
+	var cloudInitStr string
+	val := viper.Get("cloud_init")
+	switch v := val.(type) {
+	case string:
+		cloudInitStr = v
+	case map[string]interface{}:
+		b, err := yaml.Marshal(v)
+		if err != nil {
+			cloudInitStr = defaultCloudInit()
+		} else {
+			cloudInitStr = "#cloud-config\n" + string(b)
+		}
+	case map[interface{}]interface{}:
+		b, err := yaml.Marshal(v)
+		if err != nil {
+			cloudInitStr = defaultCloudInit()
+		} else {
+			cloudInitStr = "#cloud-config\n" + string(b)
+		}
+	default:
 		legacyPath := filepath.Join(home, ".cloud-init.yml")
 		b, err := os.ReadFile(legacyPath)
 		if err != nil {
-			return fmt.Errorf("cloud_init not set in config and no legacy .cloud-init.yml found: %w", err)
+			cloudInitStr = defaultCloudInit()
+		} else {
+			cloudInitStr = string(b)
 		}
-		cloudInitStr = string(b)
 	}
 
-	cloudInitStr = strings.TrimLeft(cloudInitStr, "\n")
-	if !strings.HasSuffix(cloudInitStr, "\n") {
-		cloudInitStr += "\n"
+	cloudInitStr = strings.TrimSpace(cloudInitStr) + "\n"
+	if !strings.HasPrefix(cloudInitStr, "#cloud-config") {
+		cloudInitStr = "#cloud-config\n" + cloudInitStr
 	}
 
-	dataDir := filepath.Join(home, "boite")
+	var testNode yaml.Node
+	if err := yaml.Unmarshal([]byte(cloudInitStr), &testNode); err != nil {
+		cloudInitStr = defaultCloudInit()
+	}
+
+	dataDir := filepath.Join(home, ".boite")
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
-		return fmt.Errorf("failed to create data dir: %w", err)
+		return "", fmt.Errorf("failed to create data dir: %w", err)
 	}
 	cloudInitPath := filepath.Join(dataDir, "cloud-init.yml")
 	if err := os.WriteFile(cloudInitPath, []byte(cloudInitStr), 0o644); err != nil {
-		return fmt.Errorf("failed to write cloud-init to data file: %w", err)
+		return "", fmt.Errorf("failed to write cloud-init to data file: %w", err)
 	}
-	viper.Set("cloud_init_path", cloudInitPath)
-	return nil
+	return cloudInitPath, nil
 }

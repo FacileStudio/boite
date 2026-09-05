@@ -19,23 +19,23 @@ var stopCmd = &cobra.Command{
 		}
 
 		if err := checkCommand("multipass"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: multipass not found in PATH\n")
+			printError("multipass not found in PATH")
 			os.Exit(1)
 		}
 
-		err := Spinner(fmt.Sprintf("Stopping VM '%s'", name), func() error {
-			output, err := RunCommand("multipass", "stop", name)
+		err := spinner(fmt.Sprintf("Stopping sandbox '%s'", name), func() error {
+			output, err := runCommand("multipass", "stop", name)
 			if err != nil {
 				return fmt.Errorf("%v\n%s", err, string(output))
 			}
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error stopping VM: %v\n", err)
+			printError(fmt.Sprintf("Failed to stop sandbox '%s': %v", name, err))
 			os.Exit(1)
 		}
 
-		fmt.Printf("VM '%s' stopped\n", name)
+		printSuccess(fmt.Sprintf("Sandbox '%s' stopped", name))
 	},
 }
 

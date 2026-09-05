@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 func multipassPath() string {
@@ -25,8 +27,7 @@ func multipassPath() string {
 	return "multipass"
 }
 
-// RunCommand executes a command and returns its combined stdout and stderr.
-func RunCommand(args ...string) ([]byte, error) {
+func runCommand(args ...string) ([]byte, error) {
 	bin := args[0]
 	if bin == "multipass" {
 		bin = multipassPath()
@@ -53,15 +54,10 @@ func homeDir() string {
 	return home
 }
 
-func isRoot() bool {
-	return os.Geteuid() == 0
-}
-
-// Spinner displays an activity indicator while an action runs.
-func Spinner(action string, f func() error) error {
+func spinner(action string, f func() error) error {
 	done := make(chan bool)
 	go func() {
-		runes := []rune{'-', '\\', '|', '/'}
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 		i := 0
 		for {
 			select {
@@ -69,9 +65,10 @@ func Spinner(action string, f func() error) error {
 				fmt.Fprint(os.Stderr, "\r"+strings.Repeat(" ", len(action)+20)+"\r")
 				return
 			default:
-				fmt.Fprintf(os.Stderr, "\r%s %c", action, runes[i%len(runes)])
+				frame := lipgloss.NewStyle().Foreground(accentColor).Bold(true).Render(frames[i%len(frames)])
+				fmt.Fprintf(os.Stderr, "\r %s %s", frame, action)
 				i++
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(80 * time.Millisecond)
 			}
 		}
 	}()
@@ -97,7 +94,7 @@ func ensureVMRunning(name string) error {
 		return fmt.Errorf("multipass not found in PATH")
 	}
 
-	output, err := RunCommand("multipass", "info", name)
+	output, err := runCommand("multipass", "info", name)
 	if err != nil {
 		if strings.Contains(string(output), "not found") || strings.Contains(string(output), "no instance named") {
 			return fmt.Errorf("VM '%s' not found. Create it first: boite create %s", name, name)
@@ -107,9 +104,18 @@ func ensureVMRunning(name string) error {
 
 	if !strings.Contains(string(output), "Status: Running") {
 		fmt.Printf("VM '%s' is not running, starting...\n", name)
-		if _, err := RunCommand("multipass", "start", name); err != nil {
+		if _, err := runCommand("multipass", "start", name); err != nil {
 			return fmt.Errorf("starting VM: %w", err)
 		}
 	}
 	return nil
+}
+
+func syncWorkspaceZshrc(name string) {
+	check := "[ -f /workspace/.zshrc_local ] && echo exists || echo missing"
+	output, _ := runCommand("multipass", "exec", name, "--", "bash", "-c", check)
+	if strings.TrimSpace(string(output)) == "exists" {
+		cmdStr := "cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc"
+		runCommand("multipass", "exec", name, "--", "sudo", "bash", "-c", cmdStr)
+	}
 }

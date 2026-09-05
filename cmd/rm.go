@@ -20,25 +20,25 @@ var rmCmd = &cobra.Command{
 		}
 
 		if err := checkCommand("multipass"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: multipass not found in PATH\n")
+			printError("multipass not found in PATH")
 			os.Exit(1)
 		}
 
-		RunCommand("multipass", "stop", name)
+		runCommand("multipass", "stop", name)
 
-		err := Spinner(fmt.Sprintf("Removing VM '%s'", name), func() error {
-			output, err := RunCommand("multipass", "delete", "--purge", name)
+		err := spinner(fmt.Sprintf("Removing sandbox '%s'", name), func() error {
+			output, err := runCommand("multipass", "delete", "--purge", name)
 			if err != nil {
 				return fmt.Errorf("%v\n%s", err, string(output))
 			}
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error removing VM: %v\n", err)
+			printError(fmt.Sprintf("Failed to remove sandbox '%s': %v", name, err))
 			os.Exit(1)
 		}
 
-		fmt.Printf("VM '%s' removed\n", name)
+		printSuccess(fmt.Sprintf("Sandbox '%s' removed", name))
 	},
 }
 

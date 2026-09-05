@@ -32,7 +32,7 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 			os.Exit(1)
 		}
 
-		output, err := RunCommand("multipass", "list")
+		output, err := runCommand("multipass", "list")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error checking VMs: %v\n", err)
 			os.Exit(1)
@@ -43,26 +43,20 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 		} else {
 			createNewVM(name, noMount)
 		}
-
-		fmt.Printf("VM: %s\n", name)
-		fmt.Println("User: boite (/home/boite)")
-		if !noMount {
-			fmt.Printf("Workspace: /workspace\n")
-		}
-		fmt.Println("To access the VM, run: boite shell", name)
 	},
 }
 
 func startExistingVM(name string) {
-	err := Spinner(fmt.Sprintf("Starting VM '%s'", name), func() error {
-		_, err := RunCommand("multipass", "start", name)
+	err := spinner(fmt.Sprintf("Starting sandbox '%s'", name), func() error {
+		_, err := runCommand("multipass", "start", name)
 		return err
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error starting VM: %v\n", err)
+		printError(fmt.Sprintf("Failed to start sandbox '%s': %v", name, err))
 		os.Exit(1)
 	}
-	fmt.Printf("VM '%s' started\n", name)
+	printSuccess(fmt.Sprintf("Sandbox '%s' started", name))
+	printInfo(fmt.Sprintf("Connect: boite shell %s", name))
 }
 
 func vmLaunchArgs(name, cloudInitPath, workspacePath string, noMount bool) []string {
@@ -95,27 +89,24 @@ func vmLaunchArgs(name, cloudInitPath, workspacePath string, noMount bool) []str
 
 func createNewVM(name string, noMount bool) {
 	workspacePath, _ := os.Getwd()
-	cloudInitPath := viper.GetString("cloud_init_path")
-	if cloudInitPath == "" {
-		fmt.Fprintln(os.Stderr, "Error: cloud_init_path not set in config")
+	cloudInitPath, err := ensureCloudInit(homeDir())
+	if err != nil {
+		printError(fmt.Sprintf("Error preparing cloud-init: %v", err))
 		os.Exit(1)
 	}
 
-	fmt.Printf("Creating VM '%s'...\n", name)
-	fmt.Println("This may take a few minutes to provision...")
-	fmt.Println("=== Cloud-init output ===")
+	printInfo(fmt.Sprintf("Creating sandbox '%s'...", name))
+	printInfo("Provisioning environment via cloud-init...")
 
 	launchArgs := vmLaunchArgs(name, cloudInitPath, workspacePath, noMount)
-	err := runInteractive(append([]string{"multipass", "launch"}, launchArgs...)...)
-	fmt.Println("=== End cloud-init output ===")
+	err = runInteractive(append([]string{"multipass", "launch"}, launchArgs...)...)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating VM: %v\n\n", err)
-		fmt.Fprintln(os.Stderr, "Try with sudo:")
-		fmt.Fprintf(os.Stderr, "  sudo multipass launch 24.04 --name %s --cloud-init %s", name, cloudInitPath)
-		if !noMount {
-			fmt.Fprintf(os.Stderr, " --mount %s:/workspace", workspacePath)
+		printError(fmt.Sprintf("Failed to create sandbox '%s': %v", name, err))
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "permission denied") || strings.Contains(errStr, "access denied") {
+			printInfo("Permission denied accessing Multipass. Try adding your user to the multipass group:")
+			fmt.Fprintf(os.Stderr, "  sudo usermod -aG multipass $USER\n")
 		}
-		fmt.Fprintln(os.Stderr)
 		os.Exit(1)
 	}
 
@@ -123,15 +114,8 @@ func createNewVM(name string, noMount bool) {
 		syncWorkspaceZshrc(name)
 	}
 
-	fmt.Printf("VM '%s' created and started\n", name)
-}
-
-func syncWorkspaceZshrc(name string) {
-	cmdStr := "if [ -f /workspace/.zshrc_local ]; then " +
-		"if id boite >/dev/null 2>&1; then " +
-		"cp /workspace/.zshrc_local /home/boite/.zshrc && chown boite:boite /home/boite/.zshrc; " +
-		"fi; fi"
-	RunCommand("multipass", "exec", name, "--", "sudo", "bash", "-c", cmdStr)
+	fmt.Println()
+	fmt.Println(renderSandboxCard(name, workspacePath, noMount))
 }
 
 func init() {

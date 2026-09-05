@@ -15,19 +15,20 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		if err := checkCommand("multipass"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: multipass not found in PATH\n")
+			printError("multipass not found in PATH")
 			os.Exit(1)
 		}
 
-		err := Spinner(fmt.Sprintf("Starting VM '%s'", name), func() error {
-			_, err := RunCommand("multipass", "start", name)
+		err := spinner(fmt.Sprintf("Starting sandbox '%s'", name), func() error {
+			_, err := runCommand("multipass", "start", name)
 			return err
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error starting VM: %v\n", err)
+			printError(fmt.Sprintf("Failed to start sandbox '%s': %v", name, err))
 			os.Exit(1)
 		}
-		fmt.Printf("VM '%s' started\n", name)
+		printSuccess(fmt.Sprintf("Sandbox '%s' started", name))
+		printInfo(fmt.Sprintf("Connect: boite shell %s", name))
 	},
 }
 

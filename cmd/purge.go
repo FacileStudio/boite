@@ -15,20 +15,20 @@ This action cannot be undone. It purges every VM that is in the 'Deleted' state.
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkCommand("multipass"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: multipass not found in PATH\n")
+			printError("multipass not found in PATH")
 			os.Exit(1)
 		}
 
 		if err := runPurge(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error purging deleted VMs: %v\n", err)
+			printError(fmt.Sprintf("Failed to purge deleted sandboxes: %v", err))
 			os.Exit(1)
 		}
-		fmt.Println("All deleted VMs have been purged")
+		printSuccess("All deleted sandbox VMs have been purged")
 	},
 }
 
 func runPurge() error {
-	_, err := RunCommand("multipass", "purge")
+	_, err := runCommand("multipass", "purge")
 	return err
 }
 

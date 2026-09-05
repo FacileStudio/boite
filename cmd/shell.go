@@ -32,11 +32,12 @@ func runShell(name string) error {
 		return err
 	}
 
-	fmt.Println(asciiBanner)
-	fmt.Printf("%s\n\n", versionString())
+	syncWorkspaceZshrc(name)
+
+	fmt.Println(styleBanner(asciiBanner, versionString()))
 
 	shellArgs := []string{"multipass", "shell", name}
-	if _, err := RunCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
+	if _, err := runCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
 		shellArgs = []string{"multipass", "exec", name, "--", "sudo", "-i", "-u", "boite"}
 	}
 

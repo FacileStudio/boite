@@ -1,6 +1,8 @@
 boite
 bin/
 dist/
+tmp/
+.filet/
 *.log
 .DS_Store
 cloud-init-debug.yml
