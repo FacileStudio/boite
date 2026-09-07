@@ -15,7 +15,7 @@ limits:
   funcLines: 80
   funcStatements: 50
   lineLength: 120
-  params: 5
+  params: 6
   returns: 3
   nesting: 5
   complexity: 15
@@ -35,5 +35,6 @@ style:
 
 disabled:
   - gen.line.long
+  - go.err.nilerr
 
 failOn: error

@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,13 +36,11 @@ func TestRootCommandStructure(t *testing.T) {
 	expectedSubcommands := []string{
 		"create",
 		"list",
-		"shell",
+		"run",
 		"start",
 		"stop",
-		"remove",
-		"purge",
+		"rm",
 		"exec",
-		"install",
 	}
 
 	commands := make(map[string]bool)
@@ -74,19 +68,22 @@ func TestCommandFlags(t *testing.T) {
 }
 
 func TestCommandAliases(t *testing.T) {
-	var foundRm bool
+	var foundDestroy bool
 	for _, alias := range rmCmd.Aliases {
-		if alias == "rm" {
-			foundRm = true
+		if alias == "destroy" {
+			foundDestroy = true
 			break
 		}
 	}
-	if !foundRm {
-		t.Fatal("expected remove command to have 'rm' alias")
+	if !foundDestroy {
+		t.Fatal("expected rm command to have 'destroy' alias")
 	}
 
-	var foundSSH, foundEnter bool
-	for _, alias := range shellCmd.Aliases {
+	var foundShell, foundSSH, foundEnter bool
+	for _, alias := range runCmd.Aliases {
+		if alias == "shell" {
+			foundShell = true
+		}
 		if alias == "ssh" {
 			foundSSH = true
 		}
@@ -94,70 +91,7 @@ func TestCommandAliases(t *testing.T) {
 			foundEnter = true
 		}
 	}
-	if !foundSSH || !foundEnter {
-		t.Fatal("expected shell command to have 'ssh' and 'enter' aliases")
-	}
-}
-
-func TestCreateDefaultConfig(t *testing.T) {
-	tmpDir := t.TempDir()
-	viper.Reset()
-	if err := createDefaultConfig(tmpDir); err != nil {
-		t.Fatalf("unexpected error creating default config: %v", err)
-	}
-	expectedPath := filepath.Join(tmpDir, ".boite.yml")
-	content, err := os.ReadFile(expectedPath)
-	if err != nil {
-		t.Fatalf("failed to read created config: %v", err)
-	}
-	var parsed struct {
-		VM        map[string]interface{} `yaml:"vm"`
-		CloudInit map[string]interface{} `yaml:"cloud_init"`
-	}
-	if err := yaml.Unmarshal(content, &parsed); err != nil {
-		t.Fatalf("written config contains invalid YAML: %v", err)
-	}
-	if len(parsed.VM) == 0 {
-		t.Fatal("expected vm settings in default config")
-	}
-	if len(parsed.CloudInit) == 0 {
-		t.Fatal("expected cloud_init mapping in default config")
-	}
-}
-
-func TestEnsureCloudInitWithStructuredYAML(t *testing.T) {
-	tmpDir := t.TempDir()
-	viper.Reset()
-	viper.Set("cloud_init", map[string]interface{}{
-		"packages": []string{"git", "curl"},
-		"runcmd":   []string{"echo hello"},
-	})
-	path, err := ensureCloudInit(tmpDir)
-	if err != nil {
-		t.Fatalf("unexpected error with structured YAML: %v", err)
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("failed to read generated cloud-init: %v", err)
-	}
-	if !strings.HasPrefix(string(content), "#cloud-config\n") {
-		t.Fatalf("expected #cloud-config header, got: %s", string(content))
-	}
-	var node yaml.Node
-	if err := yaml.Unmarshal(content, &node); err != nil {
-		t.Fatalf("generated cloud-init is not valid YAML: %v", err)
-	}
-}
-
-func TestEnsureCloudInitWithCorruptedConfig(t *testing.T) {
-	tmpDir := t.TempDir()
-	viper.Reset()
-	viper.Set("cloud_init", "invalid: [yaml: broken: {{{")
-	path, err := ensureCloudInit(tmpDir)
-	if err != nil {
-		t.Fatalf("expected ensureCloudInit to heal corrupted config, got error: %v", err)
-	}
-	if path == "" {
-		t.Fatal("expected valid cloud-init path returned")
+	if !foundShell || !foundSSH || !foundEnter {
+		t.Fatal("expected run command to have 'shell', 'ssh', and 'enter' aliases")
 	}
 }

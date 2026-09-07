@@ -11,14 +11,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const asciiBanner = `▄▄
-██          ▀▀  ██
-████▄ ▄███▄ ██ ▀██▀▀ ▄█▀█▄
-██ ██ ██ ██ ██  ██   ██▄█▀
-████▀ ▀███▀ ██▄ ██   ▀█▄▄▄ `
+const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄
+██▄██ ██▀██ ██   ██   ██▄▄  
+██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
-	Version = "0.1.7"
+	Version = "0.1.8"
 	version = ""
 )
 var cfgFile string
@@ -26,12 +24,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "boite",
 	Short: "Development sandbox manager",
-	Long: `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.
-
-Requires: Multipass (https://multipass.run/) — install via:
-  Ubuntu: sudo snap install multipass
-  macOS:  brew install --cask multipass
-  Windows: winget install Canonical.Multipass`,
+	Long: `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
 	Version: Version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initConfig()
@@ -52,7 +45,7 @@ func versionString() string {
 	if v == "" || v == "dev" {
 		return Version
 	}
-	return "v" + v
+	return v
 }
 
 func init() {
@@ -111,55 +104,4 @@ func createDefaultConfig(home string) error {
 	}
 	printSuccess(fmt.Sprintf("Created default config at %s", configPath))
 	return nil
-}
-
-func ensureCloudInit(home string) (string, error) {
-	var cloudInitStr string
-	val := viper.Get("cloud_init")
-	switch v := val.(type) {
-	case string:
-		cloudInitStr = v
-	case map[string]interface{}:
-		b, err := yaml.Marshal(v)
-		if err != nil {
-			cloudInitStr = defaultCloudInit()
-		} else {
-			cloudInitStr = "#cloud-config\n" + string(b)
-		}
-	case map[interface{}]interface{}:
-		b, err := yaml.Marshal(v)
-		if err != nil {
-			cloudInitStr = defaultCloudInit()
-		} else {
-			cloudInitStr = "#cloud-config\n" + string(b)
-		}
-	default:
-		legacyPath := filepath.Join(home, ".cloud-init.yml")
-		b, err := os.ReadFile(legacyPath)
-		if err != nil {
-			cloudInitStr = defaultCloudInit()
-		} else {
-			cloudInitStr = string(b)
-		}
-	}
-
-	cloudInitStr = strings.TrimSpace(cloudInitStr) + "\n"
-	if !strings.HasPrefix(cloudInitStr, "#cloud-config") {
-		cloudInitStr = "#cloud-config\n" + cloudInitStr
-	}
-
-	var testNode yaml.Node
-	if err := yaml.Unmarshal([]byte(cloudInitStr), &testNode); err != nil {
-		cloudInitStr = defaultCloudInit()
-	}
-
-	dataDir := filepath.Join(home, ".boite")
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
-		return "", fmt.Errorf("failed to create data dir: %w", err)
-	}
-	cloudInitPath := filepath.Join(dataDir, "cloud-init.yml")
-	if err := os.WriteFile(cloudInitPath, []byte(cloudInitStr), 0o644); err != nil {
-		return "", fmt.Errorf("failed to write cloud-init to data file: %w", err)
-	}
-	return cloudInitPath, nil
 }
