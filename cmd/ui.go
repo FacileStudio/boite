@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 )
@@ -33,16 +33,18 @@ func printError(msg string) {
 }
 
 func printInfo(msg string) {
-	fmt.Fprintf(os.Stderr, "%s %s\n", infoIcon, msg)
+	fmt.Printf("%s %s\n", infoIcon, msg)
 }
 
-func styleBanner(banner, version string) string {
-	b := lipgloss.NewStyle().Foreground(primaryColor).Bold(true).Render(banner)
-	v := lipgloss.NewStyle().Foreground(subtleColor).Render(version)
-	return fmt.Sprintf("%s\n%s\n", b, v)
+func styleBanner(ascii string, version string) string {
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#7D56F4")).
+		Padding(0, 1).
+		Render(ascii + " v" + version)
 }
 
-func renderSandboxCard(name, workspace string, noMount bool) string {
+func renderSandboxCard(name, workspace string, noMount bool, sshPort int) string {
 	titleStyle := lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
 	labelStyle := lipgloss.NewStyle().Foreground(accentColor)
 	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#F3F4F6"))
@@ -53,6 +55,7 @@ func renderSandboxCard(name, workspace string, noMount bool) string {
 		"",
 		fmt.Sprintf("%s  %s", labelStyle.Render("VM:       "), valueStyle.Render(name)),
 		fmt.Sprintf("%s  %s", labelStyle.Render("User:     "), valueStyle.Render("boite (/home/boite)")),
+		fmt.Sprintf("%s  %s", labelStyle.Render("SSH Port: "), valueStyle.Render(fmt.Sprintf("%d", sshPort))),
 	}
 
 	if !noMount {
@@ -62,7 +65,7 @@ func renderSandboxCard(name, workspace string, noMount bool) string {
 
 	lines = append(lines,
 		"",
-		fmt.Sprintf("%s  %s", labelStyle.Render("Connect:  "), cmdStyle.Render("boite shell "+name)),
+		fmt.Sprintf("%s  %s", labelStyle.Render("Connect:  "), cmdStyle.Render("boite run "+name)),
 	)
 
 	content := strings.Join(lines, "\n")
@@ -73,22 +76,8 @@ func renderSandboxCard(name, workspace string, noMount bool) string {
 		Render(content)
 }
 
-type multipassListResponse struct {
-	List []struct {
-		Name    string   `json:"name"`
-		State   string   `json:"state"`
-		IPv4    []string `json:"ipv4"`
-		Release string   `json:"release"`
-	} `json:"list"`
-}
-
-func renderInstanceTable(rawJSON []byte) (string, bool) {
-	var resp multipassListResponse
-	if err := json.Unmarshal(rawJSON, &resp); err != nil {
-		return "", false
-	}
-
-	if len(resp.List) == 0 {
+func renderInstanceTableQEMU(instances []*qemu.Instance) string {
+	if len(instances) == 0 {
 		emptyCard := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor).
@@ -97,39 +86,32 @@ func renderInstanceTable(rawJSON []byte) (string, bool) {
 				lipgloss.NewStyle().Foreground(subtleColor).Render("No sandbox instances found."),
 				lipgloss.NewStyle().Foreground(accentColor).Render("Run 'boite create <name>' to launch one."),
 			))
-		return emptyCard, true
+		return emptyCard
 	}
 
 	t := table.New().
 		Border(lipgloss.RoundedBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(borderColor)).
-		Headers("NAME", "STATE", "IPV4", "RELEASE")
+		Headers("NAME", "STATUS", "SSH PORT", "CREATED")
 
-	for _, item := range resp.List {
+	for _, inst := range instances {
 		var stateStyled string
-		switch strings.ToLower(item.State) {
+		switch inst.Status {
 		case "running":
-			stateStyled = lipgloss.NewStyle().Foreground(successColor).Bold(true).Render(item.State)
+			stateStyled = lipgloss.NewStyle().Foreground(successColor).Bold(true).Render(inst.Status)
 		case "stopped":
-			stateStyled = lipgloss.NewStyle().Foreground(subtleColor).Render(item.State)
-		case "deleted":
-			stateStyled = lipgloss.NewStyle().Foreground(errColor).Render(item.State)
+			stateStyled = lipgloss.NewStyle().Foreground(subtleColor).Render(inst.Status)
 		default:
-			stateStyled = lipgloss.NewStyle().Foreground(warnColor).Render(item.State)
-		}
-
-		ip := "-"
-		if len(item.IPv4) > 0 {
-			ip = strings.Join(item.IPv4, ", ")
+			stateStyled = lipgloss.NewStyle().Foreground(warnColor).Render(inst.Status)
 		}
 
 		t.Row(
-			lipgloss.NewStyle().Foreground(primaryColor).Bold(true).Render(item.Name),
+			lipgloss.NewStyle().Foreground(primaryColor).Bold(true).Render(inst.Name),
 			stateStyled,
-			lipgloss.NewStyle().Foreground(accentColor).Render(ip),
-			lipgloss.NewStyle().Foreground(subtleColor).Render(item.Release),
+			lipgloss.NewStyle().Foreground(accentColor).Render(fmt.Sprintf("%d", inst.SSHPort)),
+			lipgloss.NewStyle().Foreground(subtleColor).Render(inst.CreatedAt.Format("2006-01-02 15:04")),
 		)
 	}
 
-	return t.Render(), true
+	return t.Render()
 }

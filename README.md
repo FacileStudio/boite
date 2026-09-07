@@ -25,10 +25,10 @@ go build -o boite .
 
 ## Prerequisites
 
-Multipass (https://multipass.run/):
-- Ubuntu: `sudo snap install multipass`
-- macOS: `brew install --cask multipass`
-- Windows: `winget install Canonical.Multipass`
+QEMU with libvirt and cloud-init are required for VM-based sandboxes.
+
+- Ubuntu/Debian: `sudo apt install qemu-kvm libvirt-daemon-system cloud-init`
+- See [QEMU website](https://qemu.org) for other platforms.
 
 ## Usage
 
@@ -63,12 +63,11 @@ boite purge
 | Command | Description |
 |---------|-------------|
 | `create <name>` | Create a new sandbox VM |
-| `shell [name]` | Open interactive shell in sandbox VM |
-| `exec [name] [cmd...]` | Execute command or shell in sandbox VM |
+| `exec <name> [cmd...]` | Execute command or shell in sandbox VM |
 | `list` | List all sandboxes |
 | `start <name>` | Start sandbox VM |
-| `stop [name]` | Stop sandbox VM (preserves data) |
-| `remove [name]` | Remove sandbox VM permanently |
+| `stop <name>` | Stop sandbox VM (preserves data) |
+| `rm <name>` | Remove sandbox VM permanently |
 | `purge` | Purge all deleted sandbox VMs |
 | `install` | Install boite to system PATH |
 

@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
 
@@ -13,30 +13,12 @@ var listCmd = &cobra.Command{
 	Short: "List all development sandboxes",
 	Long:  `List all development sandboxes managed by boite.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := checkCommand("multipass"); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: multipass not found in PATH\n")
-			fmt.Fprintln(os.Stderr, "Install: sudo snap install multipass")
-			os.Exit(1)
-		}
-		jsonOutput, err := runCommand("multipass", "list", "--format", "json")
+		instances, err := qemu.ListInstances()
 		if err != nil {
-			errText := strings.ToLower(string(jsonOutput))
-			if strings.Contains(errText, "permission denied") || strings.Contains(errText, "access denied") {
-				printError("Permission denied accessing Multipass")
-				printInfo("Add your user to the multipass group:")
-				fmt.Fprintln(os.Stderr, "  sudo usermod -aG multipass $USER")
-				os.Exit(1)
-			}
-			printError(fmt.Sprintf("Failed to list sandboxes: %v", err))
+			fmt.Fprintf(os.Stderr, "Error: failed to list sandboxes: %v\n", err)
 			os.Exit(1)
 		}
-
-		if rendered, ok := renderInstanceTable(jsonOutput); ok {
-			fmt.Println(rendered)
-			return
-		}
-
-		fmt.Print(string(jsonOutput))
+		fmt.Print(renderInstanceTableQEMU(instances))
 	},
 }
 

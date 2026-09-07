@@ -3,45 +3,32 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
 
 var execCmd = &cobra.Command{
-	Use:   "exec [name] [command...]",
-	Short: "Execute a command in the sandbox VM",
-	Long:  `Execute a command or open an interactive shell in the specified sandbox VM.`,
+	Use:   "exec <name> <command...>",
+	Short: "Execute a command in a running sandbox",
+	Long:  `Execute a command in the specified sandbox VM via SSH.`,
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		name := "dev-box"
-		if len(args) > 0 {
-			name = args[0]
-		}
-
-		if len(args) <= 1 {
-			if err := runShell(name); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		}
-
-		if err := ensureVMRunning(name); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		name := args[0]
+		inst, err := qemu.LoadInstanceState(name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: instance '%s' not found. Create it first with 'boite create %s'\n", name, name)
 			os.Exit(1)
 		}
 
-		execPrefix := []string{"multipass", "exec", name, "--"}
-		if _, err := runCommand("multipass", "exec", name, "--", "id", "boite"); err == nil {
-			execPrefix = append(execPrefix, "sudo", "-i", "-u", "boite")
+		if inst.PID == 0 {
+			fmt.Fprintf(os.Stderr, "Error: sandbox '%s' is not running\n", name)
+			os.Exit(1)
 		}
-		execArgs := append(execPrefix, args[1:]...)
-		if err := runInteractive(execArgs...); err != nil {
-			if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "Access denied") {
-				printError(fmt.Sprintf("Permission denied accessing VM '%s'", name))
-			} else {
-				printError(fmt.Sprintf("Failed to execute command: %v", err))
-			}
+
+		command := args[1:]
+		if err := qemu.SSHCommand(inst, command); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: command execution failed: %v\n", err)
 			os.Exit(1)
 		}
 	},

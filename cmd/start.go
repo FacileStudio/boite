@@ -4,31 +4,24 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
 
 var startCmd = &cobra.Command{
 	Use:   "start <name>",
-	Short: "Start a development sandbox VM",
-	Long:  `Start a previously created or stopped sandbox VM.`,
+	Short: "Start an existing sandbox",
+	Long:  `Start a previously created sandbox VM.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		if err := checkCommand("multipass"); err != nil {
-			printError("multipass not found in PATH")
-			os.Exit(1)
-		}
-
-		err := spinner(fmt.Sprintf("Starting sandbox '%s'", name), func() error {
-			_, err := runCommand("multipass", "start", name)
-			return err
-		})
+		_, err := qemu.Start(name)
 		if err != nil {
-			printError(fmt.Sprintf("Failed to start sandbox '%s': %v", name, err))
+			fmt.Fprintf(os.Stderr, "Error: failed to start sandbox '%s': %v\n", name, err)
 			os.Exit(1)
 		}
 		printSuccess(fmt.Sprintf("Sandbox '%s' started", name))
-		printInfo(fmt.Sprintf("Connect: boite shell %s", name))
+		printInfo(fmt.Sprintf("Connect: boite run %s", name))
 	},
 }
 

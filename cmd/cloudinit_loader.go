@@ -4,7 +4,7 @@ import (
 	_ "embed"
 )
 
-//go:embed cloud-init.default.yml
+//go:embed cloudinit.yml
 var defaultCloudInitYAML string
 
 func defaultCloudInit() string {
