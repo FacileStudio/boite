@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/FacileStudio/boite/cmd/qemu"
 )
 
 func TestHomeDir(t *testing.T) {
@@ -19,7 +21,7 @@ func TestCheckCommand(t *testing.T) {
 }
 
 func TestDefaultCloudInit(t *testing.T) {
-	cfg := defaultCloudInit()
+	cfg := qemu.DefaultCloudInitYAML()
 	if len(cfg) == 0 {
 		t.Fatal("expected non-empty cloud-init config")
 	}

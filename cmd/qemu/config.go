@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,12 +9,30 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+//go:embed cloudinit.yml
+var defaultCloudInitYAML string
+
+// DefaultCloudInitYAML returns the embedded default cloud-init YAML content
+func DefaultCloudInitYAML() string {
+	return defaultCloudInitYAML
+}
+
+// WriteFileConfig represents a write_files entry in cloud-init
+type WriteFileConfig struct {
+	Path        string `yaml:"path"`
+	Content     string `yaml:"content"`
+	Owner       string `yaml:"owner,omitempty"`
+	Permissions string `yaml:"permissions,omitempty"`
+	Encoding    string `yaml:"encoding,omitempty"`
+}
+
 // CloudInitConfig represents the cloud_init section of ~/.boite.yml
 type CloudInitConfig struct {
-	APT      *APTConfig     `yaml:"apt"`
-	Packages []string       `yaml:"packages"`
-	Runcmd   []interface{}  `yaml:"runcmd"`
-	Users    []UserConfig   `yaml:"users"`
+	APT        *APTConfig       `yaml:"apt"`
+	Packages   []string         `yaml:"packages"`
+	Runcmd     []any            `yaml:"runcmd"`
+	Users      []UserConfig     `yaml:"users"`
+	WriteFiles []WriteFileConfig `yaml:"write_files"`
 }
 
 // APTConfig represents the apt sources configuration
@@ -40,9 +59,10 @@ type UserConfig struct {
 
 // VMConfig represents the vm section of ~/.boite.yml
 type VMConfig struct {
-	CPUs   int    `yaml:"cpus"`
-	Disk   string `yaml:"disk"`
-	Memory string `yaml:"memory"`
+	CPUs          int    `yaml:"cpus"`
+	Disk          string `yaml:"disk"`
+	Memory        string `yaml:"memory"`
+	SSHKeyPassphrase string `yaml:"ssh_key_passphrase"`
 }
 
 // BoiteConfig represents the full ~/.boite.yml structure
@@ -81,108 +101,114 @@ func LoadBoiteConfig() (*BoiteConfig, error) {
 
 // MergeCloudInitConfig merges the user's config with the defaults
 func MergeCloudInitConfig(userCfg *BoiteConfig) *CloudInitConfig {
-	defaults := defaultCloudInitConfig()
-
 	if userCfg == nil || userCfg.CloudInit == nil {
-		return defaults
+		defaultCfg, err := defaultCloudInitConfig()
+		if err != nil {
+			return &CloudInitConfig{}
+		}
+		return defaultCfg
 	}
 
-	// Start fresh: user config overrides defaults, no duplication
+	defaults, err := defaultCloudInitConfig()
+	if err != nil {
+		return userCfg.CloudInit
+	}
+
+	users := mergeUsers(defaults.Users, userCfg.CloudInit.Users)
+	for i, user := range users {
+		if user.Name == "boite" {
+			users[i].SSHAuthorizedKeys = findAuthorizedKeys(userCfg, "boite")
+		}
+	}
+
 	merged := &CloudInitConfig{
-		Packages:  []string{},
-		Runcmd:    []interface{}{},
-		Users:     []UserConfig{},
-		APT:       userCfg.CloudInit.APT,
-	}
-
-	// Packages: defaults first, then user adds new ones (deduplicated)
-	seenPkgs := make(map[string]bool)
-	for _, p := range defaults.Packages {
-		seenPkgs[p] = true
-		merged.Packages = append(merged.Packages, p)
-	}
-	for _, p := range userCfg.CloudInit.Packages {
-		if !seenPkgs[p] {
-			seenPkgs[p] = true
-			merged.Packages = append(merged.Packages, p)
-		}
-	}
-
-	// Runcmd: defaults first, then user commands (no dedup since order matters)
-	merged.Runcmd = append(merged.Runcmd, defaults.Runcmd...)
-	merged.Runcmd = append(merged.Runcmd, userCfg.CloudInit.Runcmd...)
-
-	// Users: merge by name, user config overrides default if same name
-	seenUsers := make(map[string]bool)
-	for _, u := range defaults.Users {
-		seenUsers[u.Name] = true
-		merged.Users = append(merged.Users, u)
-	}
-	for _, u := range userCfg.CloudInit.Users {
-		if seenUsers[u.Name] {
-			// Replace existing user
-			for i, mu := range merged.Users {
-				if mu.Name == u.Name {
-					merged.Users[i] = u
-					break
-				}
-			}
-		} else {
-			seenUsers[u.Name] = true
-			merged.Users = append(merged.Users, u)
-		}
+		APT:        userCfg.CloudInit.APT,
+		Packages:   mergePackages(defaults.Packages, userCfg.CloudInit.Packages),
+		Runcmd:     mergeRuncmd(defaults.Runcmd, userCfg.CloudInit.Runcmd),
+		Users:      users,
+		WriteFiles: mergeWriteFiles(defaults.WriteFiles, userCfg.CloudInit.WriteFiles),
 	}
 
 	return merged
 }
 
-// defaultCloudInitConfig returns the default cloud-init configuration
-func defaultCloudInitConfig() *CloudInitConfig {
-	return &CloudInitConfig{
-		Packages: []string{
-			"git",
-			"curl",
-			"unzip",
-			"ca-certificates",
-			"bash-completion",
-			"fzf",
-			"jq",
-			"tmux",
-			"wget",
-			"make",
-			"build-essential",
-			"zsh",
-			"neovim",
-			"qemu-guest-agent",
-		},
-		Runcmd: []interface{}{
-			"rm -f /etc/legal /etc/motd",
-			"touch /home/boite/.hushlogin",
-			"curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh",
-			"curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -",
-			"su - boite -c 'curl --proto \"=https\" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'",
-			"su - boite -c 'curl -fsSL https://bun.sh/install | bash'",
-			"su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'",
-			"su - boite -c 'git config --global init.defaultBranch main'",
-			"su - boite -c 'git config --global safe.directory \"*\"'",
-			"su - boite -c 'sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" --unattended'",
-			"mkdir -p /workspace",
-			"chown -R boite:boite /workspace",
-			"mkdir -p /home/boite/.ssh",
-			"chown -R boite:boite /home/boite/.ssh",
-			"chmod 700 /home/boite/.ssh",
-			"test -f /home/boite/.ssh/authorized_keys && chmod 600 /home/boite/.ssh/authorized_keys",
-		},
-		Users: []UserConfig{
-			{
-				Gecos:  "Boite",
-				Groups: []string{"sudo"},
-				Home:   "/home/boite",
-				Name:   "boite",
-				Shell:  "/bin/bash",
-				Sudo:   "ALL=(ALL) NOPASSWD:ALL",
-				SSHAuthorizedKeys: []string{},
-			},
-		},
+func findAuthorizedKeys(cfg *BoiteConfig, name string) []string {
+	if cfg == nil || cfg.CloudInit == nil {
+		return nil
 	}
+	for _, u := range cfg.CloudInit.Users {
+		if u.Name == name {
+			return u.SSHAuthorizedKeys
+		}
+	}
+	return nil
+}
+
+func mergePackages(defaults, user []string) []string {
+	seen := make(map[string]bool, len(defaults))
+	result := make([]string, 0, len(defaults)+len(user))
+	for _, p := range defaults {
+		seen[p] = true
+		result = append(result, p)
+	}
+	for _, p := range user {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		result = append(result, p)
+	}
+	return result
+}
+
+func mergeRuncmd(defaults, user []any) []any {
+	result := make([]any, 0, len(defaults)+len(user))
+	result = append(result, defaults...)
+	result = append(result, user...)
+	return result
+}
+
+func mergeUsers(defaults, user []UserConfig) []UserConfig {
+	result := make([]UserConfig, 0, len(defaults))
+	indexByName := make(map[string]int, len(defaults))
+	for _, u := range defaults {
+		indexByName[u.Name] = len(result)
+		result = append(result, u)
+	}
+	for _, u := range user {
+		if idx, ok := indexByName[u.Name]; ok {
+			result[idx] = u
+			continue
+		}
+		indexByName[u.Name] = len(result)
+		result = append(result, u)
+	}
+	return result
+}
+
+func mergeWriteFiles(defaults, user []WriteFileConfig) []WriteFileConfig {
+	result := make([]WriteFileConfig, 0, len(defaults))
+	indexByPath := make(map[string]int, len(defaults))
+	for _, w := range defaults {
+		indexByPath[w.Path] = len(result)
+		result = append(result, w)
+	}
+	for _, w := range user {
+		if idx, ok := indexByPath[w.Path]; ok {
+			result[idx] = w
+			continue
+		}
+		indexByPath[w.Path] = len(result)
+		result = append(result, w)
+	}
+	return result
+}
+
+// defaultCloudInitConfig returns the default cloud-init configuration by parsing the embedded YAML
+func defaultCloudInitConfig() (*CloudInitConfig, error) {
+	var cfg CloudInitConfig
+	if err := yaml.Unmarshal([]byte(defaultCloudInitYAML), &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse embedded cloudinit.yml: %w", err)
+	}
+	return &cfg, nil
 }

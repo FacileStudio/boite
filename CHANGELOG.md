@@ -30,7 +30,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Unit test suite covering all CLI commands, flag parsing, cloud-init generation, and UI rendering.
 - GoReleaser release workflow and Homebrew cask publishing.
 - Facile catalog integration for `facile install boite`.
-- QEMU-based VM runtime replacing Multipass (removed multipassPath(), checkCommand(), ensureVMRunning(), syncWorkspaceZshrc() functions)
+- QEMU-based VM runtime replacing Multipass (removed multipassPath(), checkCommand(), ensureVMRunning() functions)
 - Removed deprecated cloud-init files and replaced with qemu/cloudinit.go
 - Updated README.md to remove Multipass prerequisites section
 - Updated PLAN.md and PLAN_QEMU_REFACTOR.md to document migration

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ func detectAcceleration() (string, []string, string) {
 	switch runtime.GOOS {
 	case "linux":
 		if f, err := os.Open("/dev/kvm"); err == nil {
-			f.Close()
+			defer f.Close()
 			return "-enable-kvm", nil, "host"
 		}
 		return "", []string{"-machine", "accel=tcg"}, "qemu64"
@@ -24,32 +25,61 @@ func detectAcceleration() (string, []string, string) {
 	}
 }
 
-func BuildQEMUArgs(baseImage, overlayPath, seedISOPath string, sshPort int, pidFile string) []string {
+type QEMUConfig struct {
+	BaseImage   string
+	OverlayPath string
+	SeedISOPath string
+	HostFwdPort int
+	PIDFile     string
+	ConsoleLog  string
+	Memory      string
+	CPUs        int
+}
+
+func BuildQEMUArgs(cfg QEMUConfig) []string {
 	accelFlag, accelExtra, cpuModel := detectAcceleration()
-	hostfwdPort := sshPort + 1
 	args := []string{}
 	if accelFlag != "" {
 		args = append(args, accelFlag)
 	}
 	args = append(args, accelExtra...)
+
+	memory := cfg.Memory
+	if memory == "" {
+		memory = "2G"
+	}
+	cpus := cfg.CPUs
+	if cpus <= 0 {
+		cpus = 2
+	}
+
 	args = append(args,
 		"-cpu", cpuModel,
-		"-m", "2G",
-		"-smp", "2",
-		"-drive", fmt.Sprintf("file=%s,format=qcow2,if=virtio", overlayPath),
-		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", seedISOPath),
-		"-netdev", fmt.Sprintf("user,id=net0,net=192.168.42.0/24,dhcpstart=192.168.42.10,restrict=off,hostfwd=tcp:127.0.0.1:%d-:22", hostfwdPort),
+		"-m", memory,
+		"-smp", strconv.Itoa(cpus),
+		"-drive", fmt.Sprintf("file=%s,format=qcow2,if=virtio", cfg.OverlayPath),
+		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", cfg.SeedISOPath),
+		"-netdev", fmt.Sprintf("user,id=net0,net=192.168.42.0/24,dhcpstart=192.168.42.10,restrict=off,hostfwd=tcp:127.0.0.1:%d-:22", cfg.HostFwdPort),
 		"-device", "virtio-net-pci,netdev=net0",
+		"-serial", fmt.Sprintf("file:%s", cfg.ConsoleLog),
 		"-display", "none",
 		"-daemonize",
-		"-pidfile", pidFile,
+		"-pidfile", cfg.PIDFile,
 		"-name", "boite-vm",
 	)
 	return args
 }
 
-func StartQEMU(baseImage, overlayPath, seedISOPath string, sshPort int, pidFile string) (*exec.Cmd, error) {
-	args := BuildQEMUArgs(baseImage, overlayPath, seedISOPath, sshPort, pidFile)
+func StartQEMU(cfg QEMUConfig) (*exec.Cmd, error) {
+	if err := os.MkdirAll(filepath.Dir(cfg.ConsoleLog), 0o755); err != nil {
+		return nil, fmt.Errorf("create console log dir: %w", err)
+	}
+	if f, err := os.Create(cfg.ConsoleLog); err != nil {
+		defer f.Close()
+		return nil, fmt.Errorf("create console log file: %w", err)
+	}
+
+	args := BuildQEMUArgs(cfg)
 	cmd := exec.Command("qemu-system-x86_64", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

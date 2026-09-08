@@ -64,6 +64,7 @@ if command -v filet >/dev/null 2>&1; then
 fi
 
 # QEMU toolchain checks (required for sandbox runtime)
+status=0
 echo "==> QEMU toolchain"
 for bin in qemu-system-x86_64 qemu-img cloud-localds; do
   if ! command -v "$bin" >/dev/null 2>&1; then
@@ -74,5 +75,7 @@ done
 
 if [ "$status" -ne 0 ]; then
   echo "check failed"
+else
+    echo "check ok"
 fi
 exit "$status"

@@ -73,6 +73,10 @@ func GetPIDPath(name string) string {
 	return filepath.Join(GetInstanceDir(name), "qemu.pid")
 }
 
+func GetConsoleLogPath(name string) string {
+	return filepath.Join(GetInstanceDir(name), "console.log")
+}
+
 func GetBaseImagePath() string {
 	return filepath.Join(GetCacheDir(), BaseImageName)
 }
@@ -134,7 +138,6 @@ func DeleteInstanceDir(name string) error {
 
 func FindFreePort() (int, error) {
 	for port := 2222; port <= 2322; port++ {
-		// Check both the SSH port and the hostfwd port (sshPort + 1)
 		if isPortFree(port) && isPortFree(port + 1) {
 			return port, nil
 		}
@@ -149,8 +152,4 @@ func isPortFree(port int) bool {
 		return false
 	}
 	return true
-}
-
-func homeDir() string {
-	return GetBoiteDir()
 }

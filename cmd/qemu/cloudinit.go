@@ -2,43 +2,60 @@ package qemu
 
 import (
 	"bytes"
-	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
-	"golang.org/x/crypto/ssh"
+	keygen "github.com/charmbracelet/keygen"
 	"gopkg.in/yaml.v3"
 )
 
-// GenerateSSHKeyPair creates an ed25519 key pair and writes them to disk
-func GenerateSSHKeyPair(instanceDir string) (string, string, error) {
-	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return "", "", fmt.Errorf("generate key: %w", err)
+// GenerateSSHKeyPair creates an Ed25519 key pair using keygen and writes
+// them to the central key store at ~/.boite/ssh/. If a passphrase is
+// provided, the private key is encrypted at rest. Existing keys are
+// reused if found on disk.
+func GenerateSSHKeyPair(instanceDir string, passphrase string) (string, string, error) {
+	storeDir := filepath.Join(GetBoiteDir(), "ssh")
+	if err := os.MkdirAll(storeDir, 0o700); err != nil {
+		return "", "", fmt.Errorf("create key store dir: %w", err)
 	}
 
-	privatePath := filepath.Join(instanceDir, "id_ed25519")
-	publicPath := filepath.Join(instanceDir, "id_ed25519.pub")
-
-	privatePEM, err := ssh.MarshalPrivateKey(privateKey, "")
-	if err != nil {
-		return "", "", fmt.Errorf("marshal private key: %w", err)
+	keyPath := filepath.Join(storeDir, "id_ed25519")
+	opts := []keygen.Option{
+		keygen.WithKeyType(keygen.Ed25519),
+		keygen.WithWrite(),
 	}
-	if err := os.WriteFile(privatePath, pem.EncodeToMemory(privatePEM), 0o600); err != nil {
+	if passphrase != "" {
+		opts = append(opts, keygen.WithPassphrase(passphrase))
+	}
+
+	kp, err := keygen.New(keyPath, opts...)
+	if err != nil {
+		return "", "", fmt.Errorf("keygen: %w", err)
+	}
+
+	// Calculate paths based on the keyPath we passed in
+	privatePath := keyPath
+	publicPath := keyPath + ".pub"
+
+	// Write the private key (potentially encrypted) to disk
+	privBytes := kp.RawProtectedPrivateKey()
+	if privBytes == nil {
+		privBytes = kp.RawPrivateKey()
+	}
+	if err := os.WriteFile(privatePath, privBytes, 0o600); err != nil {
 		return "", "", fmt.Errorf("write private key: %w", err)
 	}
-
-	pubKey, err := ssh.NewPublicKey(privateKey.Public())
-	if err != nil {
-		return "", "", fmt.Errorf("ssh public key: %w", err)
+	if err := os.Chmod(privatePath, 0o600); err != nil {
+		return "", "", fmt.Errorf("chmod private key: %w", err)
 	}
-	pubBytes := ssh.MarshalAuthorizedKey(pubKey)
+
+	// Write public key
+	pubBytes := []byte(kp.AuthorizedKey())
 	if err := os.WriteFile(publicPath, pubBytes, 0o644); err != nil {
 		return "", "", fmt.Errorf("write public key: %w", err)
 	}
@@ -63,6 +80,33 @@ func GenerateSeedISO(instanceDir, instanceName, sshPubKey string) (string, error
 	}
 
 	mergedCfg := MergeCloudInitConfig(cfg)
+	if mergedCfg == nil {
+		mergedCfg = &CloudInitConfig{}
+	}
+
+	userExists := false
+	for _, user := range mergedCfg.Users {
+		if user.Name == "boite" {
+			userExists = true
+			if !slices.Contains(user.SSHAuthorizedKeys, sshPubKey) {
+				user.SSHAuthorizedKeys = append(user.SSHAuthorizedKeys, sshPubKey)
+			}
+			break
+		}
+	}
+
+	if !userExists {
+		mergedCfg.Users = append(mergedCfg.Users, UserConfig{
+			Name:             "boite",
+			Gecos:            "Boite",
+			Groups:           []string{"sudo"},
+			Home:             "/home/boite",
+			Shell:            "/bin/zsh",
+			Sudo:             "ALL=(ALL) NOPASSWD:ALL",
+			SSHAuthorizedKeys: []string{sshPubKey},
+		})
+	}
+
 	userData := renderCloudInitUserData(mergedCfg, sshPubKey)
 	metaData := fmt.Sprintf("instance-id: boite-%s\nlocal-hostname: boite\n", instanceName)
 
@@ -91,104 +135,148 @@ func renderCloudInitUserData(cfg *CloudInitConfig, sshPubKey string) string {
 	encoder := yaml.NewEncoder(&buf)
 	encoder.SetIndent(2)
 
-	cloudConfig := map[string]interface{}{
-		"hostname":      "boite",
-		"disable_root":  true,
-		"ssh_pwauth":    false,
-		"package_update": true,
-		"network": map[string]interface{}{
-			"version": 2,
-			"ethernets": map[string]interface{}{
-				"eth0": map[string]interface{}{
-					"dhcp4": false,
-					"addresses": []string{
-						"192.168.42.10/24",
-					},
-					"routes": []map[string]interface{}{
-						{"to": "default", "via": "192.168.42.1"},
-					},
-					"nameservers": map[string]interface{}{
-						"addresses": []string{"8.8.8.8", "8.8.4.4"},
-					},
-				},
-			},
-		},
+	cloudConfig := buildBaseCloudConfig()
+	addUsersToConfig(cloudConfig, cfg.Users, sshPubKey)
+	addPackagesToConfig(cloudConfig, cfg.Packages)
+	addAPTSourcesToConfig(cloudConfig, cfg.APT)
+addRuncmdToConfig(cloudConfig, cfg.Runcmd)
+	addWriteFilesToConfig(cloudConfig, cfg.WriteFiles)
+
+	if err := encoder.Encode(cloudConfig); err != nil {
+		return "#cloud-config\n" + buf.String()
 	}
-
-	// Users
-	if len(cfg.Users) > 0 {
-		users := make([]map[string]interface{}, 0, len(cfg.Users))
-		for _, u := range cfg.Users {
-			user := map[string]interface{}{
-				"name":    u.Name,
-				"gecos":   u.Gecos,
-				"groups":  u.Groups,
-				"shell":   u.Shell,
-				"home":    u.Home,
-				"sudo":    u.Sudo,
-			}
-			// Always inject the generated instance key into the boite user's
-			// authorized_keys, merging with any keys the user configured.
-			if u.Name == "boite" {
-				keys := make([]string, 0, len(u.SSHAuthorizedKeys)+1)
-				keys = append(keys, u.SSHAuthorizedKeys...)
-				keys = append(keys, sshPubKey)
-				user["ssh_authorized_keys"] = keys
-			}
-			users = append(users, user)
-		}
-		cloudConfig["users"] = users
+	if err := encoder.Close(); err != nil {
+		return "#cloud-config\n" + buf.String()
 	}
-
-	// Packages
-	if len(cfg.Packages) > 0 {
-		pkgs := make([]string, 0, len(cfg.Packages))
-		for _, p := range cfg.Packages {
-			pkgs = append(pkgs, p)
-		}
-		cloudConfig["packages"] = pkgs
-	}
-
-	// APT sources
-	if cfg.APT != nil && len(cfg.APT.Sources) > 0 {
-		sources := make(map[string]interface{})
-		for name, src := range cfg.APT.Sources {
-			// Skip Ubuntu-specific APT sources for Debian 12 compatibility
-			if strings.Contains(src.Source, "ubuntu") || strings.Contains(src.Source, "docker.io") {
-				fmt.Fprintf(os.Stderr, "Warning: skipping Ubuntu-specific APT source '%s' for Debian 12 compatibility\n", name)
-				continue
-			}
-			sources[name] = map[string]interface{}{
-				"keyid":   src.KeyID,
-				"source":  src.Source,
-			}
-		}
-		if len(sources) > 0 {
-			cloudConfig["apt"] = map[string]interface{}{
-				"sources": sources,
-			}
-		}
-	}
-
-	// runcmd
-	if len(cfg.Runcmd) > 0 {
-		runcmd := make([]interface{}, 0, len(cfg.Runcmd))
-		for _, r := range cfg.Runcmd {
-			runcmd = append(runcmd, r)
-		}
-		cloudConfig["runcmd"] = runcmd
-	}
-
-	// Add netplan set ethernets.eth0.dhcp4=false for static IP configuration
-	cloudConfig["runcmd"] = append(
-		[]interface{}{"netplan set ethernets.eth0.dhcp4=false"},
-		cloudConfig["runcmd"].([]interface{})...,
-	)
-
-	encoder.Encode(cloudConfig)
-	encoder.Close()
 
 	return "#cloud-config\n" + buf.String()
+}
+
+func buildBaseCloudConfig() map[string]any {
+	eth0 := map[string]any{
+		"dhcp4": false,
+		"addresses": []string{"192.168.42.10/24"},
+		"routes": []map[string]any{{"to": "default", "via": "192.168.42.1"}},
+		"nameservers": map[string]any{"addresses": []string{"8.8.8.8", "8.8.4.4"}},
+	}
+	ethernets := map[string]any{"eth0": eth0}
+	network := map[string]any{"version": 2, "ethernets": ethernets}
+
+	return map[string]any{
+		"hostname":       "boite",
+		"disable_root":   true,
+		"ssh_pwauth":     false,
+		"package_update": true,
+		"network":        network,
+	}
+}
+
+func addUsersToConfig(cloudConfig map[string]any, users []UserConfig, sshPubKey string) {
+	if len(users) == 0 {
+		return
+	}
+	result := make([]map[string]any, 0, len(users))
+	for _, u := range users {
+		user := map[string]any{
+			"name":    u.Name,
+			"gecos":   u.Gecos,
+			"groups":  u.Groups,
+			"shell":   u.Shell,
+			"home":    u.Home,
+			"sudo":    u.Sudo,
+		}
+		if u.Name == "boite" {
+			seen := make(map[string]bool)
+			keys := make([]string, 0, len(u.SSHAuthorizedKeys)+1)
+			for _, key := range u.SSHAuthorizedKeys {
+				if !seen[key] {
+					seen[key] = true
+					keys = append(keys, key)
+				}
+			}
+			if !seen[sshPubKey] {
+				keys = append(keys, sshPubKey)
+			}
+			user["ssh_authorized_keys"] = keys
+		}
+		result = append(result, user)
+	}
+	cloudConfig["users"] = result
+}
+
+func addPackagesToConfig(cloudConfig map[string]any, packages []string) {
+	if len(packages) == 0 {
+		return
+	}
+	pkgs := append([]string(nil), packages...)
+	cloudConfig["packages"] = pkgs
+}
+
+func addAPTSourcesToConfig(cloudConfig map[string]any, apt *APTConfig) {
+	if apt == nil || len(apt.Sources) == 0 {
+		return
+	}
+	sources := make(map[string]any)
+	for name, src := range apt.Sources {
+		source := src.Source
+		if strings.Contains(source, "download.docker.com/linux/ubuntu") {
+			source = strings.Replace(source, "linux/ubuntu", "linux/debian", 1)
+			fmt.Fprintf(os.Stderr, "Info: converted Docker APT source to Debian variant: %s\n", source)
+		}
+		if strings.Contains(source, "ubuntu") || strings.Contains(source, "docker.io") {
+			fmt.Fprintf(os.Stderr, "Warning: skipping Ubuntu-specific APT source '%s' for Debian 12 compatibility\n", name)
+			continue
+		}
+		sources[name] = map[string]any{
+			"keyid":   src.KeyID,
+			"source":  source,
+		}
+	}
+	if len(sources) > 0 {
+		cloudConfig["apt"] = map[string]any{
+			"sources": sources,
+		}
+	}
+}
+
+func addRuncmdToConfig(cloudConfig map[string]any, runcmd []any) {
+	var result []any
+	if len(runcmd) > 0 {
+		result = make([]any, 0, len(runcmd))
+		for _, r := range runcmd {
+			if s, ok := r.(string); ok {
+				result = append(result, s)
+			} else {
+				result = append(result, fmt.Sprintf("%v", r))
+			}
+		}
+	}
+	result = append([]any{"netplan set ethernets.eth0.dhcp4=false"}, result...)
+	cloudConfig["runcmd"] = result
+}
+
+func addWriteFilesToConfig(cloudConfig map[string]any, writeFiles []WriteFileConfig) {
+	if len(writeFiles) == 0 {
+		return
+	}
+	result := make([]map[string]any, 0, len(writeFiles))
+	for _, w := range writeFiles {
+		file := map[string]any{
+			"path":    w.Path,
+			"content": w.Content,
+		}
+		if w.Owner != "" {
+			file["owner"] = w.Owner
+		}
+		if w.Permissions != "" {
+			file["permissions"] = w.Permissions
+		}
+		if w.Encoding != "" {
+			file["encoding"] = w.Encoding
+		}
+		result = append(result, file)
+	}
+	cloudConfig["write_files"] = result
 }
 
 func writeCloudInitFiles(userDataPath, userData, metaDataPath, metaData string) error {

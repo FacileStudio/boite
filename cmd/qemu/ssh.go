@@ -17,7 +17,7 @@ func BuildSSHArgs(inst *Instance, command []string) []string {
 		"-o", "ConnectTimeout=10",
 		"-o", "ServerAliveInterval=30",
 		"-o", "ServerAliveCountMax=3",
-		fmt.Sprintf("boite@127.0.0.1"),
+		"boite@127.0.0.1",
 	}
 	if len(command) > 0 {
 		args = append(args, command...)

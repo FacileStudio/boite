@@ -6,13 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
 const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄
-██▄██ ██▀██ ██   ██   ██▄▄  
+██▄██ ██▀██ ██   ██   ██▄▄
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
@@ -30,7 +31,9 @@ var rootCmd = &cobra.Command{
 		return initConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		if err := cmd.Help(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 	},
 	CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
 }
@@ -83,12 +86,12 @@ func initConfig() error {
 
 func createDefaultConfig(home string) error {
 	configPath := filepath.Join(home, ".boite.yml")
-	var cloudInitObj map[string]interface{}
-	if err := yaml.Unmarshal([]byte(defaultCloudInit()), &cloudInitObj); err != nil {
+	var cloudInitObj map[string]any
+	if err := yaml.Unmarshal([]byte(qemu.DefaultCloudInitYAML()), &cloudInitObj); err != nil {
 		return fmt.Errorf("failed to parse default cloud-init: %w", err)
 	}
-	defaultConfig := map[string]interface{}{
-		"vm": map[string]interface{}{
+	defaultConfig := map[string]any{
+		"vm": map[string]any{
 			"cpus":   2,
 			"memory": "4G",
 			"disk":   "40G",

@@ -1,21 +1,23 @@
 package cmd
 
 import (
+	"slices"
 	"testing"
 
+	"github.com/FacileStudio/boite/cmd/qemu"
 	"gopkg.in/yaml.v3"
 )
 
 func TestDefaultCloudInitIsValidYAML(t *testing.T) {
-	raw := defaultCloudInit()
+	raw := qemu.DefaultCloudInitYAML()
 	var node yaml.Node
 	if err := yaml.Unmarshal([]byte(raw), &node); err != nil {
-		t.Fatalf("defaultCloudInit produced invalid YAML: %v", err)
+		t.Fatalf("DefaultCloudInitYAML produced invalid YAML: %v", err)
 	}
 
 	var data struct {
-		Runcmd []interface{} `yaml:"runcmd"`
-		Users  []interface{} `yaml:"users"`
+		Runcmd []any `yaml:"runcmd"`
+		Users  []any `yaml:"users"`
 	}
 	if err := yaml.Unmarshal([]byte(raw), &data); err != nil {
 		t.Fatalf("failed to decode cloud-init fields: %v", err)
@@ -69,12 +71,9 @@ func TestCommandFlags(t *testing.T) {
 
 func TestCommandAliases(t *testing.T) {
 	var foundDestroy bool
-	for _, alias := range rmCmd.Aliases {
-		if alias == "destroy" {
+	if slices.Contains(rmCmd.Aliases, "destroy") {
 			foundDestroy = true
-			break
 		}
-	}
 	if !foundDestroy {
 		t.Fatal("expected rm command to have 'destroy' alias")
 	}
