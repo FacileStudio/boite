@@ -49,7 +49,7 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 			}
 		}()
 
-		inst, err := qemu.Create(name, workspacePath, noMount)
+		inst, err := qemu.Create(name, workspacePath, noMount, cfgFile)
 		close(stopSpinner)
 
 		// Clear spinner line

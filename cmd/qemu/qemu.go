@@ -74,10 +74,11 @@ func StartQEMU(cfg QEMUConfig) (*exec.Cmd, error) {
 	if err := os.MkdirAll(filepath.Dir(cfg.ConsoleLog), 0o755); err != nil {
 		return nil, fmt.Errorf("create console log dir: %w", err)
 	}
-	if f, err := os.Create(cfg.ConsoleLog); err != nil {
-		defer f.Close()
+	f, err := os.Create(cfg.ConsoleLog)
+	if err != nil {
 		return nil, fmt.Errorf("create console log file: %w", err)
 	}
+	defer f.Close()
 
 	args := BuildQEMUArgs(cfg)
 	cmd := exec.Command("qemu-system-x86_64", args...)

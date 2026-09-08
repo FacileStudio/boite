@@ -5,9 +5,7 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
-## [Unreleased]
-
-## [0.1.10] — 2026-09-08
+## [0.1.11] — 2026-09-08
 
 ### Changed
 
@@ -19,8 +17,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 - Fixed `cmd/qemu/lifecycle.go` to build against the current QEMU runtime helpers after the native refactor.
 - Removed obsolete `.tmux.conf_local` and `.zshrc_local` files from the repo root.
+- Configuration merging now correctly preserves user-provided sections (write_files, packages, runcmd) instead of overwriting defaults
+- VM resource settings (cpu, memory, disk) are now properly applied from configuration files at startup
+- SSH key injection logic correctly merges user keys with instance-specific keys
+- APT source validation prevents Ubuntu-specific sources on Debian 12 VMs
 
-## [0.1.8] — 2026-09-07
+## [Unreleased]
+
+## [0.1.10] — 2026-09-08
 
 ### Changed
 

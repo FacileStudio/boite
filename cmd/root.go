@@ -17,7 +17,7 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
-	Version = "0.1.8"
+	Version = "0.1.11"
 	version = ""
 )
 var cfgFile string
@@ -73,11 +73,16 @@ func initConfig() error {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			if cfgFile != "" {
+				// --config specified but not found; fall back to ~/.boite.yml
+			} else {
+				if err := createDefaultConfig(home); err != nil {
+					return err
+				}
+			}
+		} else {
 			return fmt.Errorf("failed to read config file: %w", err)
-		}
-		if err := createDefaultConfig(home); err != nil {
-			return err
 		}
 	}
 

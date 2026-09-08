@@ -6,14 +6,20 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
-func Create(name, workspacePath string, noMount bool) (*Instance, error) {
+func Create(name, workspacePath string, noMount bool, configPath string) (*Instance, error) {
 	if InstanceExists(name) {
 		return nil, fmt.Errorf("instance '%s' already exists", name)
+	}
+
+	cfg, err := LoadBoiteConfig(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("load boite config: %w", err)
 	}
 
 	baseImage, err := EnsureBaseImage()
@@ -26,12 +32,15 @@ func Create(name, workspacePath string, noMount bool) (*Instance, error) {
 		return nil, fmt.Errorf("prepare instance dir: %w", err)
 	}
 
+	diskSize := 10
+	if cfg != nil && cfg.VM != nil && cfg.VM.Disk != "" {
+		diskSize = parseDiskGB(cfg.VM.Disk)
+	}
 	overlayPath := GetOverlayPath(name)
-	if err := CreateOverlay(baseImage, overlayPath, 10); err != nil {
+	if err := CreateOverlay(baseImage, overlayPath, diskSize); err != nil {
 		return nil, fmt.Errorf("create overlay: %w", err)
 	}
 
-	cfg, _ := LoadBoiteConfig()
 	var passphrase string
 	if cfg != nil && cfg.VM != nil {
 		passphrase = cfg.VM.SSHKeyPassphrase
@@ -46,7 +55,7 @@ func Create(name, workspacePath string, noMount bool) (*Instance, error) {
 		return nil, fmt.Errorf("read public key: %w", err)
 	}
 
-	seedISOPath, err := GenerateSeedISO(instanceDir, name, pubKey)
+	seedISOPath, err := GenerateSeedISO(instanceDir, name, pubKey, configPath)
 	if err != nil {
 		return nil, fmt.Errorf("generate seed iso: %w", err)
 	}
@@ -60,16 +69,19 @@ func Create(name, workspacePath string, noMount bool) (*Instance, error) {
 	pidFile := GetPIDPath(name)
 	consoleLog := GetConsoleLogPath(name)
 
-	if _, err := StartQEMU(QEMUConfig{
+	qemuCfg := QEMUConfig{
 		BaseImage:   baseImage,
 		OverlayPath: overlayPath,
 		SeedISOPath: seedISOPath,
 		HostFwdPort: hostfwdPort,
 		PIDFile:     pidFile,
 		ConsoleLog:  consoleLog,
-		Memory:      "4G",
-		CPUs:        2,
-	}); err != nil {
+	}
+	if cfg != nil && cfg.VM != nil {
+		qemuCfg.Memory = cfg.VM.Memory
+		qemuCfg.CPUs = cfg.VM.CPUs
+	}
+	if _, err := StartQEMU(qemuCfg); err != nil {
 		return nil, fmt.Errorf("start qemu: %w", err)
 	}
 
@@ -107,7 +119,7 @@ func Create(name, workspacePath string, noMount bool) (*Instance, error) {
 	return inst, nil
 }
 
-func Start(name string) (*Instance, error) {
+func Start(name string, configPath string) (*Instance, error) {
 	inst, err := LoadInstanceState(name)
 	if err != nil {
 		return nil, fmt.Errorf("load state: %w", err)
@@ -117,20 +129,28 @@ func Start(name string) (*Instance, error) {
 		return inst, nil
 	}
 
+	cfg, err := LoadBoiteConfig(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("load boite config: %w", err)
+	}
+
 	pidFile := GetPIDPath(name)
 	baseImage := GetBaseImagePath()
 	consoleLog := GetConsoleLogPath(name)
 
-	if _, err := StartQEMU(QEMUConfig{
+	qemuCfg := QEMUConfig{
 		BaseImage:   baseImage,
 		OverlayPath: inst.OverlayPath,
 		SeedISOPath: inst.SeedISOPath,
 		HostFwdPort: inst.SSHPort,
 		PIDFile:     pidFile,
 		ConsoleLog:  consoleLog,
-		Memory:      "4G",
-		CPUs:        2,
-	}); err != nil {
+	}
+	if cfg != nil && cfg.VM != nil {
+		qemuCfg.Memory = cfg.VM.Memory
+		qemuCfg.CPUs = cfg.VM.CPUs
+	}
+	if _, err := StartQEMU(qemuCfg); err != nil {
 		return nil, fmt.Errorf("start qemu: %w", err)
 	}
 
@@ -160,8 +180,15 @@ func Stop(name string) error {
 	}
 
 	if inst.PID > 0 && IsProcessRunning(inst.PID) {
-		KillQEMU(inst.PID)
-		time.Sleep(1 * time.Second)
+		if err := KillQEMU(inst.PID); err != nil {
+			return fmt.Errorf("kill qemu: %w", err)
+		}
+		if err := WaitForProcessExit(inst.PID, 10); err != nil {
+			return fmt.Errorf("wait for qemu to exit: %w", err)
+		}
+		if err := WaitForPortFree(inst.SSHPort, 20); err != nil {
+			return fmt.Errorf("wait for port to free: %w", err)
+		}
 	}
 
 	inst.Status = "stopped"
@@ -178,8 +205,15 @@ func Destroy(name string) error {
 	}
 
 	if inst.PID > 0 && IsProcessRunning(inst.PID) {
-		KillQEMU(inst.PID)
-		time.Sleep(1 * time.Second)
+		if err := KillQEMU(inst.PID); err != nil {
+			return fmt.Errorf("kill qemu: %w", err)
+		}
+		if err := WaitForProcessExit(inst.PID, 10); err != nil {
+			return fmt.Errorf("wait for qemu to exit: %w", err)
+		}
+		if err := WaitForPortFree(inst.SSHPort, 20); err != nil {
+			return fmt.Errorf("wait for port to free: %w", err)
+		}
 	}
 
 	return DeleteInstanceDir(name)
@@ -192,7 +226,7 @@ func setupCleanupHandler(name string) {
 		<-sigChan
 		inst, _ := LoadInstanceState(name)
 		if inst != nil && inst.PID > 0 {
-			KillQEMU(inst.PID)
+			_ = KillQEMU(inst.PID)
 		}
 		os.Exit(130)
 	}()
@@ -244,4 +278,35 @@ func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
 		time.Sleep(5 * time.Second)
 	}
 	return fmt.Errorf("timeout waiting for cloud-init to complete")
+}
+
+func WaitForProcessExit(pid int, timeout int) error {
+	for i := 0; i < timeout; i++ {
+		if !IsProcessRunning(pid) {
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("timeout waiting for process %d to exit", pid)
+}
+
+func parseDiskGB(value string) int {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if strings.HasSuffix(value, "g") {
+		value = strings.TrimSuffix(value, "g")
+	}
+	if n, err := strconv.Atoi(value); err == nil && n > 0 {
+		return n
+	}
+	return 10
+}
+
+func WaitForPortFree(port int, timeout int) error {
+	for i := 0; i < timeout; i++ {
+		if isPortFree(port) {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("timeout waiting for port %d to be freed", port)
 }

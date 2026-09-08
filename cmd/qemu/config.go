@@ -71,14 +71,19 @@ type BoiteConfig struct {
 	VM        *VMConfig        `yaml:"vm"`
 }
 
-// LoadBoiteConfig reads and parses ~/.boite.yml, returning a BoiteConfig
-func LoadBoiteConfig() (*BoiteConfig, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("get home dir: %w", err)
+// LoadBoiteConfig reads and parses a boite YAML config file. If path is empty,
+// it falls back to ~/.boite.yml. A missing file returns nil, nil so callers can
+// fall back to defaults.
+func LoadBoiteConfig(path string) (*BoiteConfig, error) {
+	configPath := path
+	if configPath == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("get home dir: %w", err)
+		}
+		configPath = filepath.Join(home, ".boite.yml")
 	}
 
-	configPath := filepath.Join(home, ".boite.yml")
 	if _, err := os.Stat(configPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

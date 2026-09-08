@@ -19,12 +19,7 @@ import (
 // provided, the private key is encrypted at rest. Existing keys are
 // reused if found on disk.
 func GenerateSSHKeyPair(instanceDir string, passphrase string) (string, string, error) {
-	storeDir := filepath.Join(GetBoiteDir(), "ssh")
-	if err := os.MkdirAll(storeDir, 0o700); err != nil {
-		return "", "", fmt.Errorf("create key store dir: %w", err)
-	}
-
-	keyPath := filepath.Join(storeDir, "id_ed25519")
+	keyPath := filepath.Join(instanceDir, "id_ed25519")
 	opts := []keygen.Option{
 		keygen.WithKeyType(keygen.Ed25519),
 		keygen.WithWrite(),
@@ -72,9 +67,10 @@ func ReadPublicKey(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
-// GenerateSeedISO creates the seed.iso from the merged cloud-init config
-func GenerateSeedISO(instanceDir, instanceName, sshPubKey string) (string, error) {
-	cfg, err := LoadBoiteConfig()
+// GenerateSeedISO creates the seed.iso from the merged cloud-init config.
+// configPath is passed through so explicit `--config` files are honored.
+func GenerateSeedISO(instanceDir, instanceName, sshPubKey, configPath string) (string, error) {
+	cfg, err := LoadBoiteConfig(configPath)
 	if err != nil {
 		return "", fmt.Errorf("load boite config: %w", err)
 	}
@@ -97,12 +93,12 @@ func GenerateSeedISO(instanceDir, instanceName, sshPubKey string) (string, error
 
 	if !userExists {
 		mergedCfg.Users = append(mergedCfg.Users, UserConfig{
-			Name:             "boite",
-			Gecos:            "Boite",
-			Groups:           []string{"sudo"},
-			Home:             "/home/boite",
-			Shell:            "/bin/zsh",
-			Sudo:             "ALL=(ALL) NOPASSWD:ALL",
+			Name:              "boite",
+			Gecos:             "Boite",
+			Groups:            []string{"sudo"},
+			Home:              "/home/boite",
+			Shell:             "/bin/zsh",
+			Sudo:              "ALL=(ALL) NOPASSWD:ALL",
 			SSHAuthorizedKeys: []string{sshPubKey},
 		})
 	}
@@ -139,7 +135,7 @@ func renderCloudInitUserData(cfg *CloudInitConfig, sshPubKey string) string {
 	addUsersToConfig(cloudConfig, cfg.Users, sshPubKey)
 	addPackagesToConfig(cloudConfig, cfg.Packages)
 	addAPTSourcesToConfig(cloudConfig, cfg.APT)
-addRuncmdToConfig(cloudConfig, cfg.Runcmd)
+	addRuncmdToConfig(cloudConfig, cfg.Runcmd)
 	addWriteFilesToConfig(cloudConfig, cfg.WriteFiles)
 
 	if err := encoder.Encode(cloudConfig); err != nil {
@@ -154,9 +150,9 @@ addRuncmdToConfig(cloudConfig, cfg.Runcmd)
 
 func buildBaseCloudConfig() map[string]any {
 	eth0 := map[string]any{
-		"dhcp4": false,
-		"addresses": []string{"192.168.42.10/24"},
-		"routes": []map[string]any{{"to": "default", "via": "192.168.42.1"}},
+		"dhcp4":       false,
+		"addresses":   []string{"192.168.42.10/24"},
+		"routes":      []map[string]any{{"to": "default", "via": "192.168.42.1"}},
 		"nameservers": map[string]any{"addresses": []string{"8.8.8.8", "8.8.4.4"}},
 	}
 	ethernets := map[string]any{"eth0": eth0}
@@ -178,12 +174,12 @@ func addUsersToConfig(cloudConfig map[string]any, users []UserConfig, sshPubKey 
 	result := make([]map[string]any, 0, len(users))
 	for _, u := range users {
 		user := map[string]any{
-			"name":    u.Name,
-			"gecos":   u.Gecos,
-			"groups":  u.Groups,
-			"shell":   u.Shell,
-			"home":    u.Home,
-			"sudo":    u.Sudo,
+			"name":   u.Name,
+			"gecos":  u.Gecos,
+			"groups": u.Groups,
+			"shell":  u.Shell,
+			"home":   u.Home,
+			"sudo":   u.Sudo,
 		}
 		if u.Name == "boite" {
 			seen := make(map[string]bool)
@@ -228,8 +224,8 @@ func addAPTSourcesToConfig(cloudConfig map[string]any, apt *APTConfig) {
 			continue
 		}
 		sources[name] = map[string]any{
-			"keyid":   src.KeyID,
-			"source":  source,
+			"keyid":  src.KeyID,
+			"source": source,
 		}
 	}
 	if len(sources) > 0 {
