@@ -7,6 +7,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.1.10] — 2026-09-08
+
+### Changed
+
+- Stopped copying the host `.zshrc` into new VMs during `boite create`.
+- Restored the missing embedded default `cmd/qemu/cloudinit.yml` for config fallback.
+- Added a creation-time notice when falling back to the default config because `~/.boite.yml` is absent.
+
+### Fixed
+
+- Fixed `cmd/qemu/lifecycle.go` to build against the current QEMU runtime helpers after the native refactor.
+- Removed obsolete `.tmux.conf_local` and `.zshrc_local` files from the repo root.
+
 ## [0.1.8] — 2026-09-07
 
 ### Changed

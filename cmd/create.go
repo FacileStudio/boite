@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
@@ -26,6 +27,10 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 		}
 
 		workspacePath, _ := os.Getwd()
+
+		if !isConfigPresent() {
+			printInfo("No ~/.boite.yml file found nor config file passed, falling back to default config")
+		}
 
 		// Spinner during VM creation
 		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -55,12 +60,6 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 			os.Exit(1)
 		}
 
-		if !noMount {
-			if err := qemu.SyncWorkspaceZshrc(inst, workspacePath); err != nil {
-				printInfo(fmt.Sprintf("Warning: could not sync .zshrc: %v", err))
-			}
-		}
-
 		fmt.Println()
 		fmt.Println(renderSandboxCard(name, workspacePath, noMount, inst.SSHPort))
 	},
@@ -69,4 +68,18 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 func init() {
 	createCmd.Flags().Bool("no-mount", false, "Create VM without mounting workspace")
 	rootCmd.AddCommand(createCmd)
+}
+
+func isConfigPresent() bool {
+	if cfgFile != "" {
+		return true
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+
+	_, err = os.Stat(filepath.Join(home, ".boite.yml"))
+	return err == nil
 }
