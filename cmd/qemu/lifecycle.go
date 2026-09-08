@@ -232,18 +232,7 @@ func setupCleanupHandler(name string) {
 	}()
 }
 
-func waitForPIDFile(pidFile string, timeout int) error {
-	for i := 0; i < timeout; i++ {
-		if _, err := os.Stat(pidFile); err == nil {
-			data, _ := os.ReadFile(pidFile)
-			if len(data) > 0 {
-				return nil
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return fmt.Errorf("PID file not created")
-}
+
 
 func WaitForSSH(port, timeoutSeconds int) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func detectAcceleration() (string, []string, string) {
@@ -100,6 +101,7 @@ func WaitForPID(pidFile string, timeout int) (int, error) {
 				return pid, nil
 			}
 		}
+		time.Sleep(time.Second)
 	}
 	return 0, fmt.Errorf("timeout waiting for PID file")
 }
@@ -110,6 +112,21 @@ func KillQEMU(pid int) error {
 		return err
 	}
 	return proc.Kill()
+}
+
+func waitForPIDFile(pidFile string, timeout int) error {
+	for i := 0; i < timeout; i++ {
+		data, err := os.ReadFile(pidFile)
+		if err == nil {
+			pidStr := string(data)
+			pid, err := strconv.Atoi(strings.TrimSpace(pidStr))
+			if err == nil && pid > 0 {
+				return nil
+			}
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("timeout waiting for PID file")
 }
 
 func IsProcessRunning(pid int) bool {
