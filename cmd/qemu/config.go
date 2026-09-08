@@ -97,9 +97,9 @@ func MergeCloudInitConfig(userCfg *BoiteConfig) *CloudInitConfig {
 	user := userCfg.CloudInit
 
 	return &CloudInitConfig{
-		Packages:  mergeStrings(defaults.Packages, user.Packages),
-		Runcmd:    mergeStringsAny(defaults.Runcmd, user.Runcmd),
-		Users:     mergeUsers(defaults.Users, user.Users),
+		Packages:   mergeStrings(defaults.Packages, user.Packages),
+		Runcmd:     mergeStringsAny(defaults.Runcmd, user.Runcmd),
+		Users:      mergeUsers(defaults.Users, user.Users),
 		WriteFiles: user.WriteFiles,
 		APT:        user.APT,
 	}
@@ -184,7 +184,7 @@ func defaultCloudInitConfig() *CloudInitConfig {
 			"su - boite -c 'git config --global init.defaultBranch main'",
 			"su - boite -c 'git config --global safe.directory \"*\"'",
 			"su - boite -c 'sh -c \"$(curl -fsSL " +
-			"https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" --unattended'",
+				"https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" --unattended'",
 			"mkdir -p /workspace",
 			"chown -R boite:boite /workspace",
 			"mkdir -p /home/boite/.ssh",

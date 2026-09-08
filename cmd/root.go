@@ -12,11 +12,11 @@ import (
 )
 
 const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄
-██▄██ ██▀██ ██   ██   ██▄▄  
+██▄██ ██▀██ ██   ██   ██▄▄
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
-	Version = "0.1.8"
+	Version = "0.1.9"
 	version = ""
 )
 var cfgFile string
@@ -24,7 +24,8 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "boite",
 	Short: "Development sandbox manager",
-	Long: `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
+	Long: `A CLI tool to create, manage, and clean up virtual machine-based` +
+		` development sandboxes for general development.`,
 	Version: Version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initConfig()

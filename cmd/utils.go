@@ -58,4 +58,3 @@ func runInteractive(args ...string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
-

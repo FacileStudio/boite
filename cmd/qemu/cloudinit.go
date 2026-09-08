@@ -160,9 +160,9 @@ func buildNetworkConfig() map[string]interface{} {
 		"version": 2,
 		"ethernets": map[string]interface{}{
 			"eth0": map[string]interface{}{
-				"dhcp4":       false,
-				"addresses":   []string{"192.168.42.10/24"},
-				"routes":      []map[string]interface{}{{"to": "default", "via": "192.168.42.1"}},
+				"dhcp4":     false,
+				"addresses": []string{"192.168.42.10/24"},
+				"routes":    []map[string]interface{}{{"to": "default", "via": "192.168.42.1"}},
 				"nameservers": map[string]interface{}{
 					"addresses": []string{"8.8.8.8", "8.8.4.4"},
 				},
@@ -186,12 +186,12 @@ func injectUsers(cloudConfig map[string]interface{}, cfg *CloudInitConfig, sshPu
 // buildUserConfig builds a single user configuration map
 func buildUserConfig(u UserConfig, sshPubKey string) map[string]interface{} {
 	user := map[string]interface{}{
-		"name":    u.Name,
-		"gecos":   u.Gecos,
-		"groups":  u.Groups,
-		"shell":   u.Shell,
-		"home":    u.Home,
-		"sudo":    u.Sudo,
+		"name":   u.Name,
+		"gecos":  u.Gecos,
+		"groups": u.Groups,
+		"shell":  u.Shell,
+		"home":   u.Home,
+		"sudo":   u.Sudo,
 	}
 	if u.Name == "boite" {
 		keys := make([]string, 0, len(u.SSHAuthorizedKeys)+1)
@@ -220,8 +220,8 @@ func injectAPTSources(cloudConfig map[string]interface{}, cfg *CloudInitConfig) 
 		for name, src := range cfg.APT.Sources {
 			if !strings.Contains(src.Source, "ubuntu") && !strings.Contains(src.Source, "docker.io") {
 				sources[name] = map[string]interface{}{
-					"keyid":   src.KeyID,
-					"source":  src.Source,
+					"keyid":  src.KeyID,
+					"source": src.Source,
 				}
 			}
 		}

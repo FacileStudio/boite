@@ -7,6 +7,29 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.1.9] — 2026-09-08
+
+### Added
+
+- Native QEMU runtime replacing Docker container-based sandboxes.
+- Dedicated commands: `run`, `start`, `stop`, `list`, `rm`, `exec`.
+- Instance lifecycle and SSH key management.
+- Native cloud-init YAML generation for Debian 12 VMs.
+- SSH key merge logic to preserve user-authorized keys while injecting instance-specific keys.
+- QEMU image caching and verification.
+- Non-interactive TUI command forms (`boite run <name>`, `boite start <name>`, `boite stop <name>`).
+
+### Changed
+
+- Switched binary identity from `dev` to QEMU-native workflow.
+- Improved config merging to append user packages/runcmd/users to defaults instead of overwriting.
+- Removed workspace zshrc sync in favor of direct VM interaction.
+- Reformatted QEMU source files for consistency.
+
+### Fixed
+
+- Fixed APT source validation to prevent Ubuntu-specific sources on Debian 12 VMs.
+
 ## [0.1.8] — 2026-09-07
 
 ### Changed
