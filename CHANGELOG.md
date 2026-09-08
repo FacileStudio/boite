@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Fixed
+
+- PID file wait loop now includes a 1-second sleep between polls, preventing false timeout errors during QEMU startup
+
 ## [0.1.11] — 2026-09-08
 
 ### Changed
