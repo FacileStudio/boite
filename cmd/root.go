@@ -17,7 +17,7 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
-	Version = "0.1.14"
+	Version = "0.2.0"
 	version = ""
 )
 var cfgFile string

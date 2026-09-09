@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-10
+
 ### Added
 
 - `boite run` can now sync the directory it is run from into the sandbox's `/workspace` before opening the shell, replacing the VM copy wholesale. The sync is a tar stream over SSH into a bounded directory, not a mount, so a compromised guest never gets a live handle into the host tree. It is opt-in: disabled unless `workspace.sync_at_run: true` is set in `~/.boite.yml`. Push changes back with the new `boite sync <name>`, which copies `/workspace` into the current directory (guest ownership dropped). `boite run --no-workspace` overrides an enabled config for one session, and `create --no-mount` marks the instance to skip syncing permanently.
