@@ -7,9 +7,11 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
-### Fixed
+## [0.1.13] — 2026-09-09
 
-- PID file wait loop now includes a 1-second sleep between polls, preventing false timeout errors during QEMU startup
+### Changed
+
+- Refactored QEMU modules: split cloud-init and lifecycle into smaller files for maintainability.
 
 ## [0.1.11] — 2026-09-08
 
@@ -76,7 +78,11 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/FacileStudio/boite/releases/tag/v0.1.12
+[0.1.11]: https://github.com/FacileStudio/boite/releases/tag/v0.1.11
+[0.1.10]: https://github.com/FacileStudio/boite/releases/tag/v0.1.10
+[0.1.9]: https://github.com/FacileStudio/boite/releases/tag/v0.1.9
 [0.1.8]: https://github.com/FacileStudio/boite/releases/tag/v0.1.8
 [0.1.7]: https://github.com/FacileStudio/boite/releases/tag/v0.1.7
 [0.1.6]: https://github.com/FacileStudio/boite/releases/tag/v0.1.6
