@@ -17,6 +17,7 @@ type startFinalizeParams struct {
 	noMount       bool
 	overlayPath   string
 	seedISOPath   string
+	configPath    string
 	keyResolution sshKeyResolution
 	cfg           *BoiteConfig
 }

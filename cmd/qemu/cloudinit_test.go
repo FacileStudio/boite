@@ -149,6 +149,64 @@ func TestCloudInitStateParsing(t *testing.T) {
 			t.Errorf("cloudInitState(%q) = %q, want %q", cases[i], got, expect[i])
 		}
 	}
+
+}
+
+func TestParseCloudInitError(t *testing.T) {
+	raw := `{
+  "errors": [
+    "('scripts-user', RuntimeError('Runparts: 1 failures (runcmd) in 1 attempted commands'))"
+  ],
+  "status": "error"
+}`
+	module, message := parseCloudInitError(raw)
+	if module != "scripts-user" {
+		t.Errorf("parseCloudInitError module = %q, want scripts-user", module)
+	}
+	if !strings.Contains(message, "Runparts: 1 failures (runcmd)") {
+		t.Errorf("parseCloudInitError message = %q, want runcmd failure text", message)
+	}
+}
+
+func TestParseCloudInitErrorGarbage(t *testing.T) {
+	module, message := parseCloudInitError("unrelated output")
+	if module != "" || message != "" {
+		t.Errorf("parseCloudInitError(%q) = %q, %q, want empty on non-error output", "unrelated output", module, message)
+	}
+}
+
+func TestCloudInitFailingToken(t *testing.T) {
+	if got := cloudInitFailingToken("zsh:1: command not found: facile"); got != "facile" {
+		t.Errorf("cloudInitFailingToken command-not-found = %q, want facile", got)
+	}
+	if got := cloudInitFailingToken("sh: 1: nala: not found: abcd"); got != "abcd" {
+		t.Errorf("cloudInitFailingToken bare not-found = %q, want abcd", got)
+	}
+	if got := cloudInitFailingToken("ordinary line"); got != "" {
+		t.Errorf("cloudInitFailingToken on clean line = %q, want empty", got)
+	}
+}
+
+func TestCloudInitConfigHintPointsAtCommandNotURL(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "boite.yml")
+	contents := `# config
+cloud_init:
+  runcmd:
+  - su - boite -c 'curl -fsSL https://get.facile.studio | bash'
+  - su - boite -c 'facile install filet'
+  - su - boite -c 'facile install sonde'
+`
+	if err := os.WriteFile(p, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := cloudInitConfigHint(p, "facile")
+	if !strings.Contains(got, ":5:") {
+		t.Errorf("cloudInitConfigHint = %q, want it to point at line 5 (the 'facile install filet' runcmd), not the URL line", got)
+	}
+	if !strings.Contains(got, "facile install filet") {
+		t.Errorf("cloudInitConfigHint = %q, want the offending runcmd text", got)
+	}
 }
 
 func TestIsFatalCloudInitState(t *testing.T) {

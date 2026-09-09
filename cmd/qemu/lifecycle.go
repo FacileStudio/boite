@@ -41,6 +41,7 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 		noMount:       noMount,
 		overlayPath:   overlayPath,
 		seedISOPath:   seedISOPath,
+		configPath:    configPath,
 		keyResolution: keyResolution,
 		cfg:           cfg,
 	})
@@ -87,7 +88,7 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 		return nil, fmt.Errorf("wait for ssh: %w", err)
 	}
 
-	if err := WaitForCloudInit(inst, 180); err != nil {
+	if err := WaitForCloudInit(inst, 180, p.configPath); err != nil {
 		return nil, fmt.Errorf("cloud-init: %w", err)
 	}
 

@@ -108,8 +108,11 @@ func ComputeInstanceID(name string) string {
 // confirms cloud-init started. It never aborts a confirmed first boot with a
 // heavy runcmd on a wall-clock deadline: it keeps polling until "done", and a
 // boot that completes with module errors ("error") settles as a warning rather
-// than failing the create.
-func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
+// than failing the create. The warning and the fatal failures both carry a
+// diagnostic (failing module, console error, config line) when one is
+// available. configPath is threaded through so a --config file is honoured by
+// the config-line hint.
+func WaitForCloudInit(inst *Instance, timeoutSeconds int, configPath string) error {
 	steps := timeoutSeconds / 5
 	if steps < 1 {
 		steps = 1
@@ -126,12 +129,16 @@ func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
 			return nil
 		}
 		if state == "error" {
-			ProgressWarn(fmt.Sprintf("cloud-init finished with errors (%ds)", elapsed))
+			ProgressWarn(cloudInitErrorSummary(inst, configPath, elapsed))
 			return nil
 		}
 		if isFatalCloudInitState(state) {
-			ProgressFail(fmt.Sprintf("cloud-init %s", detail))
-			return fmt.Errorf("cloud-init %s", detail)
+			msg := fmt.Sprintf("cloud-init %s", detail)
+			if diag := cloudInitDiagnostic(inst, configPath); diag != "" {
+				msg += "\n  " + diag
+			}
+			ProgressFail(msg)
+			return fmt.Errorf("%s", msg)
 		}
 
 		if state == "running" {
