@@ -24,6 +24,7 @@ type WriteFileConfig struct {
 	Owner       string `yaml:"owner,omitempty"`
 	Permissions string `yaml:"permissions,omitempty"`
 	Encoding    string `yaml:"encoding,omitempty"`
+	Defer       bool   `yaml:"defer,omitempty"`
 }
 
 // CloudInitConfig represents the cloud_init section of ~/.boite.yml

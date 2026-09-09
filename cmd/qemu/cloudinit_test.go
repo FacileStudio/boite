@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestGenerateSSHKeyPairWritesInstanceScopedKeys(t *testing.T) {
@@ -78,5 +80,39 @@ func TestReadPublicKey(t *testing.T) {
 	}
 	if !strings.HasPrefix(key, "ssh-ed25519 ") {
 		t.Fatalf("expected ssh-ed25519 public key, got %q", key)
+	}
+}
+
+func TestRenderDefersWriteFilesOwnedByBootedUser(t *testing.T) {
+	cfg := &CloudInitConfig{
+		Users: []UserConfig{{
+			Name: "boite",
+			Home: "/home/boite",
+		}},
+		WriteFiles: []WriteFileConfig{
+			{Path: "/home/boite/.zshrc", Content: "alias ll='ls -la'\n", Owner: "boite:boite"},
+			{Path: "/etc/motd", Content: "hi\n", Owner: "root:root"},
+		},
+	}
+
+	out := renderCloudInitUserData(cfg, "ssh-ed25519 test boite")
+
+	var got struct {
+		WriteFiles []WriteFileConfig `yaml:"write_files"`
+	}
+	if err := yaml.Unmarshal([]byte(out[strings.Index(out, "\n")+1:]), &got); err != nil {
+		t.Fatalf("unmarshal rendered user-data: %v", err)
+	}
+
+	deferred := map[string]bool{}
+	for _, w := range got.WriteFiles {
+		deferred[w.Path] = w.Defer
+	}
+
+	if !deferred["/home/boite/.zshrc"] {
+		t.Fatal("expected boot-user-owned .zshrc to be deferred")
+	}
+	if deferred["/etc/motd"] {
+		t.Fatal("root-owned /etc/motd must not be deferred")
 	}
 }

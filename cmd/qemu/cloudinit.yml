@@ -26,6 +26,7 @@ write_files:
   - path: /home/boite/.zshrc
     permissions: "0644"
     owner: boite:boite
+    defer: true
     content: |
       #!/bin/zsh
       # Boite workspace shell config
@@ -66,6 +67,7 @@ write_files:
   - path: /home/boite/.tmux.conf
     permissions: "0644"
     owner: boite:boite
+    defer: true
     content: |
       set -g default-terminal "screen-256color"
       set -ag terminal-overrides ",xterm-256color:RGB"

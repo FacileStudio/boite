@@ -21,7 +21,7 @@ func renderCloudInitUserData(cfg *CloudInitConfig, sshPubKey string) string {
 	addPackagesToConfig(cloudConfig, cfg.Packages)
 	addAPTSourcesToConfig(cloudConfig, cfg.APT)
 	addRuncmdToConfig(cloudConfig, cfg.Runcmd)
-	addWriteFilesToConfig(cloudConfig, cfg.WriteFiles)
+	addWriteFilesToConfig(cloudConfig, cfg.WriteFiles, cfg.Users)
 
 	if err := encoder.Encode(cloudConfig); err != nil {
 		return "#cloud-config\n" + buf.String()
@@ -156,10 +156,17 @@ func addRuncmdToConfig(cloudConfig map[string]any, runcmd []any) {
 	}
 }
 
-// addWriteFilesToConfig adds write_files to the cloud-init configuration
-func addWriteFilesToConfig(cloudConfig map[string]any, writeFiles []WriteFileConfig) {
+// addWriteFilesToConfig adds write_files to the cloud-init configuration.
+// Files owned by a user defined in the same cloud-init run are deferred so they
+// are written after cc_users_groups creates that user (write_files otherwise
+// runs before the user exists and the chown fails with "name not found").
+func addWriteFilesToConfig(cloudConfig map[string]any, writeFiles []WriteFileConfig, users []UserConfig) {
 	if len(writeFiles) == 0 {
 		return
+	}
+	booted := make(map[string]bool, len(users))
+	for _, u := range users {
+		booted[u.Name] = true
 	}
 	result := make([]map[string]any, 0, len(writeFiles))
 	for _, w := range writeFiles {
@@ -176,7 +183,29 @@ func addWriteFilesToConfig(cloudConfig map[string]any, writeFiles []WriteFileCon
 		if w.Encoding != "" {
 			file["encoding"] = w.Encoding
 		}
+		if w.Defer || writeFileTouchesBootedUser(w, booted) {
+			file["defer"] = true
+		}
 		result = append(result, file)
 	}
 	cloudConfig["write_files"] = result
+}
+
+// writeFileTouchesBootedUser reports whether the file is owned by, or lives in
+// the home of, a user that is created in the same cloud-init run.
+func writeFileTouchesBootedUser(w WriteFileConfig, booted map[string]bool) bool {
+	owner, _, _ := strings.Cut(w.Owner, ":")
+	if owner != "" && booted[owner] {
+		return true
+	}
+	if w.Path == "" {
+		return false
+	}
+	for name := range booted {
+		home := "/home/" + name
+		if w.Path == home || strings.HasPrefix(w.Path, home+"/") {
+			return true
+		}
+	}
+	return false
 }
