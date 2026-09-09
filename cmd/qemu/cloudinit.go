@@ -104,9 +104,11 @@ func ComputeInstanceID(name string) string {
 
 // WaitForCloudInit blocks until cloud-init reports it has finished on the
 // instance, surfacing its status and the latest VM console line while it runs.
-// It only fails on a terminal bad state ("error"/"disabled") or when the guest
-// never confirms cloud-init started; a confirmed first boot with a heavy runcmd
-// keeps polling until "done" instead of aborting on a wall-clock deadline.
+// It fails on "disabled" (cloud-init never provisioned) or when the guest never
+// confirms cloud-init started. It never aborts a confirmed first boot with a
+// heavy runcmd on a wall-clock deadline: it keeps polling until "done", and a
+// boot that completes with module errors ("error") settles as a warning rather
+// than failing the create.
 func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
 	steps := timeoutSeconds / 5
 	if steps < 1 {
@@ -123,7 +125,11 @@ func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
 			ProgressDone(fmt.Sprintf("cloud-init finished (%ds)", elapsed))
 			return nil
 		}
-		if isTerminalCloudInitError(state) {
+		if state == "error" {
+			ProgressWarn(fmt.Sprintf("cloud-init finished with errors (%ds)", elapsed))
+			return nil
+		}
+		if isFatalCloudInitState(state) {
 			ProgressFail(fmt.Sprintf("cloud-init %s", detail))
 			return fmt.Errorf("cloud-init %s", detail)
 		}
@@ -143,8 +149,6 @@ func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
 		time.Sleep(5 * time.Second)
 		elapsed += 5
 
-		// Give up only when the guest never confirmed cloud-init is running
-		// (handshake/auth failure). A confirmed running boot keeps going.
 		if !sawRunning && elapsed >= timeoutSeconds {
 			ProgressFail("cloud-init never became reachable")
 			return fmt.Errorf("cloud-init: never started or never reported status within %ds", timeoutSeconds)
@@ -165,12 +169,23 @@ func cloudInitState(detail string) string {
 	return strings.Split(state, "\n")[0]
 }
 
-// isTerminalCloudInitError reports whether the state means cloud-init will
-// never reach "done" on its own, so the creation should fail instead of waiting.
-func isTerminalCloudInitError(state string) bool {
-	return state == "error" || state == "disabled" || state == "failed" || state == "canceled"
+// isFatalCloudInitState reports whether the state means cloud-init never
+// provisioned the guest, so create should fail instead of waiting. "error"
+// is deliberately excluded: it means the boot completed but a non-fatal module
+// failed, and waitForCloudInit surface it as a warning. "disabled" means
+// cloud-init never ran, so no user or key was ever created.
+func isFatalCloudInitState(state string) bool {
+	return state == "disabled" || state == "failed" || state == "canceled"
 }
 
+// cloudInitStatus runs `cloud-init status` over ssh and returns the guest's
+// status line verbatim, or "not reporting yet" when the guest is unreachable.
+// The remote command exits nonzero while cloud-init is still running
+// (documented exit code 2), so a nonzero ssh exit is NOT a transport failure:
+// judge reachability by the output content, not the exit code. Keying on the
+// "status: " line means a real connection/auth error (ssh writes its refusal
+// to stderr, and CombinedOutput merges stderr) yields no status line and falls
+// back to "not reporting yet", while "status: running" survives a nonzero exit.
 func cloudInitStatus(inst *Instance) string {
 	cmd := exec.Command("ssh",
 		"-i", getSSHIdentityFile(inst),
@@ -182,13 +197,10 @@ func cloudInitStatus(inst *Instance) string {
 		"boite@127.0.0.1",
 		"cloud-init status",
 	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "not reporting yet"
-	}
+	out, _ := cmd.CombinedOutput()
 	status := strings.TrimSpace(string(out))
-	if status == "" {
-		status = "not reporting yet"
+	if !strings.Contains(status, "status: ") {
+		return "not reporting yet"
 	}
 	return status
 }

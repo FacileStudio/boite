@@ -28,6 +28,21 @@ Uses the cached Debian image and SSH to the running instance.`,
 			os.Exit(1)
 		}
 
+		noWorkspace, _ := cmd.Flags().GetBool("no-workspace")
+		cwd, _ := os.Getwd()
+		if qemu.WorkspaceSyncEnabled(inst, cfgFile, noWorkspace) {
+			qemu.ProgressStart()
+			qemu.ProgressPhase("Syncing workspace")
+			syncErr := qemu.SyncWorkspaceIn(inst, cwd)
+			if syncErr != nil {
+				qemu.ProgressStop()
+				printError(fmt.Sprintf("Failed to sync workspace: %v", syncErr))
+				os.Exit(1)
+			}
+			qemu.ProgressDone("Workspace synced to /workspace")
+			qemu.ProgressStop()
+		}
+
 		fmt.Println(styleBanner(asciiBanner, versionString()))
 
 		if err := qemu.SSHInteractive(inst); err != nil {
@@ -40,5 +55,6 @@ Uses the cached Debian image and SSH to the running instance.`,
 }
 
 func init() {
+	runCmd.Flags().Bool("no-workspace", false, "Do not sync the current directory into /workspace")
 	rootCmd.AddCommand(runCmd)
 }

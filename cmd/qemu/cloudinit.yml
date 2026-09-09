@@ -1,4 +1,5 @@
 #cloud-config
+
 packages:
   - git
   - curl
@@ -15,6 +16,21 @@ packages:
   - neovim
   - starship
   - docker.io
+  - gh
+  - tree
+  - htop
+  - btop
+  - zoxide
+  - eza
+  - bat
+  - ripgrep
+  - prettyping
+  - fastfetch
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+
 users:
   - name: boite
     gecos: Boite
@@ -22,6 +38,7 @@ users:
     shell: /bin/zsh
     sudo: ALL=(ALL) NOPASSWD:ALL
     home: /home/boite
+
 write_files:
   - path: /home/boite/.zshrc
     permissions: "0644"
@@ -31,7 +48,7 @@ write_files:
       #!/bin/zsh
       # Boite workspace shell config
 
-      export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:/workspace/bin:$PATH"
+      export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
       export WORKSPACE=/workspace
 
       if command -v mise >/dev/null 2>&1; then
@@ -77,6 +94,7 @@ write_files:
       alias tl='tmux ls'
 
       autoload -Uz compinit && compinit -C
+
   - path: /home/boite/.tmux.conf
     permissions: "0644"
     owner: boite:boite
@@ -98,20 +116,28 @@ write_files:
       bind k select-pane -U
       bind l select-pane -R
       bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
+
 runcmd:
   - rm -f /etc/legal /etc/motd
   - touch /home/boite/.hushlogin
   - usermod -s /bin/zsh boite
+
   - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
   - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+  - su - boite -c 'python3 -m pip install --break-system-packages --upgrade pip'
+  - su - boite -c 'pip install --break-system-packages black isort flake8 pytest pytest-cov mypy poetry ipython httpie'
   - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
   - su - boite -c 'curl -fsSL https://bun.sh/install | bash'
+
   - su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'
-  - su - boite -c 'curl -fsSL https://get.facile.studio | bash'
+
   - su - boite -c 'git config --global init.defaultBranch main'
   - su - boite -c 'git config --global safe.directory "*"'
+
   - mkdir -p /workspace
   - chown -R boite:boite /workspace
+  - ln -sfn /workspace /home/boite/workspace
+
   - mkdir -p /home/boite/.ssh
   - chown -R boite:boite /home/boite/.ssh
   - chmod 700 /home/boite/.ssh

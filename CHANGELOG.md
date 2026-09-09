@@ -7,6 +7,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Added
+
+- `boite run` can now sync the directory it is run from into the sandbox's `/workspace` before opening the shell, replacing the VM copy wholesale. The sync is a tar stream over SSH into a bounded directory, not a mount, so a compromised guest never gets a live handle into the host tree. It is opt-in: disabled unless `workspace.sync_at_run: true` is set in `~/.boite.yml`. Push changes back with the new `boite sync <name>`, which copies `/workspace` into the current directory (guest ownership dropped). `boite run --no-workspace` overrides an enabled config for one session, and `create --no-mount` marks the instance to skip syncing permanently.
+
+### Fixed
+
+- `create` no longer fails when a finished cloud-init boot reports `status: error` from a non-fatal module failure (commonly a runcmd step that exits nonzero, such as a tool installed to a user's `~/.local/bin` then invoked from root's PATH). SSH being up means the sandbox is usable, so the state settles as a warning line and the create proceeds. `create` still blocks until cloud-init reaches a terminal state and still fails on `disabled` (cloud-init never provisioned) or when the guest never starts.
+
+### Removed
+
+- Dropped the useless `$WORKSPACE/bin` PATH entry from the provisioned `.zshrc` (embedded cloud-init and README sample). `WORKSPACE=/workspace` remains as a convenience variable.
+
 ## [0.1.14] — 2026-09-09
 
 ### Changed

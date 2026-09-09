@@ -39,6 +39,9 @@ boite create my-project
 # Open an interactive shell
 boite run my-project
 
+# Copy /workspace from the VM back into the current directory
+boite sync my-project
+
 # Execute a command inside the sandbox VM
 boite exec my-project ls -la
 
@@ -60,13 +63,41 @@ boite rm my-project
 | Command | Description |
 |---------|-------------|
 | `create <name>` | Create a new sandbox VM |
-| `run <name>` | Open an interactive shell in a running sandbox |
+| `run <name>` | Open an interactive shell (syncs the current directory into /workspace when workspace sync is enabled) |
+| `run --no-workspace <name>` | Open the shell without syncing the current directory, even if sync is enabled |
 | `exec <name> [cmd...]` | Execute command in a running sandbox VM |
+| `sync <name>` | Copy /workspace from the sandbox back into the current directory |
 | `list` | List all sandboxes |
 | `start <name>` | Start sandbox VM |
 | `stop <name>` | Stop sandbox VM (preserves data) |
 | `rm <name>` | Destroy sandbox VM permanently |
 | `install` | Install boite to system PATH |
+
+## Workspace sync
+
+Workspace sync is an opt-in feature. When enabled, `boite run` copies the
+directory you run it from into the sandbox's `/workspace` before opening the
+shell, so the VM sees the code you are working on. The copy overwrites
+`/workspace` wholesale (any changes made inside the VM are replaced), so push
+changes back with `boite sync` before re-running.
+
+The sync is a plain file copy over SSH, not a mount: the VM's `/workspace` is a
+bounded snapshot, never a live handle into your host tree. This is what keeps a
+compromised guest from reaching your files.
+
+### Configuration
+
+Sync is disabled by default. Turn it on per machine with `workspace.sync_at_run:
+true`, disable it again with `false`:
+
+```yaml
+workspace:
+  sync_at_run: true   # opt in: sync the current directory to /workspace on run
+```
+
+Without a `workspace:` section, or with `sync_at_run` absent or `false`, nothing
+is copied into `/workspace`. `boite run --no-workspace` overrides an enabled
+config for a single session.
 
 ## Configuration
 
@@ -108,7 +139,6 @@ cloud_init:
         # Paths
         export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$HOME/.local/share/mise/shims:$PATH"
         export WORKSPACE=/workspace
-        export PATH="$WORKSPACE/bin:$PATH"
 
         # Mise activation
         if command -v mise >/dev/null 2>&1; then
@@ -146,7 +176,7 @@ Boite uses [Debian 13 (Trixie) cloud image](https://cloud.debian.org/images/clou
 
 - **Pre-configured tools**: Go 1.26, Bun, Rust, mise, git, fzf, jq, tmux, wget, make, skatos, starship
 - **Secure VM isolation**: Full virtual machine separation from host
-- **Workspace mounting**: Current directory mounted at /workspace
+- **Workspace sync**: Current directory copied into /workspace on every `run`
 - **Custom shell configuration**: Provisions `.zshrc` from config
 - **Interactive zsh shell**: With useful aliases and completions
 - **Automatic provisioning**: Cloud-init handles tool installation

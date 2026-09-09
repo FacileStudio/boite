@@ -165,6 +165,25 @@ func ProgressFail(msg string) {
 	progressFrac = -1.0
 }
 
+// ProgressWarn settles the active step as a warning line: the step finished,
+// but not cleanly. Used when a guest boot completes with non-fatal noise that
+// should not fail the whole create.
+func ProgressWarn(msg string) {
+	if progressMode == 0 {
+		return
+	}
+	if progressMode == progressModePlain {
+		fmt.Fprintf(os.Stderr, "! %s\n", msg)
+		return
+	}
+	if progressActive {
+		clearLine()
+	}
+	progressActive = false
+	fmt.Fprintf(os.Stderr, "! %s\n", msg)
+	progressFrac = -1.0
+}
+
 // renderLive redraws the single live line in place. Spinner mode renders
 // "<spinner> <msg>", determinate mode renders "<bar> <msg>". The message is
 // truncated to the terminal width so the line never wraps: a wrapped line

@@ -52,13 +52,30 @@ func buildBaseCloudConfig() map[string]any {
 	}
 }
 
+// creationShell returns the shell to use when cloud-init creates a user. A user
+// whose configured shell is only installed later by the packages directive (the
+// default boite user runs /bin/zsh, and zsh is in packages) must not be created
+// with it: sshd rejects a login when the shell does not exist yet, silently
+// failing every provisioning SSH poll and making `create` report a bogus
+// "cloud-init never became reachable". The base image always ships bash, and
+// runcmd's `usermod -s` switches the shell after it is installed.
+func creationShell(shell string) string {
+	if shell == "" ||
+		shell == "/bin/bash" || shell == "/usr/bin/bash" ||
+		shell == "/bin/sh" || shell == "/usr/bin/sh" ||
+		shell == "/bin/dash" || shell == "/usr/bin/dash" {
+		return shell
+	}
+	return "/bin/bash"
+}
+
 // makeUserConfig creates a user configuration map for cloud-init
 func makeUserConfig(u UserConfig, extraSSHKey string) map[string]any {
 	user := map[string]any{
 		"name":   u.Name,
 		"gecos":  u.Gecos,
 		"groups": u.Groups,
-		"shell":  u.Shell,
+		"shell":  creationShell(u.Shell),
 		"home":   u.Home,
 		"sudo":   u.Sudo,
 	}

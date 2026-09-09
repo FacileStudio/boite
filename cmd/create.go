@@ -14,7 +14,7 @@ var createCmd = &cobra.Command{
 	Short: "Create a new development sandbox",
 	Long: `Create a new development sandbox VM with development tools pre-installed.
 Uses cached Debian 13 image with Copy-on-Write overlay.
-Use --no-mount to create a VM without mounting the current workspace.`,
+Use --no-mount so 'boite run' never syncs a workspace into /workspace for this instance.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		noMount, _ := cmd.Flags().GetBool("no-mount")

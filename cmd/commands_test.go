@@ -43,6 +43,7 @@ func TestRootCommandStructure(t *testing.T) {
 		"stop",
 		"rm",
 		"exec",
+		"sync",
 	}
 
 	commands := make(map[string]bool)
@@ -61,6 +62,11 @@ func TestCommandFlags(t *testing.T) {
 	flag := createCmd.Flags().Lookup("no-mount")
 	if flag == nil {
 		t.Fatal("expected create command to have --no-mount flag")
+	}
+
+	noWorkspace := runCmd.Flags().Lookup("no-workspace")
+	if noWorkspace == nil {
+		t.Fatal("expected run command to have --no-workspace flag")
 	}
 
 	cfgFlag := rootCmd.PersistentFlags().Lookup("config")

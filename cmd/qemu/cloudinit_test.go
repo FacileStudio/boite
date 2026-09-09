@@ -117,6 +117,25 @@ func TestRenderDefersWriteFilesOwnedByBootedUser(t *testing.T) {
 	}
 }
 
+func TestRenderUsesInstalledShellForBoiteUser(t *testing.T) {
+	cfg := &CloudInitConfig{
+		Users: []UserConfig{{
+			Name:  "boite",
+			Home:  "/home/boite",
+			Shell: "/bin/zsh",
+		}},
+	}
+
+	out := renderCloudInitUserData(cfg, "ssh-ed25519 test boite")
+
+	if strings.Contains(out, "shell: /bin/zsh") {
+		t.Fatal("boite user must not be created with an uninstalled shell (/bin/zsh): sshd rejects it and create fails")
+	}
+	if !strings.Contains(out, "shell: /bin/bash") {
+		t.Fatal("boite user must be created with a base-image shell (/bin/bash) so provisioning SSH works")
+	}
+}
+
 func TestCloudInitStateParsing(t *testing.T) {
 	cases := []string{
 		"status: running\n",
@@ -132,20 +151,26 @@ func TestCloudInitStateParsing(t *testing.T) {
 	}
 }
 
-func TestIsTerminalCloudInitError(t *testing.T) {
-	if !isTerminalCloudInitError("error") {
-		t.Error("cloud-init 'error' must be terminal")
+func TestIsFatalCloudInitState(t *testing.T) {
+	if !isFatalCloudInitState("disabled") {
+		t.Error("cloud-init 'disabled' must be fatal")
 	}
-	if !isTerminalCloudInitError("disabled") {
-		t.Error("cloud-init 'disabled' must be terminal")
+	if !isFatalCloudInitState("failed") {
+		t.Error("cloud-init 'failed' must be fatal")
 	}
-	if isTerminalCloudInitError("running") {
-		t.Error("cloud-init 'running' must not be terminal")
+	if !isFatalCloudInitState("canceled") {
+		t.Error("cloud-init 'canceled' must be fatal")
 	}
-	if isTerminalCloudInitError("done") {
-		t.Error("cloud-init 'done' must not be terminal")
+	if isFatalCloudInitState("error") {
+		t.Error("cloud-init 'error' must not be fatal: the boot completed, only a module failed")
 	}
-	if isTerminalCloudInitError("") {
-		t.Error("empty state must not be terminal")
+	if isFatalCloudInitState("running") {
+		t.Error("cloud-init 'running' must not be fatal")
+	}
+	if isFatalCloudInitState("done") {
+		t.Error("cloud-init 'done' must not be fatal")
+	}
+	if isFatalCloudInitState("") {
+		t.Error("empty state must not be fatal")
 	}
 }
