@@ -28,10 +28,10 @@ type WriteFileConfig struct {
 
 // CloudInitConfig represents the cloud_init section of ~/.boite.yml
 type CloudInitConfig struct {
-	APT        *APTConfig       `yaml:"apt"`
-	Packages   []string         `yaml:"packages"`
-	Runcmd     []any            `yaml:"runcmd"`
-	Users      []UserConfig     `yaml:"users"`
+	APT        *APTConfig        `yaml:"apt"`
+	Packages   []string          `yaml:"packages"`
+	Runcmd     []any             `yaml:"runcmd"`
+	Users      []UserConfig      `yaml:"users"`
 	WriteFiles []WriteFileConfig `yaml:"write_files"`
 }
 
@@ -48,24 +48,22 @@ type APTSource struct {
 
 // UserConfig represents a user definition in cloud-init
 type UserConfig struct {
-	Gecos            string   `yaml:"gecos"`
-	Groups           []string `yaml:"groups"`
-	Home             string   `yaml:"home"`
-	Name             string   `yaml:"name"`
-	Shell            string   `yaml:"shell"`
-	Sudo             string   `yaml:"sudo"`
+	Gecos             string   `yaml:"gecos"`
+	Groups            []string `yaml:"groups"`
+	Home              string   `yaml:"home"`
+	Name              string   `yaml:"name"`
+	Shell             string   `yaml:"shell"`
+	Sudo              string   `yaml:"sudo"`
 	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys"`
+	Password          string   `yaml:"password,omitempty"`
 }
 
 // VMConfig represents the vm section of ~/.boite.yml
 type VMConfig struct {
-	CPUs          int    `yaml:"cpus"`
-	Disk          string `yaml:"disk"`
-	Memory        string `yaml:"memory"`
-	SSHKeyPassphrase string `yaml:"ssh_key_passphrase"`
+	CPUs   int    `yaml:"cpus"`
+	Disk   string `yaml:"disk"`
+	Memory string `yaml:"memory"`
 }
-
-// BoiteConfig represents the full ~/.boite.yml structure
 type BoiteConfig struct {
 	CloudInit *CloudInitConfig `yaml:"cloud_init"`
 	VM        *VMConfig        `yaml:"vm"`

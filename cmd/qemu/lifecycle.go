@@ -2,121 +2,111 @@ package qemu
 
 import (
 	"fmt"
-	"net"
 	"os"
-	"os/exec"
-	"os/signal"
-	"strconv"
-	"strings"
-	"syscall"
-	"time"
 )
 
-func Create(name, workspacePath string, noMount bool, configPath string) (*Instance, error) {
+func Create(name, workspacePath string, noMount bool, configPath string, generateKey bool) (*Instance, string, error) {
 	if InstanceExists(name) {
-		return nil, fmt.Errorf("instance '%s' already exists", name)
+		return nil, "", fmt.Errorf("instance '%s' already exists", name)
 	}
 
 	cfg, err := LoadBoiteConfig(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("load boite config: %w", err)
+		return nil, "", fmt.Errorf("load boite config: %w", err)
 	}
 
+	overlayPath, err := prepareInstanceDisk(name, cfg)
+	if err != nil {
+		return nil, "", err
+	}
+
+	instanceDir := GetInstanceDir(name)
+	keyResolution, err := resolveSSHKey(instanceDir, generateKey, cfg)
+	if err != nil {
+		return nil, "", err
+	}
+
+	seedISOPath, err := GenerateSeedISO(instanceDir, name, keyResolution.pubKey, configPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("generate seed iso: %w", err)
+	}
+
+	inst, warning, err := startAndFinalizeInstance(&startFinalizeParams{
+		name:          name,
+		workspacePath: workspacePath,
+		noMount:       noMount,
+		overlayPath:   overlayPath,
+		seedISOPath:   seedISOPath,
+		keyResolution: keyResolution,
+		cfg:           cfg,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	setupCleanupHandler(name)
+	return inst, warning, nil
+}
+
+func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, string, error) {
+	sshPort, err := FindFreePort()
+	if err != nil {
+		return nil, "", fmt.Errorf("find free port: %w", err)
+	}
+
+	qemuCfg := QEMUConfig{
+		BaseImage:   GetBaseImagePath(),
+		OverlayPath: p.overlayPath,
+		SeedISOPath: p.seedISOPath,
+		HostFwdPort: sshPort + 1,
+		PIDFile:     GetPIDPath(p.name),
+		ConsoleLog:  GetConsoleLogPath(p.name),
+	}
+	applyVMConfig(&qemuCfg, p.cfg)
+
+	if _, err := StartQEMU(qemuCfg); err != nil {
+		return nil, "", fmt.Errorf("start qemu: %w", err)
+	}
+
+	pid, err := WaitForPID(qemuCfg.PIDFile, 20)
+	if err != nil {
+		return nil, "", fmt.Errorf("wait for pid file: %w", err)
+	}
+
+	inst := p.buildInstance(pid, qemuCfg.HostFwdPort)
+	if err := SaveInstanceState(inst); err != nil {
+		return nil, "", fmt.Errorf("save state: %w", err)
+	}
+
+	if err := WaitForSSH(inst.SSHPort, 120); err != nil {
+		return nil, "", fmt.Errorf("wait for ssh: %w", err)
+	}
+
+	warning := ""
+	if err := WaitForCloudInit(inst, 180); err != nil {
+		warning = fmt.Sprintf("Warning: cloud-init may not have completed: %v", err)
+	}
+
+	return inst, warning, nil
+}
+
+func prepareInstanceDisk(name string, cfg *BoiteConfig) (string, error) {
 	baseImage, err := EnsureBaseImage()
 	if err != nil {
-		return nil, fmt.Errorf("base image: %w", err)
+		return "", fmt.Errorf("base image: %w", err)
 	}
 
 	instanceDir := GetInstanceDir(name)
 	if err := os.MkdirAll(instanceDir, 0o755); err != nil {
-		return nil, fmt.Errorf("prepare instance dir: %w", err)
+		return "", fmt.Errorf("prepare instance dir: %w", err)
 	}
 
-	diskSize := 10
-	if cfg != nil && cfg.VM != nil && cfg.VM.Disk != "" {
-		diskSize = parseDiskGB(cfg.VM.Disk)
-	}
 	overlayPath := GetOverlayPath(name)
-	if err := CreateOverlay(baseImage, overlayPath, diskSize); err != nil {
-		return nil, fmt.Errorf("create overlay: %w", err)
+	if err := CreateOverlay(baseImage, overlayPath, vmDiskSize(cfg)); err != nil {
+		return "", fmt.Errorf("create overlay: %w", err)
 	}
 
-	var passphrase string
-	if cfg != nil && cfg.VM != nil {
-		passphrase = cfg.VM.SSHKeyPassphrase
-	}
-	privateKeyPath, publicKeyPath, err := GenerateSSHKeyPair(instanceDir, passphrase)
-	if err != nil {
-		return nil, fmt.Errorf("generate ssh keys: %w", err)
-	}
-
-	pubKey, err := ReadPublicKey(publicKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("read public key: %w", err)
-	}
-
-	seedISOPath, err := GenerateSeedISO(instanceDir, name, pubKey, configPath)
-	if err != nil {
-		return nil, fmt.Errorf("generate seed iso: %w", err)
-	}
-
-	sshPort, err := FindFreePort()
-	if err != nil {
-		return nil, fmt.Errorf("find free port: %w", err)
-	}
-
-	hostfwdPort := sshPort + 1
-	pidFile := GetPIDPath(name)
-	consoleLog := GetConsoleLogPath(name)
-
-	qemuCfg := QEMUConfig{
-		BaseImage:   baseImage,
-		OverlayPath: overlayPath,
-		SeedISOPath: seedISOPath,
-		HostFwdPort: hostfwdPort,
-		PIDFile:     pidFile,
-		ConsoleLog:  consoleLog,
-	}
-	if cfg != nil && cfg.VM != nil {
-		qemuCfg.Memory = cfg.VM.Memory
-		qemuCfg.CPUs = cfg.VM.CPUs
-	}
-	if _, err := StartQEMU(qemuCfg); err != nil {
-		return nil, fmt.Errorf("start qemu: %w", err)
-	}
-
-	pid, err := WaitForPID(pidFile, 20)
-	if err != nil {
-		return nil, fmt.Errorf("wait for pid file: %w", err)
-	}
-
-	inst := &Instance{
-		Name:        name,
-		PID:         pid,
-		SSHPort:     hostfwdPort,
-		OverlayPath: overlayPath,
-		SeedISOPath: seedISOPath,
-		KeyPath:     privateKeyPath,
-		PubKeyPath:  publicKeyPath,
-		CreatedAt:   time.Now(),
-		Status:      "running",
-		Workspace:   workspacePath,
-		NoMount:     noMount,
-	}
-	if err := SaveInstanceState(inst); err != nil {
-		return nil, fmt.Errorf("save state: %w", err)
-	}
-
-	if err := WaitForSSH(hostfwdPort, 120); err != nil {
-		return nil, fmt.Errorf("wait for ssh: %w", err)
-	}
-
-	if err := WaitForCloudInit(inst, 180); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: cloud-init may not have completed: %v\n", err)
-	}
-
-	setupCleanupHandler(name)
-	return inst, nil
+	return overlayPath, nil
 }
 
 func Start(name string, configPath string) (*Instance, error) {
@@ -134,27 +124,21 @@ func Start(name string, configPath string) (*Instance, error) {
 		return nil, fmt.Errorf("load boite config: %w", err)
 	}
 
-	pidFile := GetPIDPath(name)
-	baseImage := GetBaseImagePath()
-	consoleLog := GetConsoleLogPath(name)
-
 	qemuCfg := QEMUConfig{
-		BaseImage:   baseImage,
+		BaseImage:   GetBaseImagePath(),
 		OverlayPath: inst.OverlayPath,
 		SeedISOPath: inst.SeedISOPath,
 		HostFwdPort: inst.SSHPort,
-		PIDFile:     pidFile,
-		ConsoleLog:  consoleLog,
+		PIDFile:     GetPIDPath(name),
+		ConsoleLog:  GetConsoleLogPath(name),
 	}
-	if cfg != nil && cfg.VM != nil {
-		qemuCfg.Memory = cfg.VM.Memory
-		qemuCfg.CPUs = cfg.VM.CPUs
-	}
+	applyVMConfig(&qemuCfg, cfg)
+
 	if _, err := StartQEMU(qemuCfg); err != nil {
 		return nil, fmt.Errorf("start qemu: %w", err)
 	}
 
-	pid, err := WaitForPID(pidFile, 20)
+	pid, err := WaitForPID(qemuCfg.PIDFile, 20)
 	if err != nil {
 		return nil, fmt.Errorf("wait for pid file: %w", err)
 	}
@@ -198,10 +182,10 @@ func Stop(name string) error {
 func Destroy(name string) error {
 	inst, err := LoadInstanceState(name)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("load state: %w", err)
 		}
-		return fmt.Errorf("load state: %w", err)
+		return nil
 	}
 
 	if inst.PID > 0 && IsProcessRunning(inst.PID) {
@@ -217,85 +201,4 @@ func Destroy(name string) error {
 	}
 
 	return DeleteInstanceDir(name)
-}
-
-func setupCleanupHandler(name string) {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		inst, _ := LoadInstanceState(name)
-		if inst != nil && inst.PID > 0 {
-			_ = KillQEMU(inst.PID)
-		}
-		os.Exit(130)
-	}()
-}
-
-
-
-func WaitForSSH(port, timeoutSeconds int) error {
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	for i := 0; i < timeoutSeconds; i++ {
-		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
-		if err == nil {
-			conn.Close()
-			time.Sleep(2 * time.Second)
-			return nil
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return fmt.Errorf("timeout waiting for SSH on %s", addr)
-}
-
-func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
-	for i := 0; i < timeoutSeconds/5; i++ {
-		cmd := exec.Command("ssh",
-			"-i", inst.KeyPath,
-			"-p", fmt.Sprintf("%d", inst.SSHPort),
-			"-o", "StrictHostKeyChecking=no",
-			"-o", "UserKnownHostsFile=/dev/null",
-			"-o", "LogLevel=ERROR",
-			"-o", "ConnectTimeout=10",
-			"boite@127.0.0.1",
-			"cloud-init status",
-		)
-		out, err := cmd.CombinedOutput()
-		if err == nil && strings.Contains(string(out), "status: done") {
-			return nil
-		}
-		time.Sleep(5 * time.Second)
-	}
-	return fmt.Errorf("timeout waiting for cloud-init to complete")
-}
-
-func WaitForProcessExit(pid int, timeout int) error {
-	for i := 0; i < timeout; i++ {
-		if !IsProcessRunning(pid) {
-			return nil
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return fmt.Errorf("timeout waiting for process %d to exit", pid)
-}
-
-func parseDiskGB(value string) int {
-	value = strings.TrimSpace(strings.ToLower(value))
-	if strings.HasSuffix(value, "g") {
-		value = strings.TrimSuffix(value, "g")
-	}
-	if n, err := strconv.Atoi(value); err == nil && n > 0 {
-		return n
-	}
-	return 10
-}
-
-func WaitForPortFree(port int, timeout int) error {
-	for i := 0; i < timeout; i++ {
-		if isPortFree(port) {
-			return nil
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-	return fmt.Errorf("timeout waiting for port %d to be freed", port)
 }

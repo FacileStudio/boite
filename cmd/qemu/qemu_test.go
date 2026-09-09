@@ -13,7 +13,6 @@ func TestWaitForPIDFileWithDelay(t *testing.T) {
 	dir := t.TempDir()
 	pidFile := filepath.Join(dir, "pid.txt")
 
-	// Start a goroutine that writes the PID file after a delay
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		data := []byte("12345\n")
@@ -22,7 +21,6 @@ func TestWaitForPIDFileWithDelay(t *testing.T) {
 		}
 	}()
 
-	// Wait for PID file with timeout
 	start := time.Now()
 	pid, err := WaitForPID(pidFile, 10)
 	elapsed := time.Since(start)
@@ -38,7 +36,6 @@ func TestWaitForPIDFileTimeout(t *testing.T) {
 	dir := t.TempDir()
 	pidFile := filepath.Join(dir, "pid.txt")
 
-	// PID file never created
 	_, err := WaitForPID(pidFile, 1)
 	assert.Error(t, err)
 }

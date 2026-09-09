@@ -5,11 +5,35 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
+
+func getSSHIdentityFile(inst *Instance) string {
+	if inst.KeyPath != "" {
+		return inst.KeyPath
+	}
+
+	if inst.PubKeyPath != "" {
+		candidate := strings.TrimSuffix(inst.PubKeyPath, ".pub")
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	home, _ := os.UserHomeDir()
+	sshDir := filepath.Join(home, ".ssh")
+	if _, err := os.Stat(filepath.Join(sshDir, "id_ed25519")); err == nil {
+		return filepath.Join(sshDir, "id_ed25519")
+	}
+	if _, err := os.Stat(filepath.Join(sshDir, "id_rsa")); err == nil {
+		return filepath.Join(sshDir, "id_rsa")
+	}
+	return filepath.Join(sshDir, "id_ed25519")
+}
 
 func BuildSSHArgs(inst *Instance, command []string) []string {
 	args := []string{
-		"-i", inst.KeyPath,
+		"-i", getSSHIdentityFile(inst),
 		"-p", fmt.Sprintf("%d", inst.SSHPort),
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
@@ -31,7 +55,11 @@ func SSHCommand(inst *Instance, command []string) error {
 	sshCmd.Stdin = os.Stdin
 	sshCmd.Stdout = os.Stdout
 	sshCmd.Stderr = os.Stderr
-	return sshCmd.Run()
+	err := sshCmd.Run()
+	if err != nil {
+		return fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+	}
+	return nil
 }
 
 func SSHInteractive(inst *Instance) error {
@@ -40,7 +68,7 @@ func SSHInteractive(inst *Instance) error {
 
 func SCPToInstance(inst *Instance, localPath, remotePath string) error {
 	args := []string{
-		"-i", inst.KeyPath,
+		"-i", getSSHIdentityFile(inst),
 		"-P", fmt.Sprintf("%d", inst.SSHPort),
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
@@ -57,7 +85,7 @@ func SCPToInstance(inst *Instance, localPath, remotePath string) error {
 
 func SCPFromInstance(inst *Instance, remotePath, localPath string) error {
 	args := []string{
-		"-i", inst.KeyPath,
+		"-i", getSSHIdentityFile(inst),
 		"-P", fmt.Sprintf("%d", inst.SSHPort),
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",

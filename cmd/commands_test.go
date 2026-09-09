@@ -72,8 +72,8 @@ func TestCommandFlags(t *testing.T) {
 func TestCommandAliases(t *testing.T) {
 	var foundDestroy bool
 	if slices.Contains(rmCmd.Aliases, "destroy") {
-			foundDestroy = true
-		}
+		foundDestroy = true
+	}
 	if !foundDestroy {
 		t.Fatal("expected rm command to have 'destroy' alias")
 	}

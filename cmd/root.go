@@ -23,9 +23,9 @@ var (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use:   "boite",
-	Short: "Development sandbox manager",
-	Long: `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
+	Use:     "boite",
+	Short:   "Development sandbox manager",
+	Long:    `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
 	Version: Version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initConfig()
@@ -38,7 +38,6 @@ var rootCmd = &cobra.Command{
 	CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() error {
 	return rootCmd.Execute()
 }
@@ -75,7 +74,7 @@ func initConfig() error {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			if cfgFile != "" {
-				// --config specified but not found; fall back to ~/.boite.yml
+
 			} else {
 				if err := createDefaultConfig(home); err != nil {
 					return err

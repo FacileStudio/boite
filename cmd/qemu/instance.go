@@ -12,24 +12,24 @@ import (
 const (
 	InstancesDirName = "instances"
 	CacheDirName     = "cache"
-	BaseImageName    = "debian-12-genericcloud-amd64.qcow2"
-	BaseImageURL     = "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
+	BaseImageName    = "debian-13-genericcloud-amd64.qcow2"
+	BaseImageURL     = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
 	// SHA256 will be verified on first download; update when image changes
 	BaseImageSHA256 = "SKIP_VERIFY"
 )
 
 type Instance struct {
-	Name         string    `json:"name"`
-	PID          int       `json:"pid"`
-	SSHPort      int       `json:"ssh_port"`
-	OverlayPath  string    `json:"overlay_path"`
-	SeedISOPath  string    `json:"seed_iso_path"`
-	KeyPath      string    `json:"key_path"`
-	PubKeyPath   string    `json:"pub_key_path"`
-	CreatedAt    time.Time `json:"created_at"`
-	Status       string    `json:"status"`
-	Workspace    string    `json:"workspace"`
-	NoMount      bool      `json:"no_mount"`
+	Name        string    `json:"name"`
+	PID         int       `json:"pid"`
+	SSHPort     int       `json:"ssh_port"`
+	OverlayPath string    `json:"overlay_path"`
+	SeedISOPath string    `json:"seed_iso_path"`
+	KeyPath     string    `json:"key_path"`
+	PubKeyPath  string    `json:"pub_key_path"`
+	CreatedAt   time.Time `json:"created_at"`
+	Status      string    `json:"status"`
+	Workspace   string    `json:"workspace"`
+	NoMount     bool      `json:"no_mount"`
 }
 
 func GetBoiteDir() string {
@@ -113,10 +113,10 @@ func InstanceExists(name string) bool {
 func ListInstances() ([]*Instance, error) {
 	entries, err := os.ReadDir(GetInstancesDir())
 	if err != nil {
-		if os.IsNotExist(err) {
-			return []*Instance{}, nil
+		if !os.IsNotExist(err) {
+			return nil, err
 		}
-		return nil, err
+		return []*Instance{}, nil
 	}
 	var instances []*Instance
 	for _, e := range entries {
@@ -138,7 +138,7 @@ func DeleteInstanceDir(name string) error {
 
 func FindFreePort() (int, error) {
 	for port := 2222; port <= 2322; port++ {
-		if isPortFree(port) && isPortFree(port + 1) {
+		if isPortFree(port) && isPortFree(port+1) {
 			return port, nil
 		}
 	}

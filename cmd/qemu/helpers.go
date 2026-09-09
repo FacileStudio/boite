@@ -1,0 +1,134 @@
+package qemu
+
+import (
+	"fmt"
+	"net"
+	"os"
+	"os/exec"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+)
+
+type startFinalizeParams struct {
+	name          string
+	workspacePath string
+	noMount       bool
+	overlayPath   string
+	seedISOPath   string
+	keyResolution sshKeyResolution
+	cfg           *BoiteConfig
+}
+
+func (p *startFinalizeParams) buildInstance(pid int, sshPort int) *Instance {
+	return &Instance{
+		Name:        p.name,
+		PID:         pid,
+		SSHPort:     sshPort,
+		OverlayPath: p.overlayPath,
+		SeedISOPath: p.seedISOPath,
+		KeyPath:     p.keyResolution.privateKeyPath,
+		PubKeyPath:  p.keyResolution.publicKeyPath,
+		CreatedAt:   time.Now(),
+		Status:      "running",
+		Workspace:   p.workspacePath,
+		NoMount:     p.noMount,
+	}
+}
+
+func setupCleanupHandler(name string) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		inst, err := LoadInstanceState(name)
+		if err == nil && inst.PID > 0 {
+			if err := KillQEMU(inst.PID); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to stop QEMU: %v\n", err)
+			}
+		}
+		os.Exit(130)
+	}()
+}
+
+func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig) {
+	if cfg != nil && cfg.VM != nil {
+		qemuCfg.Memory = cfg.VM.Memory
+		qemuCfg.CPUs = cfg.VM.CPUs
+	}
+}
+
+func vmDiskSize(cfg *BoiteConfig) int {
+	if cfg == nil || cfg.VM == nil || cfg.VM.Disk == "" {
+		return 10
+	}
+	return parseDiskGB(cfg.VM.Disk)
+}
+
+func parseDiskGB(value string) int {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if strings.HasSuffix(value, "g") {
+		value = strings.TrimSuffix(value, "g")
+	}
+	if n, err := strconv.Atoi(value); err == nil && n > 0 {
+		return n
+	}
+	return 10
+}
+
+func WaitForSSH(port, timeoutSeconds int) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	for i := 0; i < timeoutSeconds; i++ {
+		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+		if err == nil {
+			conn.Close()
+			time.Sleep(2 * time.Second)
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("timeout waiting for SSH on %s", addr)
+}
+
+func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
+	for i := 0; i < timeoutSeconds/5; i++ {
+		cmd := exec.Command("ssh",
+			"-i", getSSHIdentityFile(inst),
+			"-p", fmt.Sprintf("%d", inst.SSHPort),
+			"-o", "StrictHostKeyChecking=no",
+			"-o", "UserKnownHostsFile=/dev/null",
+			"-o", "LogLevel=ERROR",
+			"-o", "ConnectTimeout=10",
+			"boite@127.0.0.1",
+			"cloud-init status",
+		)
+		out, err := cmd.CombinedOutput()
+		if err == nil && strings.Contains(string(out), "status: done") {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return fmt.Errorf("timeout waiting for cloud-init to complete")
+}
+
+func WaitForProcessExit(pid int, timeout int) error {
+	for i := 0; i < timeout; i++ {
+		if !IsProcessRunning(pid) {
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("timeout waiting for process %d to exit", pid)
+}
+
+func WaitForPortFree(port int, timeout int) error {
+	for i := 0; i < timeout; i++ {
+		if isPortFree(port) {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("timeout waiting for port %d to be freed", port)
+}

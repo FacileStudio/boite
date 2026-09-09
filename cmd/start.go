@@ -16,11 +16,11 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		configFlag := cmd.Flag("config")
-	configPath := ""
-	if configFlag != nil {
-		configPath = configFlag.Value.String()
-	}
-	_, err := qemu.Start(name, configPath)
+		configPath := ""
+		if configFlag != nil {
+			configPath = configFlag.Value.String()
+		}
+		_, err := qemu.Start(name, configPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to start sandbox '%s': %v\n", name, err)
 			os.Exit(1)

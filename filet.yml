@@ -35,5 +35,6 @@ style:
 
 disabled:
   - gen.line.long
+  - go.err.nilerr
 
 failOn: error

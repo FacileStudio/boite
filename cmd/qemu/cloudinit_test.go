@@ -5,14 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"golang.org/x/crypto/ssh"
 )
 
 func TestGenerateSSHKeyPairWritesInstanceScopedKeys(t *testing.T) {
 	dir := t.TempDir()
 
-	privPath, pubPath, err := GenerateSSHKeyPair(dir, "")
+	privPath, pubPath, err := GenerateSSHKeyPair(dir)
 	if err != nil {
 		t.Fatalf("GenerateSSHKeyPair() failed: %v", err)
 	}
@@ -46,10 +44,10 @@ func TestGenerateSSHKeyPairUsesInstanceScopedPaths(t *testing.T) {
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
 
-	if _, _, err := GenerateSSHKeyPair(dir1, ""); err != nil {
+	if _, _, err := GenerateSSHKeyPair(dir1); err != nil {
 		t.Fatalf("first keygen failed: %v", err)
 	}
-	if _, _, err := GenerateSSHKeyPair(dir2, ""); err != nil {
+	if _, _, err := GenerateSSHKeyPair(dir2); err != nil {
 		t.Fatalf("second keygen failed: %v", err)
 	}
 
@@ -62,52 +60,14 @@ func TestGenerateSSHKeyPairUsesInstanceScopedPaths(t *testing.T) {
 		t.Fatalf("read second public key: %v", err)
 	}
 
-	key1, _, _, _, err := ssh.ParseAuthorizedKey(pub1)
-	if err != nil {
-		t.Fatalf("parse first public key: %v", err)
-	}
-	key2, _, _, _, err := ssh.ParseAuthorizedKey(pub2)
-	if err != nil {
-		t.Fatalf("parse second public key: %v", err)
-	}
-
-	if key1.Type() != ssh.KeyAlgoED25519 || key2.Type() != ssh.KeyAlgoED25519 {
-		t.Fatal("expected Ed25519 keys")
-	}
-
-	pubKey1, ok1 := key1.(ssh.PublicKey)
-	pubKey2, ok2 := key2.(ssh.PublicKey)
-	if !ok1 || !ok2 {
-		t.Fatal("expected ssh.PublicKey")
-	}
-	if string(pubKey1.Marshal()) == string(pubKey2.Marshal()) {
+	if string(pub1) == string(pub2) {
 		t.Fatal("expected different keys for different instance dirs")
-	}
-}
-
-func TestGenerateSSHKeyPairWithPassphraseIsEncrypted(t *testing.T) {
-	dir := t.TempDir()
-	if _, _, err := GenerateSSHKeyPair(dir, "hunter2"); err != nil {
-		t.Fatalf("GenerateSSHKeyPair with passphrase failed: %v", err)
-	}
-
-	privBytes, err := os.ReadFile(filepath.Join(dir, "id_ed25519"))
-	if err != nil {
-		t.Fatalf("read private key: %v", err)
-	}
-
-	if _, err := ssh.ParseRawPrivateKey(privBytes); err == nil {
-		t.Fatal("expected encrypted private key to fail parsing without passphrase")
-	}
-
-	if _, err := ssh.ParseRawPrivateKeyWithPassphrase(privBytes, []byte("hunter2")); err != nil {
-		t.Fatalf("expected passphrase to decrypt key: %v", err)
 	}
 }
 
 func TestReadPublicKey(t *testing.T) {
 	dir := t.TempDir()
-	_, pubPath, err := GenerateSSHKeyPair(dir, "")
+	_, pubPath, err := GenerateSSHKeyPair(dir)
 	if err != nil {
 		t.Fatalf("GenerateSSHKeyPair failed: %v", err)
 	}

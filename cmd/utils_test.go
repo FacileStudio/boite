@@ -13,7 +13,6 @@ func TestHomeDir(t *testing.T) {
 	}
 }
 
-
 func TestCheckCommand(t *testing.T) {
 	if err := checkCommand("nonexistentcommand12345"); err == nil {
 		t.Fatal("expected error for nonexistent command, got nil")
@@ -33,5 +32,3 @@ func TestVersionString(t *testing.T) {
 		t.Fatal("expected non-empty version string")
 	}
 }
-
-
