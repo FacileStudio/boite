@@ -7,9 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-10
+
 ### Changed
 
 - `boite create` now explains a cloud-init `error` state instead of just naming it. When provisioning finishes with module errors, the warning reports the failing module (a runcmd step, an apt install, a write_files entry...), the concrete shell error from the guest console, and — when it came from the user config — the exact `~/.boite.yml` line. `cloud-init` runs `runcmd` with `capture=False`, so this reads the guest console log, the only place the failing command's stderr lands.
+
+### Removed
+
+- Dropped the `skatos` install line from the default VM cloud-init template.
 
 ## [0.2.0] — 2026-09-10
 
