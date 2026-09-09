@@ -34,6 +34,8 @@ Uses the cached Debian image and SSH to the running instance.`,
 			fmt.Fprintf(os.Stderr, "Error: failed to connect to SSH: %v\n", err)
 			os.Exit(1)
 		}
+
+		printSessionEnd("Session ended. Bye for now!")
 	},
 }
 

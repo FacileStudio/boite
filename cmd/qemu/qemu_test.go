@@ -2,6 +2,7 @@ package qemu
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -55,4 +56,25 @@ func TestWaitForPIDFileInvalidContent(t *testing.T) {
 
 	_, err := WaitForPID(pidFile, 5)
 	assert.Error(t, err)
+}
+
+func TestKillQEMUGracefulTermination(t *testing.T) {
+	cmd := exec.Command("sleep", "600")
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("failed to start child: %v", err)
+	}
+	pid := cmd.Process.Pid
+
+	if err := KillQEMU(pid); err != nil {
+		t.Fatalf("kill qemu: %v", err)
+	}
+
+	cmd.Wait()
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		if !IsProcessRunning(pid) {
+			return
+		}
+	}
+	t.Fatal("child process still alive after KillQEMU")
 }

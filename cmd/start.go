@@ -20,7 +20,10 @@ var startCmd = &cobra.Command{
 		if configFlag != nil {
 			configPath = configFlag.Value.String()
 		}
+		qemu.ProgressStart()
+		qemu.ProgressPhase("Starting VM")
 		_, err := qemu.Start(name, configPath)
+		qemu.ProgressStop()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to start sandbox '%s': %v\n", name, err)
 			os.Exit(1)

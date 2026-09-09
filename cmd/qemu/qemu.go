@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -101,6 +102,7 @@ func WaitForPID(pidFile string, timeout int) (int, error) {
 				return pid, nil
 			}
 		}
+		ProgressTick(fmt.Sprintf("Waiting for QEMU to start (%ds)...", i+1), float64(i)/float64(timeout))
 		time.Sleep(time.Second)
 	}
 	return 0, fmt.Errorf("timeout waiting for PID file")
@@ -110,6 +112,15 @@ func KillQEMU(pid int) error {
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return err
+	}
+	if err := proc.Signal(syscall.SIGTERM); err != nil {
+		return err
+	}
+	for i := 0; i < 5; i++ {
+		if !IsProcessRunning(pid) {
+			return nil
+		}
+		time.Sleep(time.Second)
 	}
 	return proc.Kill()
 }

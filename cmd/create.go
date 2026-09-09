@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
@@ -33,26 +32,11 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 			printInfo("No ~/.boite.yml file found nor config file passed, falling back to default config")
 		}
 
-		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-		stopSpinner := make(chan bool)
-		go func() {
-			i := 0
-			for {
-				select {
-				case <-stopSpinner:
-					return
-				default:
-					fmt.Fprintf(os.Stderr, "\r  %s Creating sandbox '%s'...", spinner[i], name)
-					time.Sleep(80 * time.Millisecond)
-					i = (i + 1) % len(spinner)
-				}
-			}
-		}()
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("Creating sandbox '%s'...", name))
 
-		inst, warning, err := qemu.Create(name, workspacePath, noMount, cfgFile, generateKey)
-		close(stopSpinner)
-
-		fmt.Fprintf(os.Stderr, "\r\033[K")
+		qemu.ProgressStart()
+		inst, err := qemu.Create(name, workspacePath, noMount, cfgFile, generateKey)
+		qemu.ProgressStop()
 
 		if err != nil {
 			printError(fmt.Sprintf("Failed to create sandbox '%s': %v", name, err))
@@ -60,9 +44,6 @@ Use --no-mount to create a VM without mounting the current workspace.`,
 		}
 
 		fmt.Println()
-		if warning != "" {
-			fmt.Fprintln(os.Stderr, warning)
-		}
 		fmt.Println(renderSandboxCard(name, workspacePath, noMount, inst.SSHPort))
 	},
 }

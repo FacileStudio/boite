@@ -15,7 +15,11 @@ var rmCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		if err := qemu.Destroy(name); err != nil {
+		qemu.ProgressStart()
+		qemu.ProgressPhase("Destroying sandbox")
+		err := qemu.Destroy(name)
+		qemu.ProgressStop()
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to destroy '%s': %v\n", name, err)
 			os.Exit(1)
 		}

@@ -7,6 +7,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.1.14] — 2026-09-09
+
+### Changed
+
+- Reworked provisioning output into a small animated TTY region on `create` (and `start`, `stop`, `rm`): each provisioning step shows a spinner, the current wait (QEMU boot, SSH, cloud-init) runs a live progress bar with a percentage, and the settled steps scroll above it. When stderr is piped (not a TTY), output degrades to plain phase/done lines with no animation. A failed wait settles as a red `✗` line.
+
+### Fixed
+
+- `create` no longer finishes before cloud-init has completed. A cloud-init timeout used to be downgraded to a "may not have completed" warning and the sandbox was declared created anyway, so the user could enter a VM that was still bootstrapping (a mostly-configured shell could drop with exit status 127). Now `create` blocks until cloud-init reports `status: done` and fails with a clear error on timeout. While it waits, the live tick surfaces cloud-init's own status plus the latest VM console line, so you can see what it is doing.
+- Cloud-init waiting no longer fails a healthy first boot. `create` used to abort after a fixed 180s wall clock even while cloud-init was legitimately still `running` (a fresh VM's package install and toolchain bootstrap can take several minutes), reporting "cloud-init never finished" for a box that actually succeeded moments later. It now fails only on a terminal cloud-init state (`error`, `disabled`, etc.) or when the guest never confirms cloud-init started; a confirmed running boot keeps waiting until `status: done`.
+- `boite run` no longer reports a session drop as a connection error. ssh signals a failed connection with exit 255; the remote shell's own exit status (0 on a clean exit, or a nonzero status such as 127) means the session ran, so only a genuine connection failure (255) is an error. Exiting the shell prints a short closing line instead of "Error: failed to connect to SSH: ... exit status 127".
+- `rm` now shuts down a live VM gracefully (SIGTERM, then SIGKILL as fallback) and always frees the forwarded port instead of aborting when the port does not free within the wait window.
+
 ## [0.1.13] — 2026-09-09
 
 ### Changed

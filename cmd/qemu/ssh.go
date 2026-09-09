@@ -49,6 +49,8 @@ func BuildSSHArgs(inst *Instance, command []string) []string {
 	return args
 }
 
+// SSHCommand runs a one-shot command on the instance and propagates a nonzero
+// remote exit status as an error.
 func SSHCommand(inst *Instance, command []string) error {
 	args := BuildSSHArgs(inst, command)
 	sshCmd := exec.Command("ssh", args...)
@@ -62,6 +64,21 @@ func SSHCommand(inst *Instance, command []string) error {
 	return nil
 }
 
+// SSHInteractive opens a login shell. ssh reports a failed connection with
+// exit 255; any other exit code (0 on a clean exit, or a nonzero remote shell
+// status such as 127) means the session actually ran, so a dropped shell is
+// not treated as an error.
 func SSHInteractive(inst *Instance) error {
-	return SSHCommand(inst, nil)
+	sc := exec.Command("ssh", BuildSSHArgs(inst, nil)...)
+	sc.Stdin = os.Stdin
+	sc.Stdout = os.Stdout
+	sc.Stderr = os.Stderr
+	err := sc.Run()
+	if err == nil {
+		return nil
+	}
+	if sc.ProcessState == nil || sc.ProcessState.ExitCode() == 255 {
+		return fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+	}
+	return nil
 }

@@ -15,7 +15,11 @@ var stopCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		if err := qemu.Stop(name); err != nil {
+		qemu.ProgressStart()
+		qemu.ProgressPhase("Stopping VM")
+		err := qemu.Stop(name)
+		qemu.ProgressStop()
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to stop sandbox '%s': %v\n", name, err)
 			os.Exit(1)
 		}

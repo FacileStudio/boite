@@ -5,33 +5,37 @@ import (
 	"os"
 )
 
-func Create(name, workspacePath string, noMount bool, configPath string, generateKey bool) (*Instance, string, error) {
+func Create(name, workspacePath string, noMount bool, configPath string, generateKey bool) (*Instance, error) {
 	if InstanceExists(name) {
-		return nil, "", fmt.Errorf("instance '%s' already exists", name)
+		return nil, fmt.Errorf("instance '%s' already exists", name)
 	}
 
 	cfg, err := LoadBoiteConfig(configPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("load boite config: %w", err)
+		return nil, fmt.Errorf("load boite config: %w", err)
 	}
 
+	ProgressPhase("Preparing instance disk")
 	overlayPath, err := prepareInstanceDisk(name, cfg)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	instanceDir := GetInstanceDir(name)
+	ProgressPhase("Resolving SSH key")
 	keyResolution, err := resolveSSHKey(instanceDir, generateKey, cfg)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
+	ProgressPhase("Building cloud-init seed ISO")
 	seedISOPath, err := GenerateSeedISO(instanceDir, name, keyResolution.pubKey, configPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("generate seed iso: %w", err)
+		return nil, fmt.Errorf("generate seed iso: %w", err)
 	}
 
-	inst, warning, err := startAndFinalizeInstance(&startFinalizeParams{
+	ProgressPhase("Starting VM")
+	inst, err := startAndFinalizeInstance(&startFinalizeParams{
 		name:          name,
 		workspacePath: workspacePath,
 		noMount:       noMount,
@@ -41,17 +45,17 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 		cfg:           cfg,
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	setupCleanupHandler(name)
-	return inst, warning, nil
+	return inst, nil
 }
 
-func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, string, error) {
+func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	sshPort, err := FindFreePort()
 	if err != nil {
-		return nil, "", fmt.Errorf("find free port: %w", err)
+		return nil, fmt.Errorf("find free port: %w", err)
 	}
 
 	qemuCfg := QEMUConfig{
@@ -65,29 +69,29 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, string, error)
 	applyVMConfig(&qemuCfg, p.cfg)
 
 	if _, err := StartQEMU(qemuCfg); err != nil {
-		return nil, "", fmt.Errorf("start qemu: %w", err)
+		return nil, fmt.Errorf("start qemu: %w", err)
 	}
 
 	pid, err := WaitForPID(qemuCfg.PIDFile, 20)
 	if err != nil {
-		return nil, "", fmt.Errorf("wait for pid file: %w", err)
+		return nil, fmt.Errorf("wait for pid file: %w", err)
 	}
+	ProgressDone(fmt.Sprintf("QEMU running (pid %d, SSH on port %d)", pid, sshPort+1))
 
 	inst := p.buildInstance(pid, qemuCfg.HostFwdPort)
 	if err := SaveInstanceState(inst); err != nil {
-		return nil, "", fmt.Errorf("save state: %w", err)
+		return nil, fmt.Errorf("save state: %w", err)
 	}
 
 	if err := WaitForSSH(inst.SSHPort, 120); err != nil {
-		return nil, "", fmt.Errorf("wait for ssh: %w", err)
+		return nil, fmt.Errorf("wait for ssh: %w", err)
 	}
 
-	warning := ""
 	if err := WaitForCloudInit(inst, 180); err != nil {
-		warning = fmt.Sprintf("Warning: cloud-init may not have completed: %v", err)
+		return nil, fmt.Errorf("cloud-init: %w", err)
 	}
 
-	return inst, warning, nil
+	return inst, nil
 }
 
 func prepareInstanceDisk(name string, cfg *BoiteConfig) (string, error) {
@@ -195,9 +199,7 @@ func Destroy(name string) error {
 		if err := WaitForProcessExit(inst.PID, 10); err != nil {
 			return fmt.Errorf("wait for qemu to exit: %w", err)
 		}
-		if err := WaitForPortFree(inst.SSHPort, 20); err != nil {
-			return fmt.Errorf("wait for port to free: %w", err)
-		}
+		WaitForPortFree(inst.SSHPort, 20)
 	}
 
 	return DeleteInstanceDir(name)

@@ -36,6 +36,10 @@ func printInfo(msg string) {
 	fmt.Printf("%s %s\n", infoIcon, msg)
 }
 
+func printSessionEnd(msg string) {
+	fmt.Printf("\n%s\n", lipgloss.NewStyle().Foreground(subtleColor).Render(msg))
+}
+
 func styleBanner(ascii string, version string) string {
 	return lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFFFFF")).

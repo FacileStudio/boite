@@ -42,8 +42,21 @@ write_files:
 
       command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 
-      alias ll='ls -la'
+      if command -v eza >/dev/null 2>&1; then
+          alias ls="eza --color=always --git --icons=always --no-user"
+          alias tn="eza --tree --color=always --git --icons=always --no-user"
+      elif command ls --color=auto . >/dev/null 2>&1; then
+          alias ls="ls --color=auto"
+          command -v tree >/dev/null 2>&1 && alias tn="tree -C"
+      elif command ls -G . >/dev/null 2>&1; then
+          alias ls="ls -G"
+          command -v tree >/dev/null 2>&1 && alias tn="tree -C"
+      fi
+
+      alias ll='ls -l'
       alias la='ls -a'
+      alias lal='ls -la'
+      alias lla='ls -la'
       alias l='ls --color=auto'
       alias grep='grep --color=auto'
       alias c='clear'
@@ -94,6 +107,7 @@ runcmd:
   - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
   - su - boite -c 'curl -fsSL https://bun.sh/install | bash'
   - su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'
+  - su - boite -c 'curl -fsSL https://get.facile.studio | bash'
   - su - boite -c 'git config --global init.defaultBranch main'
   - su - boite -c 'git config --global safe.directory "*"'
   - mkdir -p /workspace
