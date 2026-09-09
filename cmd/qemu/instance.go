@@ -13,9 +13,10 @@ const (
 	InstancesDirName = "instances"
 	CacheDirName     = "cache"
 	BaseImageName    = "debian-13-genericcloud-amd64.qcow2"
-	BaseImageURL     = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
-	// SHA256 will be verified on first download; update when image changes
-	BaseImageSHA256 = "SKIP_VERIFY"
+	// Base image is pinned to the dated build 20260831-2587. When the pinned image
+	// changes, update the URL and the SHA256 together.
+	BaseImageURL    = "https://cloud.debian.org/images/cloud/trixie/20260831-2587/debian-13-genericcloud-amd64-20260831-2587.qcow2"
+	BaseImageSHA256 = "85a969b7e99d7c817414136033df18c58d5c45ac8d27bb36e8ccb67173d2d4e3"
 )
 
 type Instance struct {

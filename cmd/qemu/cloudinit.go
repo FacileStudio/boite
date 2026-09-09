@@ -34,16 +34,7 @@ func GenerateSeedISO(instanceDir, instanceName, sshPubKey, configPath string) (s
 	}
 
 	if !userExists {
-		mergedCfg.Users = append(mergedCfg.Users, UserConfig{
-			Name:              "boite",
-			Gecos:             "Boite",
-			Groups:            []string{"sudo"},
-			Home:              "/home/boite",
-			Shell:             "/bin/zsh",
-			Sudo:              "ALL=(ALL) NOPASSWD:ALL",
-			SSHAuthorizedKeys: []string{sshPubKey},
-			Password:          "boite",
-		})
+		return "", fmt.Errorf("no 'boite' user defined in config; add a cloud_init.users entry for 'boite' with an SSH key")
 	}
 
 	userData := renderCloudInitUserData(mergedCfg, sshPubKey)

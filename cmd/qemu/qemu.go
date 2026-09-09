@@ -114,21 +114,6 @@ func KillQEMU(pid int) error {
 	return proc.Kill()
 }
 
-func waitForPIDFile(pidFile string, timeout int) error {
-	for i := 0; i < timeout; i++ {
-		data, err := os.ReadFile(pidFile)
-		if err == nil {
-			pidStr := string(data)
-			pid, err := strconv.Atoi(strings.TrimSpace(pidStr))
-			if err == nil && pid > 0 {
-				return nil
-			}
-		}
-		time.Sleep(time.Second)
-	}
-	return fmt.Errorf("timeout waiting for PID file")
-}
-
 func IsProcessRunning(pid int) bool {
 	proc, err := os.FindProcess(pid)
 	if err != nil {

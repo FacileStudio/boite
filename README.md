@@ -95,6 +95,7 @@ cloud_init:
     - starship
     - tmux
     - htop
+    - docker.io
 
   write_files:
     - path: /home/boite/.zshrc
@@ -134,6 +135,8 @@ cloud_init:
     - mkdir -p /workspace
     - chown -R boite:boite /workspace
 ```
+
+Your `cloud_init:` config is merged with the repo's built-in provisioning in `cmd/qemu/cloudinit.yml` (mise, Go, Rust, bun, skatos, plus `.zshrc` and `.tmux.conf`). There is no top-level `users:` key; it is silently ignored. Define users under `cloud_init.users`.
 
 ## Default Image
 

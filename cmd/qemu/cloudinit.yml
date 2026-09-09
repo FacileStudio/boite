@@ -14,6 +14,7 @@ packages:
   - zsh
   - neovim
   - starship
+  - docker.io
 users:
   - name: boite
     gecos: Boite
@@ -21,22 +22,71 @@ users:
     shell: /bin/zsh
     sudo: ALL=(ALL) NOPASSWD:ALL
     home: /home/boite
+write_files:
+  - path: /home/boite/.zshrc
+    permissions: "0644"
+    owner: boite:boite
+    content: |
+      #!/bin/zsh
+      # Boite workspace shell config
+
+      export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:/workspace/bin:$PATH"
+      export WORKSPACE=/workspace
+
+      if command -v mise >/dev/null 2>&1; then
+        eval "$(mise activate zsh)"
+      elif [ -x /usr/local/bin/mise ]; then
+        eval "$(/usr/local/bin/mise activate zsh)"
+      fi
+
+      command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+
+      alias ll='ls -la'
+      alias la='ls -a'
+      alias l='ls --color=auto'
+      alias grep='grep --color=auto'
+      alias c='clear'
+      alias q='exit'
+      alias :q='exit'
+      alias ..='cd ..'
+      alias ...='cd ../..'
+
+      alias gs='git status'
+      alias ga='git add'
+      alias gc='git clone'
+      alias gd='git diff'
+      alias gb='git branch'
+      alias gco='git checkout'
+
+      alias ta='tmux attach -t'
+      alias tn='tmux new -s'
+      alias tl='tmux ls'
+
+      autoload -Uz compinit && compinit -C
+  - path: /home/boite/.tmux.conf
+    permissions: "0644"
+    owner: boite:boite
+    content: |
+      set -g default-terminal "screen-256color"
+      set -ag terminal-overrides ",xterm-256color:RGB"
+      set -g mouse on
+      set -g default-shell /bin/zsh
+      set -g focus-events on
+      set -g escape-time 0
+      set -g history-limit 50000
+      set-window-option -g mode-keys vi
+      bind | split-window -h -c "#{pane_current_path}"
+      bind - split-window -v -c "#{pane_current_path}"
+      bind c new-window -c "#{pane_current_path}"
+      bind h select-pane -L
+      bind j select-pane -D
+      bind k select-pane -U
+      bind l select-pane -R
+      bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
 runcmd:
-  - userdel -r ubuntu 2>/dev/null || rm -rf /home/ubuntu
-  - chmod -x /etc/update-motd.d/* 2>/dev/null || true
   - rm -f /etc/legal /etc/motd
   - touch /home/boite/.hushlogin
   - usermod -s /bin/zsh boite
-  - |
-    cat > /etc/motd << 'MOTD_EOF'
-    ▄▄
-    ██          ▀▀  ██
-    ████▄ ▄███▄ ██ ▀██▀▀ ▄█▀█▄
-    ██ ██ ██ ██ ██  ██   ██▄█▀
-    ████▀ ▀███▀ ██▄ ██   ▀█▄▄▄
-
-    v0.1.6
-    MOTD_EOF
   - curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
   - curl -L https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
   - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
@@ -46,81 +96,6 @@ runcmd:
   - su - boite -c 'git config --global safe.directory "*"'
   - mkdir -p /workspace
   - chown -R boite:boite /workspace
-  - |
-    cat > /home/boite/.zshrc << 'EOF'
-    export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:/workspace/bin:$PATH"
-
-    if command -v mise >/dev/null 2>&1; then
-      eval "$(mise activate zsh)"
-    elif [ -x /usr/local/bin/mise ]; then
-      eval "$(/usr/local/bin/mise activate zsh)"
-    fi
-
-    command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
-
-    alias ll='ls -la'
-    alias lla='ls -la'
-    alias lal='ls -la'
-    alias la='ls -a'
-    alias l='ls'
-    alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
-
-    alias c='clear'
-    alias q='exit'
-    alias :q='exit'
-    alias ..='cd ..'
-    alias ...='cd ../..'
-    alias h='clear && cd $HOME'
-
-    alias gs='git status'
-    alias gp='git push'
-    alias ga='git add'
-    alias gc='git clone'
-    alias gd='git diff'
-    alias gb='git branch'
-    alias gba='git branch -a'
-    alias gco='git checkout'
-    alias gr='git rm'
-    alias gitu='git add . && git commit'
-    alias gitup='git add . && git commit && git push'
-    alias gituf='git add . && git commit -m "$(date +"%Y-%m-%d %T")" && git push'
-
-    alias ta='tmux attach -t'
-    alias tn='tmux new -s'
-    alias tl='tmux ls'
-    alias tk='tmux kill-session -t'
-
-    alias zreload='clear && source $HOME/.zshrc'
-    alias zrel='zreload'
-    alias breload='clear && source $HOME/.bashrc'
-    alias brel='breload'
-
-    export WORKSPACE=/workspace
-
-    autoload -Uz compinit && compinit -C
-    EOF
-    chown boite:boite /home/boite/.zshrc
-  - |
-    cat > /home/boite/.tmux.conf << 'EOF'
-    set -g default-terminal "screen-256color"
-    set -ag terminal-overrides ",xterm-256color:RGB"
-    set -g mouse on
-    set -g default-shell /bin/zsh
-    set -g focus-events on
-    set -g escape-time 0
-    set -g history-limit 50000
-    set-window-option -g mode-keys vi
-    bind | split-window -h -c "#{pane_current_path}"
-    bind - split-window -v -c "#{pane_current_path}"
-    bind c new-window -c "#{pane_current_path}"
-    bind h select-pane -L
-    bind j select-pane -D
-    bind k select-pane -U
-    bind l select-pane -R
-    bind r source-file ~/.tmux.conf \; display-message "Config reloaded!"
-    EOF
-    chown boite:boite /home/boite/.tmux.conf
   - mkdir -p /home/boite/.ssh
   - chown -R boite:boite /home/boite/.ssh
   - chmod 700 /home/boite/.ssh

@@ -17,7 +17,7 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
 var (
-	Version = "0.1.12"
+	Version = "0.1.13"
 	version = ""
 )
 var cfgFile string
@@ -97,8 +97,8 @@ func createDefaultConfig(home string) error {
 	defaultConfig := map[string]any{
 		"vm": map[string]any{
 			"cpus":   2,
-			"memory": "4G",
-			"disk":   "40G",
+			"memory": "2G",
+			"disk":   "20G",
 		},
 		"cloud_init": cloudInitObj,
 	}

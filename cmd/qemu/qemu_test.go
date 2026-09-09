@@ -13,11 +13,12 @@ func TestWaitForPIDFileWithDelay(t *testing.T) {
 	dir := t.TempDir()
 	pidFile := filepath.Join(dir, "pid.txt")
 
+	var writeErr error
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		data := []byte("12345\n")
 		if err := os.WriteFile(pidFile, data, 0644); err != nil {
-			t.Fatalf("failed to write pid file: %v", err)
+			writeErr = err
 		}
 	}()
 
@@ -25,6 +26,9 @@ func TestWaitForPIDFileWithDelay(t *testing.T) {
 	pid, err := WaitForPID(pidFile, 10)
 	elapsed := time.Since(start)
 
+	if writeErr != nil {
+		t.Fatalf("failed to write pid file: %v", writeErr)
+	}
 	assert.NoError(t, err)
 	assert.Equal(t, 12345, pid)
 	if elapsed < 100*time.Millisecond {

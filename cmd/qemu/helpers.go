@@ -62,7 +62,7 @@ func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig) {
 
 func vmDiskSize(cfg *BoiteConfig) int {
 	if cfg == nil || cfg.VM == nil || cfg.VM.Disk == "" {
-		return 10
+		return 20
 	}
 	return parseDiskGB(cfg.VM.Disk)
 }
@@ -75,7 +75,7 @@ func parseDiskGB(value string) int {
 	if n, err := strconv.Atoi(value); err == nil && n > 0 {
 		return n
 	}
-	return 10
+	return 20
 }
 
 func WaitForSSH(port, timeoutSeconds int) error {

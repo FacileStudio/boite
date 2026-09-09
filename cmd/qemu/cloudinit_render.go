@@ -33,13 +33,12 @@ func renderCloudInitUserData(cfg *CloudInitConfig, sshPubKey string) string {
 	return "#cloud-config\n" + buf.String()
 }
 
-// buildBaseCloudConfig returns the base cloud-init configuration
+// buildBaseCloudConfig returns the base cloud-init configuration.
+// The guest uses DHCP: SSH is reached via QEMU user-net hostfwd to guest port 22,
+// so no known static address is needed.
 func buildBaseCloudConfig() map[string]any {
 	eth0 := map[string]any{
-		"dhcp4":       false,
-		"addresses":   []string{"192.168.42.10/24"},
-		"routes":      []map[string]any{{"to": "default", "via": "192.168.42.1"}},
-		"nameservers": map[string]any{"addresses": []string{"8.8.8.8", "8.8.4.4"}},
+		"dhcp4": true,
 	}
 	ethernets := map[string]any{"eth0": eth0}
 	network := map[string]any{"version": 2, "ethernets": ethernets}

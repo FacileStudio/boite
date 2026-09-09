@@ -17,12 +17,8 @@ func EnsureBaseImage() (string, error) {
 
 	basePath := GetBaseImagePath()
 	if _, err := os.Stat(basePath); err == nil {
-		if BaseImageSHA256 != "SKIP_VERIFY" {
-			if err := verifyChecksum(basePath); err != nil {
-				os.Remove(basePath)
-			} else {
-				return basePath, nil
-			}
+		if err := verifyChecksum(basePath); err != nil {
+			os.Remove(basePath)
 		} else {
 			return basePath, nil
 		}
@@ -56,11 +52,9 @@ func downloadBaseImage(destPath string) (string, error) {
 
 	fmt.Fprintf(os.Stderr, "Downloaded %.1f MB\n", float64(written)/(1024*1024))
 
-	if BaseImageSHA256 != "SKIP_VERIFY" {
-		if err := verifyChecksum(destPath); err != nil {
-			os.Remove(destPath)
-			return "", err
-		}
+	if err := verifyChecksum(destPath); err != nil {
+		os.Remove(destPath)
+		return "", err
 	}
 
 	return destPath, nil
@@ -94,12 +88,4 @@ func CreateOverlay(baseImage, overlayPath string, sizeGB int) error {
 		return fmt.Errorf("qemu-img failed: %s (%w)", string(output), err)
 	}
 	return nil
-}
-
-func ExtractSSHPubKey(pubKeyPath string) (string, error) {
-	data, err := os.ReadFile(pubKeyPath)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
 }
