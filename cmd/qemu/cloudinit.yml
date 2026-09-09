@@ -129,8 +129,6 @@ runcmd:
   - su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
   - su - boite -c 'curl -fsSL https://bun.sh/install | bash'
 
-  - su - boite -c 'curl -fsSL https://raw.githubusercontent.com/saravenpi/skatos/main/install.sh | bash'
-
   - su - boite -c 'git config --global init.defaultBranch main'
   - su - boite -c 'git config --global safe.directory "*"'
 
