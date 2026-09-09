@@ -116,3 +116,36 @@ func TestRenderDefersWriteFilesOwnedByBootedUser(t *testing.T) {
 		t.Fatal("root-owned /etc/motd must not be deferred")
 	}
 }
+
+func TestCloudInitStateParsing(t *testing.T) {
+	cases := []string{
+		"status: running\n",
+		"status: done",
+		"status: error",
+		"not reporting yet",
+	}
+	expect := []string{"running", "done", "error", ""}
+	for i := 0; i < len(cases); i++ {
+		if got := cloudInitState(cases[i]); got != expect[i] {
+			t.Errorf("cloudInitState(%q) = %q, want %q", cases[i], got, expect[i])
+		}
+	}
+}
+
+func TestIsTerminalCloudInitError(t *testing.T) {
+	if !isTerminalCloudInitError("error") {
+		t.Error("cloud-init 'error' must be terminal")
+	}
+	if !isTerminalCloudInitError("disabled") {
+		t.Error("cloud-init 'disabled' must be terminal")
+	}
+	if isTerminalCloudInitError("running") {
+		t.Error("cloud-init 'running' must not be terminal")
+	}
+	if isTerminalCloudInitError("done") {
+		t.Error("cloud-init 'done' must not be terminal")
+	}
+	if isTerminalCloudInitError("") {
+		t.Error("empty state must not be terminal")
+	}
+}

@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
+	"time"
 )
 
 // GenerateSeedISO creates the seed.iso from the merged cloud-init config.
@@ -98,4 +100,114 @@ func runCloudLocalDS(seedISOPath, userDataPath, metaDataPath string) error {
 func ComputeInstanceID(name string) string {
 	h := sha256.Sum256([]byte(name + "boite-instance"))
 	return fmt.Sprintf("%x", h[:8])
+}
+
+// WaitForCloudInit blocks until cloud-init reports it has finished on the
+// instance, surfacing its status and the latest VM console line while it runs.
+// It only fails on a terminal bad state ("error"/"disabled") or when the guest
+// never confirms cloud-init started; a confirmed first boot with a heavy runcmd
+// keeps polling until "done" instead of aborting on a wall-clock deadline.
+func WaitForCloudInit(inst *Instance, timeoutSeconds int) error {
+	steps := timeoutSeconds / 5
+	if steps < 1 {
+		steps = 1
+	}
+	capSteps := 900 / 5
+	sawRunning := false
+	elapsed := 0
+	for i := 0; i < capSteps; i++ {
+		detail := cloudInitStatus(inst)
+		state := cloudInitState(detail)
+
+		if state == "done" {
+			ProgressDone(fmt.Sprintf("cloud-init finished (%ds)", elapsed))
+			return nil
+		}
+		if isTerminalCloudInitError(state) {
+			ProgressFail(fmt.Sprintf("cloud-init %s", detail))
+			return fmt.Errorf("cloud-init %s", detail)
+		}
+
+		if state == "running" {
+			sawRunning = true
+		}
+
+		if live := cloudInitLiveLog(inst); live != "" {
+			detail = fmt.Sprintf("%s · %s", detail, live)
+		}
+		frac := float64(i) / float64(steps)
+		if frac > 1.0 {
+			frac = 1.0
+		}
+		ProgressTick(fmt.Sprintf("cloud-init (%ds): %s", elapsed, detail), frac)
+		time.Sleep(5 * time.Second)
+		elapsed += 5
+
+		// Give up only when the guest never confirmed cloud-init is running
+		// (handshake/auth failure). A confirmed running boot keeps going.
+		if !sawRunning && elapsed >= timeoutSeconds {
+			ProgressFail("cloud-init never became reachable")
+			return fmt.Errorf("cloud-init: never started or never reported status within %ds", timeoutSeconds)
+		}
+	}
+	ProgressFail("cloud-init did not finish")
+	return fmt.Errorf("cloud-init: still running after %ds", elapsed)
+}
+
+// cloudInitState extracts the bare state word ("running", "done", "error", ...)
+// from `cloud-init status` output, or "" when the guest is not reporting yet.
+func cloudInitState(detail string) string {
+	if !strings.Contains(detail, "status: ") {
+		return ""
+	}
+	parts := strings.Split(detail, "status: ")
+	state := strings.TrimSpace(parts[len(parts)-1])
+	return strings.Split(state, "\n")[0]
+}
+
+// isTerminalCloudInitError reports whether the state means cloud-init will
+// never reach "done" on its own, so the creation should fail instead of waiting.
+func isTerminalCloudInitError(state string) bool {
+	return state == "error" || state == "disabled" || state == "failed" || state == "canceled"
+}
+
+func cloudInitStatus(inst *Instance) string {
+	cmd := exec.Command("ssh",
+		"-i", getSSHIdentityFile(inst),
+		"-p", fmt.Sprintf("%d", inst.SSHPort),
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "LogLevel=ERROR",
+		"-o", "ConnectTimeout=10",
+		"boite@127.0.0.1",
+		"cloud-init status",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "not reporting yet"
+	}
+	status := strings.TrimSpace(string(out))
+	if status == "" {
+		status = "not reporting yet"
+	}
+	return status
+}
+
+func cloudInitLiveLog(inst *Instance) string {
+	data, err := os.ReadFile(GetConsoleLogPath(inst.Name))
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(data), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		if len(line) > 96 {
+			line = line[:96] + "…"
+		}
+		return line
+	}
+	return ""
 }
