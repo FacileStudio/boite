@@ -54,12 +54,20 @@ func runEnvSet(cmd *cobra.Command, args []string) {
 		printError(fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
+	if err := pinEnv(inst, args[1]); err != nil {
+		printError(fmt.Sprintf("Error: could not pin %s: %v", args[1], err))
+		os.Exit(1)
+	}
 }
 
 func runEnvDelete(cmd *cobra.Command, args []string) {
 	inst := requireRunning(args[0])
 	if err := qemu.SSHCommand(inst, []string{"tiroir delete " + args[1]}); err != nil {
 		printError(fmt.Sprintf("Error: %v", err))
+		os.Exit(1)
+	}
+	if err := unpinEnv(inst, args[1]); err != nil {
+		printError(fmt.Sprintf("Error: could not unpin %s: %v", args[1], err))
 		os.Exit(1)
 	}
 }

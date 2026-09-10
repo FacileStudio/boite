@@ -32,6 +32,10 @@ func runExec(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if err := RefreshManagedEnv(name, configPath(cmd)); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not refresh managed env, keeping last snapshot: %v\n", err)
+	}
+
 	command := args[1:]
 	if err := qemu.SSHCommand(inst, qemu.WithEnv(command)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: command execution failed: %v\n", err)

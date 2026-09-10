@@ -25,6 +25,9 @@ Uses the cached Debian image and SSH to the running instance.`,
 
 func runRun(cmd *cobra.Command, args []string) {
 	inst := requireRunning(args[0])
+	if err := RefreshManagedEnv(args[0], configPath(cmd)); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not refresh managed env, keeping last snapshot: %v\n", err)
+	}
 	noWorkspace, _ := cmd.Flags().GetBool("no-workspace")
 	cwd, _ := os.Getwd()
 	if qemu.WorkspaceSyncEnabled(inst, configPath(cmd), noWorkspace) {

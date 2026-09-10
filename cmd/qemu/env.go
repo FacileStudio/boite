@@ -3,6 +3,7 @@ package qemu
 import (
 	"fmt"
 	"maps"
+	"sort"
 
 	tiroir "github.com/FacileStudio/tiroir/lib"
 )
@@ -51,4 +52,43 @@ func materializeLocal(local LocalEnv) (map[string]string, error) {
 		}
 	}
 	return out, nil
+}
+
+// RefreshGuestEnv re-materializes the managed env block into the guest store at
+// entry (boite run / boite exec), so a VM picks up value changes in ~/.boite.yml
+// and the host tiroir store without being recreated. Keys the user pinned via
+// 'boite env set' are left alone — a manual value is authoritative over source
+// refresh. A failing refresh returns an error so the caller can warn and keep
+// the last snapshot, matching the offline-fallback design.
+func RefreshGuestEnv(inst *Instance, cfg *BoiteConfig) error {
+	if cfg == nil || cfg.Env == nil {
+		return nil
+	}
+	envVars, err := materializeEnv(cfg)
+	if err != nil {
+		return fmt.Errorf("materialize env: %w", err)
+	}
+	for _, name := range envRefreshPlan(envVars, inst.PinnedEnv) {
+		if err := SSHCommand(inst, []string{"tiroir set " + name + " " + shellQuote(envVars[name])}); err != nil {
+			return fmt.Errorf("refresh %s on guest: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// envRefreshPlan returns the managed keys to write on entry: every source key
+// that the instance has not pinned with a manual 'boite env set'.
+func envRefreshPlan(envVars map[string]string, pinned []string) []string {
+	skip := make(map[string]bool, len(pinned))
+	for _, p := range pinned {
+		skip[p] = true
+	}
+	var plan []string
+	for name := range envVars {
+		if !skip[name] {
+			plan = append(plan, name)
+		}
+	}
+	sort.Strings(plan)
+	return plan
 }

@@ -22,6 +22,9 @@ type Instance struct {
 	Status         string    `json:"status"`
 	Workspace      string    `json:"workspace"`
 	NoMount        bool      `json:"no_mount"`
+	// PinnedEnv lists keys the user set via 'boite env set'. They are
+	// authoritative: source refresh skips them, so the manual value sticks.
+	PinnedEnv []string `json:"pinned_env,omitempty"`
 }
 
 // SaveInstanceState writes an instance's state as JSON to its state file,
