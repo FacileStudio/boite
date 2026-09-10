@@ -108,6 +108,28 @@ func WaitForPID(pidFile string, timeout int) (int, error) {
 	return 0, fmt.Errorf("timeout waiting for PID file")
 }
 
+// GracefulGuestShutdown asks the guest OS to power itself down cleanly over
+// its SSH connection (flushing guest filesystems), then waits for the qemu
+// process to exit. This is the "shut it down" step: without it the qemu
+// process is killed out from under the guest and buffered guest writes can be
+// lost. Falls back to KillQEMU when the guest is unreachable or does not come
+// down in time.
+func GracefulGuestShutdown(inst *Instance, timeoutSeconds int) error {
+	// Ask the guest to shut down. The boite user has NOPASSWD sudo.
+	cmd := exec.Command("ssh", BuildSSHArgs(inst, []string{
+		"sudo", "systemctl", "poweroff",
+	})...)
+	cmd.CombinedOutput() // exit here is expected to be nonzero as the guest dies
+
+	for i := 0; i < timeoutSeconds; i++ {
+		if !IsProcessRunning(inst.PID) {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("guest did not power off within %ds", timeoutSeconds)
+}
+
 func KillQEMU(pid int) error {
 	if !IsProcessRunning(pid) {
 		return nil

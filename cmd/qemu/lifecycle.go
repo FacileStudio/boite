@@ -169,9 +169,14 @@ func Stop(name string) error {
 	}
 
 	if inst.PID > 0 && IsProcessRunning(inst.PID) {
-		if err := KillQEMU(inst.PID); err != nil {
+		// Ask the guest OS to power down cleanly (flush its filesystems), then
+		// fall back to a host-level kill if it is unreachable or takes too
+		// long.
+		if err := GracefulGuestShutdown(inst, 30); err != nil {
 			if IsProcessRunning(inst.PID) {
-				return fmt.Errorf("kill qemu: %w", err)
+				if err := KillQEMU(inst.PID); err != nil {
+					return fmt.Errorf("kill qemu: %w", err)
+				}
 			}
 		}
 		if err := WaitForProcessExit(inst.PID, 10); err != nil {

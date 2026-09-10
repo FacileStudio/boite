@@ -18,13 +18,14 @@ virt-builder debian-13 \
   --size 20G \
   --run "$(pwd)/scripts/bake-provision.sh"
 
-size_gb=$(du -m "$bake" | awk '{print int($1)}')
-apparent_gb=$(qemu-img info "$bake" | awk '/^virtual size:/{print $3}')
-if [ "${size_gb:-0}" -gt 4000 ]; then
-  # virt-builder emits a sparse qcow2 whose apparent size is the full virtual
-  # volume; nginx serves the apparent size, so a 20G-virtual image would be
-  # downloaded as 20G. Compact with -c so the artifact is only its real ~2G.
-  echo "==> compacting $(du -h "$bake" | cut -f1) -> real size"
+# virt-builder emits a sparse qcow2 whose on-disk size (du) is small but whose
+# apparent size (stat %s -- what nginx serves as Content-Length and clients
+# download) is the full 20G virtual volume. That would make the artifact a
+# 20G download, so compact with -c when the apparent size is too large.
+apparent_bytes=$(stat -c %s "$bake" 2>/dev/null || stat -f %z "$bake")
+apparent_gb=$((apparent_bytes / 1073741824))
+if [ "${apparent_gb:-0}" -gt 4 ]; then
+  echo "==> compacting apparent ${apparent_gb}G -> real $(du -h "$bake" | cut -f1)"
   qemu-img convert -O qcow2 -c "$bake" "$bake.compact"
   mv "$bake.compact" "$bake"
 fi

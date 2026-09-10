@@ -116,13 +116,19 @@ touch /home/boite/.hushlogin
 chown boite:boite /home/boite/.hushlogin
 rm -f /etc/legal /etc/motd
 
-# toolchain (network installs)
-curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+# toolchain (network installs). Every tool is pinned to a specific version so
+# the baked image is reproducible: the SHA of the produced image travels with a
+# known toolchain, not whatever "latest" was on bake day.
+MISE_VERSION=2026.9.4
+RUST_TOOLCHAIN=1.98.1
+BUN_VERSION=1.4.2
+
+curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise MISE_VERSION=$MISE_VERSION sh
 curl -fsSL https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 su - boite -c 'pip install --break-system-packages --upgrade pip'
 su - boite -c 'pip install --break-system-packages black isort flake8 pytest pytest-cov mypy poetry ipython httpie'
-su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
-su - boite -c 'curl -fsSL https://bun.sh/install | bash'
+su - boite -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"'
+su - boite -c 'curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v$BUN_VERSION/bun-linux-x64.zip" -o /tmp/bun.zip && unzip -o /tmp/bun.zip -d /tmp/bun-extract && mkdir -p ~/.bun/bin && install /tmp/bun-extract/bun-linux-x64/bun ~/.bun/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-extract'
 
 su - boite -c 'git config --global init.defaultBranch main'
 su - boite -c 'git config --global safe.directory "*"'
