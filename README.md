@@ -109,6 +109,18 @@ vm:
 
 sync: true
 
+env:
+  source: local            # local | casier
+  local:
+    vars:                  # literal values baked at create (non-secret config only)
+      LOG_LEVEL: debug
+    resolve:               # key names pulled by name from the host tiroir store at create
+      - OPENROUTER_API_KEY
+  casier:
+    project: my-org
+    environment: dev
+    token_ref: CASIER_TOKEN
+
 provision:
   packages:
     - nala
@@ -118,13 +130,24 @@ provision:
 
 The toolchain, packages, dotfiles, SSH host keys and the `boite` user are baked into the base image by `scripts/bake-image.sh` (see **Default Image**). The config tunes VM resources, sync, and per-instance provisioning. `provision.packages` are apt packages installed into a fresh instance, and `provision.commands` are shell commands run as the `boite` user, both applied once at create right after firstboot. It is the successor to the old `cloud_init.runcmd` / `cloud_init.packages` section: steps run as `boite` over SSH (use `sudo` for anything needing root; the user has passwordless sudo), and the base image already carries the toolchain, so you only add what is not baked in.
 
+### Environment
+
+VMs load an env store sourced by [tiroir](https://github.com/FacileStudio/tiroir) at login. The baked `.zshrc` and `.bashrc` run `eval "$(tiroir export)"`, and `boite exec` re-applies the store for non-interactive commands (which never read an rc file), so managed keys are present in both. Values travel encrypted: tiroir keeps a ciphertext `~/.tiroir` plus a `~/.tiroir.key`, and the store is dropped onto the config disk at create so it exists before the first command — plaintext never sits on the disk or the wire.
+
+- `env.source: local` (default) resolves `env.local.vars` (literal, non-secret) and `env.local.resolve` key names (pulled from the **host** tiroir store) at create time.
+- `env.source: casier` (opt-in) materializes a scoped read-only `casier_` project token into the VM's store. Casier is never installed in the guest; the guest holds only a bounded snapshot, never a live token.
+- There is **no `sync` command**. `boite run` and `boite exec` re-materialize managed keys before entering the VM, so the store is always current; if casier is unreachable the last snapshot is kept with a warning.
+- `boite env set` writes straight into the VM store and **sticks** — a manual value is authoritative over a later source refresh.
+
+Manage the store from the host with `boite env list|get|set|delete <name>`.
+
 ## Default Image
 
-Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`. The bake installs the toolchain, creates the `boite` user, regenerates SSH host keys, configures the network and lays down the dotfiles, then purges cloud-init. At runtime the only per-instance input — the SSH public key (or the generated per-VM key) — is written onto a small vfat config disk and installed by a firstboot oneshot. The baked image is pinned by URL and SHA256 in `cmd/qemu/instance.go`; rebuild and repin when Debian or the toolchain changes.
+Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`. The bake installs the toolchain, creates the `boite` user, regenerates SSH host keys, configures the network and lays down the dotfiles, then purges cloud-init. At runtime the only per-instance input — the SSH public key (or the generated per-VM key) — is written onto a small vfat config disk and installed by a firstboot oneshot. The baked image is pinned by URL and SHA256 in `cmd/qemu/paths.go`; rebuild and repin when Debian or the toolchain changes.
 
 ## Features
 
-- **Pre-configured tools**: Go 1.26, Bun, Rust, mise, git, fzf, jq, tmux, wget, make, skatos, starship
+- **Pre-configured tools**: Go 1.26, Bun, Rust, mise, git, fzf, jq, tmux, wget, make, tiroir, starship
 - **Secure VM isolation**: Full virtual machine separation from host
 - **Workspace sync**: Current directory copied into /workspace on every `run`
 - **Custom shell configuration**: Bakes `.zshrc` and `.tmux.conf` into the base image

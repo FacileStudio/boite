@@ -1,6 +1,6 @@
 # Plan — tiroir: env system for boite VMs
 
-Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Track C shipped (baked+repinned+deployed base image, commits `658dcb2`+`5c76107`, 2026-09-10); v0.5.0 released (2026-09-10) with the env system; Track D step 16 done, step 17 (README) open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
+Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Track C shipped (baked+repinned+deployed base image, commits `658dcb2`+`5c76107`, 2026-09-10); v0.5.0 released (2026-09-10) with the env system; Track D step 16 done; step 17 (README) open.** Refresh-on-entry is now implemented (2026-09-10): `boite run` / `boite exec` re-materialize managed keys from the `env:` block + host tiroir store into the guest before entering, with `boite env set` values pinned and authoritative. This is the working spec; completed steps are struck through with a note on how reality diverged.
 
 **Resume here (cold start):** the only work left is step 17 (Track D: README). The go.mod `replace => ../tiroir` was switched to the released module before the v0.5.0 release — `require github.com/FacileStudio/tiroir v0.2.0`, no replace, resolved from the module proxy (needed for goreleaser CI, which has no sibling repo). v0.5.0 shipped 2026-09-10.
 
@@ -83,8 +83,10 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 - `boite/go.mod` — dep + replace (**done**) + `boite/go.sum` (regenerated)
 - `boite/cmd/qemu/config.go` — `env:` block (**done**)
 - `boite/cmd/qemu/config_test.go` — tests (**done**)
-- `boite/cmd/qemu/env.go` — `materializeEnv` resolution (**new, done**)
+- `boite/cmd/qemu/env.go` — `materializeEnv` resolution (**new, done**); `RefreshGuestEnv`, `envRefreshPlan` (**done, refresh-on-entry**)
 - `boite/cmd/env.go` — `boite env` surface (**done**)
+- `boite/cmd/env_refresh.go` — `RefreshManagedEnv` + pin/unpin tracking (**new, done**)
+- `boite/cmd/qemu/instance.go` — `PinnedEnv` state field (**done, refresh-on-entry**)
 - `boite/cmd/qemu/ssh.go` — `WithEnv` for exec + `SSHOutput` (**done**)
 - `boite/cmd/qemu/firstboot.go` — tiroir disk payload (**done**)
 - `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read (**done, Track C**)
