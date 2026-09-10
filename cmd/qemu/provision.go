@@ -8,7 +8,7 @@ import (
 
 // Provision applies the per-instance provision block right after firstboot:
 // apt packages via the boite user's passwordless sudo, then each command as a
-// login shell. An absent or empty block is a no-op. Output is captured, not
+// shell line. An absent or empty block is a no-op. Output is captured, not
 // streamed, so apt progress cannot corrupt the single progress line; a failing
 // step returns an error that includes the captured output.
 func Provision(inst *Instance, cfg *BoiteConfig) error {
@@ -26,13 +26,22 @@ func Provision(inst *Instance, cfg *BoiteConfig) error {
 	for i, command := range cfg.Provision.Commands {
 		frac := commandFrac(hasPackages, i, len(cfg.Provision.Commands))
 		ProgressTick(fmt.Sprintf("running command %d/%d", i+1, len(cfg.Provision.Commands)), frac)
-		if err := runProvisionStep(inst, []string{"sh", "-lc", command}); err != nil {
+		if err := runProvisionStep(inst, []string{"sh", "-lc", shellQuote(command)}); err != nil {
 			return fmt.Errorf("provision command %d: %w", i+1, err)
 		}
 	}
 
 	ProgressDone("provisioning complete")
 	return nil
+}
+
+// shellQuote wraps a command so it survives the trip through OpenSSH and the
+// remote login shell as a single word. ssh rejoins its command arguments with
+// spaces into one line, which the remote shell re-parses; an unquoted command
+// therefore has its embedded spaces, pipes and multiline string torn apart. A
+// single-quoted whole command is kept intact as sh -c's argument.
+func shellQuote(cmd string) string {
+	return "'" + strings.ReplaceAll(cmd, "'", `'\''`) + "'"
 }
 
 // provisionPackages refreshes apt and installs the requested packages in one
