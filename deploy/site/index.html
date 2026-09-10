@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boite</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #f0b90b;
+      --code: #c9d1d9;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: linear-gradient(180deg, var(--bg), #010409);
+      color: var(--text);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: grid; place-items: center; padding: 4rem 1.5rem;
+    }
+    main { max-width: 720px; width: 100%; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 2.5rem;
+    }
+    pre.banner {
+      color: var(--code); line-height: 1.1; font-size: 13px;
+      overflow-x: auto; margin-bottom: 1.5rem;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
+    p.lead { color: var(--muted); margin: 0 0 1.5rem; }
+    .dl {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: .9rem 1rem;
+    }
+    .dl .meta { color: var(--muted); font-size: 13px; }
+    a.button {
+      display: inline-block; background: var(--accent); color: #0d1117;
+      text-decoration: none; font-weight: 600; padding: .5rem 1.1rem;
+      border-radius: 7px;
+    }
+    a.button:hover { filter: brightness(1.1); }
+    .features { margin: 1.5rem 0 0; }
+    .features h2 { font-size: 1.1rem; color: var(--muted); margin: 0 0 1rem; }
+    .features ul { padding-left: 1.1rem; color: var(--text); }
+    .features li { margin: .35rem 0; }
+    .install { margin-top: 1.5rem; }
+    .install h2 { font-size: 1.1rem; color: var(--muted); margin: 0 0 .5rem; }
+    code {
+      background: var(--bg); color: var(--code); padding: .1rem .35rem;
+      border-radius: 4px;
+    }
+    pre.code {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: .9rem 1rem; overflow-x: auto; color: var(--code); font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <pre class="banner">▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄▄
+██▄██ ██▀██ ██   ██   ██▄▄
+██▄█▀ ▀███▀ ██   ██   ██▄▄▄</pre>
+      <h1>Boite — development sandboxes</h1>
+      <p class="lead">Bare-metal dev environments in QEMU virtual machines, spun up from a baked base image.</p>
+
+      <div class="dl">
+        <span class="meta">boite-base.qcow2 &nbsp;·&nbsp; ~2&nbsp;GB &nbsp;·&nbsp; Debian&nbsp;13</span>
+        <a class="button" href="./base.qcow2" download>Download base image</a>
+      </div>
+
+      <section class="features">
+        <h2>What's inside</h2>
+        <ul>
+          <li>Debian 13, provisioned at build time — no cloud-init</li>
+          <li>Go, Rust, Bun, mise, Python toolchain baked in</li>
+          <li><code>boite</code> user with passwordless sudo, zsh + starship, tmux</li>
+        </ul>
+      </section>
+
+      <section class="install">
+        <h2>Install the CLI</h2>
+        <pre class="code">curl -fsSL https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh | bash
+boite create my-sandbox</pre>
+        <p style="margin-top:.8rem;color:var(--muted)">The CLI fetches <code>https://boite.facile.studio/base.qcow2</code> on first
+        <code>create</code> and verifies its SHA-256.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

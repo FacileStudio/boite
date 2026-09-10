@@ -5,5 +5,5 @@ tmp/
 .filet/
 *.log
 .DS_Store
-cloud-init-debug.yml
 ascii.txt
+boite-base*.qcow2

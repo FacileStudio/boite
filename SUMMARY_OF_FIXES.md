@@ -1,5 +1,12 @@
 # Summary of Fixes for boite VM Configuration
 
+> Superseded: the `cloud_init:` config, `MergeCloudInitConfig`, `GenerateSeedISO`
+> and the cloud-init seed ISO described below were removed in the baked-image
+> refactor. Provisioning now lives in the base image built by
+> `scripts/bake-image.sh`; the only per-instance input is the SSH public key,
+> delivered on a config ISO and installed by a firstboot oneshot. Read `README.md`
+> for the current model. The notes below are kept as history.
+
 ## Issues Fixed
 
 1. **[config]** `--config` flag now properly honored

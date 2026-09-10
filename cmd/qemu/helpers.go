@@ -16,7 +16,7 @@ type startFinalizeParams struct {
 	workspacePath string
 	noMount       bool
 	overlayPath   string
-	seedISOPath   string
+	configISOPath string
 	configPath    string
 	keyResolution sshKeyResolution
 	cfg           *BoiteConfig
@@ -24,17 +24,17 @@ type startFinalizeParams struct {
 
 func (p *startFinalizeParams) buildInstance(pid int, sshPort int) *Instance {
 	return &Instance{
-		Name:        p.name,
-		PID:         pid,
-		SSHPort:     sshPort,
-		OverlayPath: p.overlayPath,
-		SeedISOPath: p.seedISOPath,
-		KeyPath:     p.keyResolution.privateKeyPath,
-		PubKeyPath:  p.keyResolution.publicKeyPath,
-		CreatedAt:   time.Now(),
-		Status:      "running",
-		Workspace:   p.workspacePath,
-		NoMount:     p.noMount,
+		Name:          p.name,
+		PID:           pid,
+		SSHPort:       sshPort,
+		OverlayPath:   p.overlayPath,
+		ConfigISOPath: p.configISOPath,
+		KeyPath:       p.keyResolution.privateKeyPath,
+		PubKeyPath:    p.keyResolution.publicKeyPath,
+		CreatedAt:     time.Now(),
+		Status:        "running",
+		Workspace:     p.workspacePath,
+		NoMount:       p.noMount,
 	}
 }
 

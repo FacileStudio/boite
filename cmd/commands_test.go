@@ -3,32 +3,7 @@ package cmd
 import (
 	"slices"
 	"testing"
-
-	"github.com/FacileStudio/boite/cmd/qemu"
-	"gopkg.in/yaml.v3"
 )
-
-func TestDefaultCloudInitIsValidYAML(t *testing.T) {
-	raw := qemu.DefaultCloudInitYAML()
-	var node yaml.Node
-	if err := yaml.Unmarshal([]byte(raw), &node); err != nil {
-		t.Fatalf("DefaultCloudInitYAML produced invalid YAML: %v", err)
-	}
-
-	var data struct {
-		Runcmd []any `yaml:"runcmd"`
-		Users  []any `yaml:"users"`
-	}
-	if err := yaml.Unmarshal([]byte(raw), &data); err != nil {
-		t.Fatalf("failed to decode cloud-init fields: %v", err)
-	}
-	if len(data.Runcmd) == 0 {
-		t.Fatal("expected non-empty runcmd")
-	}
-	if len(data.Users) == 0 {
-		t.Fatal("expected non-empty users")
-	}
-}
 
 func TestRootCommandStructure(t *testing.T) {
 	if rootCmd.Use != "boite" {

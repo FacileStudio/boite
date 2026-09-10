@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
@@ -19,10 +20,17 @@ func TestCheckCommand(t *testing.T) {
 	}
 }
 
-func TestDefaultCloudInit(t *testing.T) {
-	cfg := qemu.DefaultCloudInitYAML()
-	if len(cfg) == 0 {
-		t.Fatal("expected non-empty cloud-init config")
+func TestBuildConfigISO(t *testing.T) {
+	if err := checkCommand("genisoimage"); err != nil {
+		t.Skip("genisoimage not available")
+	}
+	dir := t.TempDir()
+	isoPath, err := qemu.BuildConfigISO(dir, "ssh-ed25519 test boite")
+	if err != nil {
+		t.Fatalf("BuildConfigISO: %v", err)
+	}
+	if _, err := os.Stat(isoPath); err != nil {
+		t.Fatalf("config.iso not created: %v", err)
 	}
 }
 

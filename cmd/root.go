@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -90,17 +89,12 @@ func initConfig() error {
 
 func createDefaultConfig(home string) error {
 	configPath := filepath.Join(home, ".boite.yml")
-	var cloudInitObj map[string]any
-	if err := yaml.Unmarshal([]byte(qemu.DefaultCloudInitYAML()), &cloudInitObj); err != nil {
-		return fmt.Errorf("failed to parse default cloud-init: %w", err)
-	}
 	defaultConfig := map[string]any{
 		"vm": map[string]any{
 			"cpus":   2,
 			"memory": "2G",
 			"disk":   "20G",
 		},
-		"cloud_init": cloudInitObj,
 	}
 	data, err := yaml.Marshal(defaultConfig)
 	if err != nil {

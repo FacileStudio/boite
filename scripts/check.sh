@@ -65,7 +65,7 @@ fi
 
 # QEMU toolchain checks (required for sandbox runtime)
 echo "==> QEMU toolchain"
-for bin in qemu-system-x86_64 qemu-img cloud-localds; do
+for bin in qemu-system-x86_64 qemu-img genisoimage; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "check: $bin not found in PATH (required for sandbox runtime)" >&2
     status=1

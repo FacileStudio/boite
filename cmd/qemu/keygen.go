@@ -49,19 +49,3 @@ func ReadPublicKey(path string) (string, error) {
 	}
 	return strings.TrimSpace(string(data)), nil
 }
-
-// deduplicateSSHKeys removes duplicate SSH keys and adds an extra key if not present
-func deduplicateSSHKeys(keys []string, extraKey string) []string {
-	seen := make(map[string]bool)
-	result := make([]string, 0, len(keys)+1)
-	for _, key := range keys {
-		if !seen[key] {
-			seen[key] = true
-			result = append(result, key)
-		}
-	}
-	if !seen[extraKey] {
-		result = append(result, extraKey)
-	}
-	return result
-}

@@ -28,14 +28,14 @@ func detectAcceleration() (string, []string, string) {
 }
 
 type QEMUConfig struct {
-	BaseImage   string
-	OverlayPath string
-	SeedISOPath string
-	HostFwdPort int
-	PIDFile     string
-	ConsoleLog  string
-	Memory      string
-	CPUs        int
+	BaseImage     string
+	OverlayPath   string
+	ConfigISOPath string
+	HostFwdPort   int
+	PIDFile       string
+	ConsoleLog    string
+	Memory        string
+	CPUs          int
 }
 
 func BuildQEMUArgs(cfg QEMUConfig) []string {
@@ -60,7 +60,7 @@ func BuildQEMUArgs(cfg QEMUConfig) []string {
 		"-m", memory,
 		"-smp", strconv.Itoa(cpus),
 		"-drive", fmt.Sprintf("file=%s,format=qcow2,if=virtio", cfg.OverlayPath),
-		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", cfg.SeedISOPath),
+		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", cfg.ConfigISOPath),
 		"-netdev", fmt.Sprintf("user,id=net0,net=192.168.42.0/24,dhcpstart=192.168.42.10,restrict=off,hostfwd=tcp:127.0.0.1:%d-:22", cfg.HostFwdPort),
 		"-device", "virtio-net-pci,netdev=net0",
 		"-serial", fmt.Sprintf("file:%s", cfg.ConsoleLog),

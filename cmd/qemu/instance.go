@@ -12,25 +12,26 @@ import (
 const (
 	InstancesDirName = "instances"
 	CacheDirName     = "cache"
-	BaseImageName    = "debian-13-genericcloud-amd64.qcow2"
-	// Base image is pinned to the dated build 20260831-2587. When the pinned image
-	// changes, update the URL and the SHA256 together.
-	BaseImageURL    = "https://cloud.debian.org/images/cloud/trixie/20260831-2587/debian-13-genericcloud-amd64-20260831-2587.qcow2"
-	BaseImageSHA256 = "85a969b7e99d7c817414136033df18c58d5c45ac8d27bb36e8ccb67173d2d4e3"
+	BaseImageName    = "boite-base.qcow2"
+	// Base image is the baked boite image built by scripts/bake-image.sh. When
+	// the image changes, rebuild and update the URL and the SHA256 together.
+	BaseImageName    = "boite-base.qcow2"
+	BaseImageURL     = "https://boite.facile.studio/base.qcow2"
+	BaseImageSHA256  = "d0c69b37d50d4b81d36c98da20f51f96a12a0e61e0a342fdb7cfdbd43cf8b3dd"
 )
 
 type Instance struct {
-	Name        string    `json:"name"`
-	PID         int       `json:"pid"`
-	SSHPort     int       `json:"ssh_port"`
-	OverlayPath string    `json:"overlay_path"`
-	SeedISOPath string    `json:"seed_iso_path"`
-	KeyPath     string    `json:"key_path"`
-	PubKeyPath  string    `json:"pub_key_path"`
-	CreatedAt   time.Time `json:"created_at"`
-	Status      string    `json:"status"`
-	Workspace   string    `json:"workspace"`
-	NoMount     bool      `json:"no_mount"`
+	Name          string    `json:"name"`
+	PID           int       `json:"pid"`
+	SSHPort       int       `json:"ssh_port"`
+	OverlayPath   string    `json:"overlay_path"`
+	ConfigISOPath string    `json:"config_iso_path"`
+	KeyPath       string    `json:"key_path"`
+	PubKeyPath    string    `json:"pub_key_path"`
+	CreatedAt     time.Time `json:"created_at"`
+	Status        string    `json:"status"`
+	Workspace     string    `json:"workspace"`
+	NoMount       bool      `json:"no_mount"`
 }
 
 func GetBoiteDir() string {
@@ -58,8 +59,8 @@ func GetOverlayPath(name string) string {
 	return filepath.Join(GetInstanceDir(name), "overlay.qcow2")
 }
 
-func GetSeedISOPath(name string) string {
-	return filepath.Join(GetInstanceDir(name), "seed.iso")
+func GetConfigISOPath(name string) string {
+	return filepath.Join(GetInstanceDir(name), "config.iso")
 }
 
 func GetKeyPath(name string) string {

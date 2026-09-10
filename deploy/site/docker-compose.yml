@@ -1,0 +1,14 @@
+services:
+  boite-site:
+    build: .
+    image: boite-site
+    restart: unless-stopped
+    volumes:
+      - /etc/dokploy/boite-assets:/assets:ro
+    environment:
+      - TZ=Europe/Paris
+
+networks:
+  default:
+    name: dokploy-network
+    external: true
