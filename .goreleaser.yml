@@ -24,7 +24,6 @@ builds:
     ldflags:
       - -s
       - -w
-      - -X github.com/FacileStudio/boite/cmd.Version={{.Version}}
       - -X github.com/FacileStudio/boite/cmd.version={{.Version}}
 
 archives:

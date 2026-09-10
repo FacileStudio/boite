@@ -13,6 +13,8 @@ func homeDir() string {
 	return home
 }
 
+// RunCommand runs an external program and returns its combined output, along
+// with any error the exec produced.
 func RunCommand(args ...string) ([]byte, error) {
 	cmd := exec.Command(args[0], args[1:]...)
 	return cmd.CombinedOutput()

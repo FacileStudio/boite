@@ -2,7 +2,7 @@
 
 BINARY=boite
 VERSION?=dev
-LDFLAGS=-X github.com/FacileStudio/boite/cmd.Version=$(VERSION)
+LDFLAGS=-X github.com/FacileStudio/boite/cmd.version=$(VERSION)
 
 all: build
 

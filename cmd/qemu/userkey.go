@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// FindUserSSHKey returns the contents of the user's first readable public SSH
+// key (id_ed25519.pub, then id_rsa.pub, then id_dsa.pub), trimmed of
+// surrounding whitespace.
 func FindUserSSHKey() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -36,6 +39,8 @@ func FindUserSSHKey() (string, error) {
 	return "", fmt.Errorf("no user SSH key found: %w", lastError)
 }
 
+// FindUserSSHPrivateKey returns the path of the user's first existing private
+// SSH key (id_ed25519, then id_rsa, then id_dsa).
 func FindUserSSHPrivateKey() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

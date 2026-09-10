@@ -10,7 +10,7 @@ type sshKeyResolution struct {
 	publicKeyPath  string
 }
 
-func resolveSSHKey(instanceDir string, generateKey bool, cfg *BoiteConfig) (sshKeyResolution, error) {
+func resolveSSHKey(instanceDir string, generateKey bool) (sshKeyResolution, error) {
 	var resolution sshKeyResolution
 	var err error
 

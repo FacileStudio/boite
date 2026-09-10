@@ -5,6 +5,9 @@ import (
 	"os"
 )
 
+// Create provisions a brand new instance: a fresh overlay disk, its SSH key,
+// a config disk with the environment, then boots the VM and waits for it to
+// finish firstboot. Returns the running instance, or (nil, err) on failure.
 func Create(name, workspacePath string, noMount bool, configPath string, generateKey bool) (*Instance, error) {
 	if InstanceExists(name) {
 		return nil, fmt.Errorf("instance '%s' already exists", name)
@@ -21,33 +24,15 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 		return nil, err
 	}
 
-	instanceDir := GetInstanceDir(name)
-	ProgressPhase("Resolving SSH key")
-	keyResolution, err := resolveSSHKey(instanceDir, generateKey, cfg)
+	configDiskPath, keyResolution, err := prepareConfig(GetInstanceDir(name), generateKey, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	ProgressPhase("Building config disk")
-	envVars, err := materializeEnv(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("resolve env: %w", err)
-	}
-	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey, envVars)
-	if err != nil {
-		return nil, fmt.Errorf("build config disk: %w", err)
-	}
-
 	ProgressPhase("Starting VM")
 	inst, err := startAndFinalizeInstance(&startFinalizeParams{
-		name:           name,
-		workspacePath:  workspacePath,
-		noMount:        noMount,
-		overlayPath:    overlayPath,
-		configDiskPath: configDiskPath,
-		configPath:     configPath,
-		keyResolution:  keyResolution,
-		cfg:            cfg,
+		name: name, workspacePath: workspacePath, noMount: noMount, overlayPath: overlayPath,
+		configDiskPath: configDiskPath, configPath: configPath, keyResolution: keyResolution, cfg: cfg,
 	})
 	if err != nil {
 		return nil, err
@@ -57,6 +42,8 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 	return inst, nil
 }
 
+// startAndFinalizeInstance boots the prepared VM, records its state and
+// waits for the guest to come up, run firstboot and accept provisioning.
 func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	sshPort, err := FindFreePort()
 	if err != nil {
@@ -64,22 +51,14 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage:      GetBaseImagePath(),
-		OverlayPath:    p.overlayPath,
-		ConfigDiskPath: p.configDiskPath,
-		HostFwdPort:    sshPort + 1,
-		PIDFile:        GetPIDPath(p.name),
-		ConsoleLog:     GetConsoleLogPath(p.name),
+		BaseImage: GetBaseImagePath(), OverlayPath: p.overlayPath, ConfigDiskPath: p.configDiskPath,
+		HostFwdPort: sshPort + 1, PIDFile: GetPIDPath(p.name), ConsoleLog: GetConsoleLogPath(p.name),
 	}
 	applyVMConfig(&qemuCfg, p.cfg)
 
-	if _, err := StartQEMU(qemuCfg); err != nil {
-		return nil, fmt.Errorf("start qemu: %w", err)
-	}
-
-	pid, err := WaitForPID(qemuCfg.PIDFile, 20)
+	pid, err := launchVM(qemuCfg)
 	if err != nil {
-		return nil, fmt.Errorf("wait for pid file: %w", err)
+		return nil, err
 	}
 	ProgressDone(fmt.Sprintf("QEMU running (pid %d, SSH on port %d)", pid, sshPort+1))
 
@@ -104,6 +83,42 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	return inst, nil
 }
 
+// prepareConfig resolves or generates the instance SSH key, then materialises
+// the config disk from the boite config: everything the guest needs before boot.
+func prepareConfig(instanceDir string, generateKey bool, cfg *BoiteConfig) (string, sshKeyResolution, error) {
+	ProgressPhase("Resolving SSH key")
+	keyResolution, err := resolveSSHKey(instanceDir, generateKey)
+	if err != nil {
+		return "", keyResolution, err
+	}
+
+	ProgressPhase("Building config disk")
+	envVars, err := materializeEnv(cfg)
+	if err != nil {
+		return "", keyResolution, fmt.Errorf("resolve env: %w", err)
+	}
+	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey, envVars)
+	if err != nil {
+		return configDiskPath, keyResolution, fmt.Errorf("build config disk: %w", err)
+	}
+
+	return configDiskPath, keyResolution, nil
+}
+
+// launchVM starts qemu with the given config and blocks until its PID file
+// exists, so the caller can rely on the process being alive.
+func launchVM(cfg QEMUConfig) (int, error) {
+	if _, err := StartQEMU(cfg); err != nil {
+		return 0, fmt.Errorf("start qemu: %w", err)
+	}
+
+	pid, err := WaitForPID(cfg.PIDFile, 20)
+	if err != nil {
+		return 0, fmt.Errorf("wait for pid file: %w", err)
+	}
+	return pid, nil
+}
+
 func prepareInstanceDisk(name string, cfg *BoiteConfig) (string, error) {
 	baseImage, err := EnsureBaseImage()
 	if err != nil {
@@ -123,6 +138,8 @@ func prepareInstanceDisk(name string, cfg *BoiteConfig) (string, error) {
 	return overlayPath, nil
 }
 
+// Start boots an existing instance: it loads the saved state, starts qemu
+// if the process is not already running, and waits for SSH to come up.
 func Start(name string, configPath string) (*Instance, error) {
 	inst, err := LoadInstanceState(name)
 	if err != nil {
@@ -139,26 +156,16 @@ func Start(name string, configPath string) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage:      GetBaseImagePath(),
-		OverlayPath:    inst.OverlayPath,
-		ConfigDiskPath: inst.ConfigDiskPath,
-		HostFwdPort:    inst.SSHPort,
-		PIDFile:        GetPIDPath(name),
-		ConsoleLog:     GetConsoleLogPath(name),
+		BaseImage: GetBaseImagePath(), OverlayPath: inst.OverlayPath, ConfigDiskPath: inst.ConfigDiskPath,
+		HostFwdPort: inst.SSHPort, PIDFile: GetPIDPath(name), ConsoleLog: GetConsoleLogPath(name),
 	}
 	applyVMConfig(&qemuCfg, cfg)
 
-	if _, err := StartQEMU(qemuCfg); err != nil {
-		return nil, fmt.Errorf("start qemu: %w", err)
-	}
-
-	pid, err := WaitForPID(qemuCfg.PIDFile, 20)
+	pid, err := launchVM(qemuCfg)
 	if err != nil {
-		return nil, fmt.Errorf("wait for pid file: %w", err)
+		return nil, err
 	}
-
-	inst.PID = pid
-	inst.Status = "running"
+	inst.PID, inst.Status = pid, "running"
 	if err := SaveInstanceState(inst); err != nil {
 		return nil, fmt.Errorf("save state: %w", err)
 	}
@@ -171,49 +178,51 @@ func Start(name string, configPath string) (*Instance, error) {
 	return inst, nil
 }
 
+// Stop powers the instance down: the guest is asked to power off cleanly so
+// its filesystems flush, and only if that fails or stalls is the qemu process
+// killed from the host. The instance is marked stopped either way.
 func Stop(name string) error {
 	inst, err := LoadInstanceState(name)
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
 
-	if inst.PID > 0 && IsProcessRunning(inst.PID) {
-		// Ask the guest OS to power down cleanly (flush its filesystems), then
-		// fall back to a host-level kill if it is unreachable or takes too
-		// long.
-		if err := GracefulGuestShutdown(inst, 30); err != nil {
-			if IsProcessRunning(inst.PID) {
-				if err := KillQEMU(inst.PID); err != nil {
-					return fmt.Errorf("kill qemu: %w", err)
-				}
-			}
+	if inst.PID <= 0 || !IsProcessRunning(inst.PID) {
+		inst.Status = "stopped"
+		return SaveInstanceState(inst)
+	}
+
+	if err := GracefulGuestShutdown(inst, 30); err != nil {
+		if err := KillQEMU(inst.PID); err != nil {
+			return fmt.Errorf("kill qemu: %w", err)
 		}
-		if err := WaitForProcessExit(inst.PID, 10); err != nil {
-			return fmt.Errorf("wait for qemu to exit: %w", err)
-		}
-		if err := WaitForPortFree(inst.SSHPort, 20); err != nil {
-			return fmt.Errorf("wait for port to free: %w", err)
-		}
+	}
+	if err := WaitForProcessExit(inst.PID, 10); err != nil {
+		return fmt.Errorf("wait for qemu to exit: %w", err)
+	}
+	if err := WaitForPortFree(inst.SSHPort, 20); err != nil {
+		return fmt.Errorf("wait for port to free: %w", err)
 	}
 
 	inst.Status = "stopped"
 	return SaveInstanceState(inst)
 }
 
+// Destroy removes the instance's state, overlay and config disk, stopping
+// the VM first if it is still running. Missing state is not an error: the
+// instance is already gone.
 func Destroy(name string) error {
 	inst, err := LoadInstanceState(name)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("load state: %w", err)
+	if err == nil {
+		if inst.PID > 0 {
+			if err := Stop(name); err != nil {
+				return fmt.Errorf("stop before destroy: %w", err)
+			}
 		}
+		return DeleteInstanceDir(name)
+	}
+	if os.IsNotExist(err) {
 		return nil
 	}
-
-	if inst.PID > 0 {
-		if err := Stop(name); err != nil {
-			return fmt.Errorf("stop before destroy: %w", err)
-		}
-	}
-
-	return DeleteInstanceDir(name)
+	return fmt.Errorf("load state: %w", err)
 }

@@ -80,17 +80,21 @@ func renderSandboxCard(name, workspace string, noMount bool, sshPort int) string
 		Render(content)
 }
 
+// renderEmptyTable renders the placeholder shown when no instance exists.
+func renderEmptyTable() string {
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderColor).
+		Padding(1, 2).
+		Render(fmt.Sprintf("%s\n%s",
+			lipgloss.NewStyle().Foreground(subtleColor).Render("No sandbox instances found."),
+			lipgloss.NewStyle().Foreground(accentColor).Render("Run 'boite create <name>' to launch one."),
+		))
+}
+
 func renderInstanceTableQEMU(instances []*qemu.Instance) string {
 	if len(instances) == 0 {
-		emptyCard := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(borderColor).
-			Padding(1, 2).
-			Render(fmt.Sprintf("%s\n%s",
-				lipgloss.NewStyle().Foreground(subtleColor).Render("No sandbox instances found."),
-				lipgloss.NewStyle().Foreground(accentColor).Render("Run 'boite create <name>' to launch one."),
-			))
-		return emptyCard
+		return renderEmptyTable()
 	}
 
 	t := table.New().

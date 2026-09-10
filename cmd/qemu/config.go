@@ -15,16 +15,15 @@ type VMConfig struct {
 	Memory string `yaml:"memory"`
 }
 
-// Sync of the current directory into the sandbox at run time is controlled by
-// the top-level sync key of ~/.boite.yml. It is a pointer so an absent setting
-// can be told apart from an explicit false; sync is an opt-in, so both mean
-// "disabled".
-//
 // WorkspaceSyncEnabled reports whether the current directory should be synced
-// into the sandbox's /workspace at run time. Sync is off by default and must
-// be opted into with sync: true. The instance's own --no-mount setting and an
-// explicit run override both disable it; any single "no" wins, and the run
-// override still applies to an opted-in instance.
+// into the sandbox's /workspace at run time. Sync of the current directory is
+// controlled by the top-level sync key of ~/.boite.yml. It is a pointer so an
+// absent setting can be told apart from an explicit false; sync is an opt-in,
+// so both mean "disabled".
+//
+// Sync is off by default and must be opted into with sync: true. The instance's
+// own --no-mount setting and an explicit run override both disable it; any
+// single "no" wins, and the run override still applies to an opted-in instance.
 func WorkspaceSyncEnabled(inst *Instance, configPath string, forceSkip bool) bool {
 	if inst.NoMount || forceSkip {
 		return false
@@ -127,10 +126,9 @@ func LoadBoiteConfig(path string) (*BoiteConfig, error) {
 		configPath = filepath.Join(home, ".boite.yml")
 	}
 
-	if _, err := os.Stat(configPath); err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
 		return nil, fmt.Errorf("stat config: %w", err)
 	}
 

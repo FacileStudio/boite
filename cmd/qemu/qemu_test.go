@@ -70,7 +70,7 @@ func TestKillQEMUGracefulTermination(t *testing.T) {
 	}
 
 	cmd.Wait()
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		time.Sleep(100 * time.Millisecond)
 		if !IsProcessRunning(pid) {
 			return

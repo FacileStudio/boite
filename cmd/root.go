@@ -15,50 +15,68 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 ██▄██ ██▀██ ██   ██   ██▄▄
 ██▄█▀ ▀███▀ ██   ██   ██▄▄▄`
 
-var (
-	Version = "0.4.2"
-	version = ""
-)
-var cfgFile string
+// version is written once by the linker (-ldflags -X ...cmd.version=...) at
+// build time and only read afterwards.
+var version = "0.4.2"
 
-var rootCmd = &cobra.Command{
-	Use:     "boite",
-	Short:   "Development sandbox manager",
-	Long:    `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
-	Version: Version,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return initConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := cmd.Help(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-	},
-	CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
-}
-
+// Execute runs the root command, dispatching to the registered subcommands.
 func Execute() error {
-	return rootCmd.Execute()
+	return newRootCmd().Execute()
 }
 
+// newRootCmd assembles the boite command tree and its persistent flags.
+func newRootCmd() *cobra.Command {
+	var cfgFile string
+	root := &cobra.Command{
+		Use:     "boite",
+		Short:   "Development sandbox manager",
+		Long:    `A CLI tool to create, manage, and clean up virtual machine-based development sandboxes for general development.`,
+		Version: version,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return initConfig(cfgFile)
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := cmd.Help(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		},
+		CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
+	}
+	root.SetVersionTemplate("{{.Name}} {{.Version}}\n")
+	root.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.boite.yml)")
+	root.AddCommand(
+		newCreateCmd(),
+		newRunCmd(),
+		newListCmd(),
+		newStartCmd(),
+		newStopCmd(),
+		newRmCmd(),
+		newExecCmd(),
+		newSyncCmd(),
+		newEnvCmd(),
+	)
+	return root
+}
+
+// versionString returns the semantic version with any leading "v" stripped.
 func versionString() string {
-	v := strings.TrimPrefix(Version, "v")
+	v := strings.TrimPrefix(version, "v")
 	if v == "" || v == "dev" {
-		return Version
+		return version
 	}
 	return v
 }
 
-func init() {
-	if version != "" {
-		Version = version
+// configPath resolves the value of the persistent --config flag.
+func configPath(cmd *cobra.Command) string {
+	flag := cmd.Flag("config")
+	if flag == nil {
+		return ""
 	}
-	rootCmd.Version = Version
-	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.boite.yml)")
+	return flag.Value.String()
 }
 
-func initConfig() error {
+func initConfig(cfgFile string) error {
 	home := homeDir()
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
@@ -71,16 +89,11 @@ func initConfig() error {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			if cfgFile != "" {
-
-			} else {
-				if err := createDefaultConfig(home); err != nil {
-					return err
-				}
-			}
-		} else {
+		if _, configNotFound := err.(viper.ConfigFileNotFoundError); !configNotFound {
 			return fmt.Errorf("failed to read config file: %w", err)
+		}
+		if cfgFile == "" {
+			return createDefaultConfig(home)
 		}
 	}
 

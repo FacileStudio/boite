@@ -69,8 +69,8 @@ func vmDiskSize(cfg *BoiteConfig) int {
 
 func parseDiskGB(value string) int {
 	value = strings.TrimSpace(strings.ToLower(value))
-	if strings.HasSuffix(value, "g") {
-		value = strings.TrimSuffix(value, "g")
+	if v, ok := strings.CutSuffix(value, "g"); ok {
+		value = v
 	}
 	if n, err := strconv.Atoi(value); err == nil && n > 0 {
 		return n
@@ -78,9 +78,12 @@ func parseDiskGB(value string) int {
 	return 20
 }
 
+// WaitForSSH polls until the instance SSH port accepts a TCP connection,
+// reporting progress along the way, and fails with an error once
+// timeoutSeconds have elapsed.
 func WaitForSSH(port, timeoutSeconds int) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	for i := 0; i < timeoutSeconds; i++ {
+	for i := range timeoutSeconds {
 		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 		if err == nil {
 			conn.Close()
@@ -95,8 +98,10 @@ func WaitForSSH(port, timeoutSeconds int) error {
 	return fmt.Errorf("timeout waiting for SSH on %s", addr)
 }
 
+// WaitForProcessExit polls until pid is no longer running, failing with an
+// error once timeout seconds have elapsed.
 func WaitForProcessExit(pid int, timeout int) error {
-	for i := 0; i < timeout; i++ {
+	for range timeout {
 		if !IsProcessRunning(pid) {
 			return nil
 		}
@@ -105,8 +110,10 @@ func WaitForProcessExit(pid int, timeout int) error {
 	return fmt.Errorf("timeout waiting for process %d to exit", pid)
 }
 
+// WaitForPortFree polls until the TCP port is free, failing with an error
+// once timeout seconds have elapsed.
 func WaitForPortFree(port int, timeout int) error {
-	for i := 0; i < timeout; i++ {
+	for range timeout {
 		if isPortFree(port) {
 			return nil
 		}

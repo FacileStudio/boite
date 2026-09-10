@@ -97,12 +97,9 @@ func mkfsFatOpts(diskPath string) []string {
 // ready (sshd comes up before the key lands), so every failed probe just keeps
 // polling; only a marker-less timeout fails the create.
 func WaitForFirstboot(inst *Instance, timeoutSeconds int) error {
-	steps := timeoutSeconds / 5
-	if steps < 1 {
-		steps = 1
-	}
+	steps := max(timeoutSeconds/5, 1)
 	elapsed := 0
-	for i := 0; i < steps; i++ {
+	for i := range steps {
 		if firstbootDone(inst) {
 			ProgressDone(fmt.Sprintf("firstboot complete (%ds)", elapsed))
 			return nil

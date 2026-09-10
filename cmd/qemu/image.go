@@ -9,6 +9,8 @@ import (
 	"os/exec"
 )
 
+// EnsureBaseImage returns the path to the Debian base image, downloading and
+// checksum-verifying it into the cache when it is not already there.
 func EnsureBaseImage() (string, error) {
 	cacheDir := GetCacheDir()
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
@@ -78,6 +80,9 @@ func verifyChecksum(path string) error {
 	return nil
 }
 
+// CreateOverlay creates a qcow2 overlay disk backed by baseImage at
+// overlayPath, sized to sizeGB when it is positive and left to qemu-img's
+// default otherwise.
 func CreateOverlay(baseImage, overlayPath string, sizeGB int) error {
 	args := []string{"create", "-f", "qcow2", "-b", baseImage, "-F", "qcow2", overlayPath}
 	if sizeGB > 0 {

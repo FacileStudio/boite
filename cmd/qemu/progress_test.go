@@ -27,7 +27,7 @@ func TestProgressBarCapsAtFullWidth(t *testing.T) {
 
 func TestSpinnerFramesStableWidth(t *testing.T) {
 	assert.Equal(t, len(progressFrames), 8)
-	for i := 0; i < len(progressFrames); i++ {
+	for i := range len(progressFrames) {
 		assert.Equal(t, len(progressFrames[i]), len(progressFrames[0]))
 		assert.Equal(t, spinnerFrame(i), progressFrames[i%len(progressFrames)])
 	}

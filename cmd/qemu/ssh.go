@@ -32,6 +32,10 @@ func getSSHIdentityFile(inst *Instance) string {
 	return filepath.Join(sshDir, "id_ed25519")
 }
 
+// BuildSSHArgs returns the ssh argv for the instance: the resolved identity
+// file, the instance SSH port, and the flags that make the connection
+// non-interactive and tolerant of a fresh guest host key. A non-empty command
+// is appended as the remote command to run.
 func BuildSSHArgs(inst *Instance, command []string) []string {
 	args := []string{
 		"-i", getSSHIdentityFile(inst),
