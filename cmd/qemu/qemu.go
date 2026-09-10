@@ -187,4 +187,3 @@ func IsProcessRunning(pid int) bool {
 	}
 	return fields[2] != "Z"
 }
-
