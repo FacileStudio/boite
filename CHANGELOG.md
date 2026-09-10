@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-09-10
+
+### Fixed
+
+- `provision.commands` with pipes, redirects, quotes or multiline content now run correctly. Boite handed each command to OpenSSH as separate argv (`sh`, `-lc`, `<command>`); ssh rejoins those with spaces into one remote line that the guest login shell re-parses, so the inner quoting was torn apart and, in the common `curl ... | bash` bootstrap case, the command silently collapsed into `sh: curl ... | bash: not found` and never installed. Commands are now single-quoted so they arrive intact as `sh -c`'s argument. (The `facile` install loop from the sample `~/.boite.yml` is the case that surfaced it.)
+
 ## [0.4.1] — 2026-09-10
 
 ### Fixed
