@@ -18,15 +18,20 @@ virt-builder debian-13 \
   --size 20G \
   --run "$(pwd)/scripts/bake-provision.sh"
 
-if ! qemu-img info "$bake" | grep -q "file format: qcow2"; then
-  echo "virt-builder did not emit qcow2; converting" >&2
-  qemu-img convert -O qcow2 -c "$bake" "$bake.qcow2"
-  mv "$bake.qcow2" "$bake"
+size_gb=$(du -m "$bake" | awk '{print int($1)}')
+apparent_gb=$(qemu-img info "$bake" | awk '/^virtual size:/{print $3}')
+if [ "${size_gb:-0}" -gt 4000 ]; then
+  # virt-builder emits a sparse qcow2 whose apparent size is the full virtual
+  # volume; nginx serves the apparent size, so a 20G-virtual image would be
+  # downloaded as 20G. Compact with -c so the artifact is only its real ~2G.
+  echo "==> compacting $(du -h "$bake" | cut -f1) -> real size"
+  qemu-img convert -O qcow2 -c "$bake" "$bake.compact"
+  mv "$bake.compact" "$bake"
 fi
 
 sha=$(sha256sum "$bake" | awk '{print $1}')
 mv "$bake" "$out"
-echo "==> built $out"
+echo "==> built $out ($(du -h "$out" | cut -f1))"
 echo "SHA256: $sha"
 echo "Repin cmd/qemu/instance.go:"
 echo "  BaseImageName    = \"$out\""

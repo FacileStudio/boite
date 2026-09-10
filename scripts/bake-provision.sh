@@ -23,9 +23,32 @@ mkdir -p /etc/sudoers.d
 printf '%s\n' 'boite ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/boite
 chmod 440 /etc/sudoers.d/boite
 
+# Networking. The virt-builder debian-13 template predicts a "ens2" NIC, but
+# under QEMU the virtio NIC is renamed eth0 -> ens3 (and sometimes ens18),
+# so the template's "allow-hotplug ens2" never activates and the guest gets
+# no address -- which silently breaks the SSH hostfwd (slirp accepts the host
+# TCP but cannot route to a guest without an IP). Bring up whatever Ethernet
+# interface is actually present via systemd-networkd with a wildcard match.
+apt-get install -y --no-install-recommends systemd-networkd >/dev/null 2>&1 || true
+mkdir -p /etc/systemd/network
+cat > /etc/systemd/network/10-dhcp.network <<'NET'
+[Match]
+Name=e*
+
+[Network]
+DHCP=yes
+NET
+systemctl enable systemd-networkd 2>/dev/null || true
+
 # SSH host keys (the build appliance ships none)
 rm -f /etc/ssh/ssh_host_*key /etc/ssh/ssh_host_*key.pub
 ssh-keygen -A
+
+# Ensure sshd listens on TCP port 22 (boite reaches the guest over hostfwd).
+# systemd-ssh-generator can leave only unix-local/vsock seats active, which
+# slirp's hostfwd cannot reach; socket-activate the TCP listener explicitly.
+systemctl enable ssh.socket 2>/dev/null || true
+systemctl enable ssh.service 2>/dev/null || true
 
 # dotfiles
 cat > /home/boite/.zshrc <<'ZRC'
@@ -124,11 +147,23 @@ cat > /usr/local/lib/boite/firstboot.sh <<'FB'
 set -e
 marker=/var/lib/boite/firstboot.done
 [ -f "$marker" ] && exit 0
-blk=/dev/disk/by-label/BOITECFG
-[ -e "$blk" ] || exit 1
+
 mkdir -p /mnt/boitecfg
-mount -o ro "$blk" /mnt/boitecfg
-mkdir -p /home/boite/.ssh
+blk=
+for attempt in 1 2 3 4 5 6; do
+  for cand in /dev/disk/by-label/BOITECFG /dev/vdb /dev/vdc /dev/sdb /dev/sdc /dev/sr0 /dev/sr1; do
+    if [ -b "$cand" ] && mount -o ro "$cand" /mnt/boitecfg 2>/dev/null && [ -f /mnt/boitecfg/authorized_keys ]; then
+      blk=$cand
+      break
+    fi
+    umount /mnt/boitecfg 2>/dev/null || true
+  done
+  [ -n "$blk" ] && break
+  sleep 2
+done
+[ -n "$blk" ] && [ -f /mnt/boitecfg/authorized_keys ] || exit 1
+
+mkdir -p /home/boite/.ssh /var/lib/boite
 cp /mnt/boitecfg/authorized_keys /home/boite/.ssh/authorized_keys
 chown boite:boite /home/boite/.ssh/authorized_keys
 chmod 600 /home/boite/.ssh/authorized_keys

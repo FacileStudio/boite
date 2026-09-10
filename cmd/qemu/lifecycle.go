@@ -28,22 +28,22 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 		return nil, err
 	}
 
-	ProgressPhase("Building config ISO")
-	configISOPath, err := BuildConfigISO(instanceDir, keyResolution.pubKey)
+	ProgressPhase("Building config disk")
+	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey)
 	if err != nil {
-		return nil, fmt.Errorf("build config iso: %w", err)
+		return nil, fmt.Errorf("build config disk: %w", err)
 	}
 
 	ProgressPhase("Starting VM")
 	inst, err := startAndFinalizeInstance(&startFinalizeParams{
-		name:          name,
-		workspacePath: workspacePath,
-		noMount:       noMount,
-		overlayPath:   overlayPath,
-		configISOPath: configISOPath,
-		configPath:    configPath,
-		keyResolution: keyResolution,
-		cfg:           cfg,
+		name:           name,
+		workspacePath:  workspacePath,
+		noMount:        noMount,
+		overlayPath:    overlayPath,
+		configDiskPath: configDiskPath,
+		configPath:     configPath,
+		keyResolution:  keyResolution,
+		cfg:            cfg,
 	})
 	if err != nil {
 		return nil, err
@@ -60,12 +60,12 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage:     GetBaseImagePath(),
-		OverlayPath:   p.overlayPath,
-		ConfigISOPath: p.configISOPath,
-		HostFwdPort:   sshPort + 1,
-		PIDFile:       GetPIDPath(p.name),
-		ConsoleLog:    GetConsoleLogPath(p.name),
+		BaseImage:      GetBaseImagePath(),
+		OverlayPath:    p.overlayPath,
+		ConfigDiskPath: p.configDiskPath,
+		HostFwdPort:    sshPort + 1,
+		PIDFile:        GetPIDPath(p.name),
+		ConsoleLog:     GetConsoleLogPath(p.name),
 	}
 	applyVMConfig(&qemuCfg, p.cfg)
 
@@ -130,12 +130,12 @@ func Start(name string, configPath string) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage:     GetBaseImagePath(),
-		OverlayPath:   inst.OverlayPath,
-		ConfigISOPath: inst.ConfigISOPath,
-		HostFwdPort:   inst.SSHPort,
-		PIDFile:       GetPIDPath(name),
-		ConsoleLog:    GetConsoleLogPath(name),
+		BaseImage:      GetBaseImagePath(),
+		OverlayPath:    inst.OverlayPath,
+		ConfigDiskPath: inst.ConfigDiskPath,
+		HostFwdPort:    inst.SSHPort,
+		PIDFile:        GetPIDPath(name),
+		ConsoleLog:     GetConsoleLogPath(name),
 	}
 	applyVMConfig(&qemuCfg, cfg)
 

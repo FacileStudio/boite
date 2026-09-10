@@ -20,17 +20,17 @@ func TestCheckCommand(t *testing.T) {
 	}
 }
 
-func TestBuildConfigISO(t *testing.T) {
-	if err := checkCommand("genisoimage"); err != nil {
-		t.Skip("genisoimage not available")
+func TestBuildConfigDisk(t *testing.T) {
+	if checkCommand("mkfs.fat") != nil && checkCommand("mcopy") != nil {
+		t.Skip("mkfs.fat/mcopy not available")
 	}
 	dir := t.TempDir()
-	isoPath, err := qemu.BuildConfigISO(dir, "ssh-ed25519 test boite")
+	diskPath, err := qemu.BuildConfigDisk(dir, "ssh-ed25519 test boite")
 	if err != nil {
-		t.Fatalf("BuildConfigISO: %v", err)
+		t.Fatalf("BuildConfigDisk: %v", err)
 	}
-	if _, err := os.Stat(isoPath); err != nil {
-		t.Fatalf("config.iso not created: %v", err)
+	if _, err := os.Stat(diskPath); err != nil {
+		t.Fatalf("config.img not created: %v", err)
 	}
 }
 

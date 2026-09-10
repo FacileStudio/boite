@@ -25,9 +25,9 @@ go build -o boite .
 
 ## Prerequisites
 
-QEMU and `genisoimage` are required for VM-based sandboxes.
+QEMU, `mkfs.fat` and `mcopy` are required for VM-based sandboxes.
 
-- Ubuntu/Debian: `sudo apt install qemu-kvm genisoimage`
+- Ubuntu/Debian: `sudo apt install qemu-kvm dosfstools mtools`
 - See [QEMU website](https://qemu.org) for other platforms.
 
 ## Usage
@@ -117,7 +117,7 @@ The toolchain, packages, dotfiles, SSH host keys and the `boite` user are baked 
 
 ## Default Image
 
-Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`. The bake installs the toolchain, creates the `boite` user, regenerates SSH host keys and lays down the dotfiles, then purges cloud-init. At runtime the only per-instance input — the SSH public key (or the generated per-VM key) — is delivered on a small config ISO and installed by a firstboot oneshot. The baked image is pinned by URL and SHA256 in `cmd/qemu/instance.go`; rebuild and repin when Debian or the toolchain changes.
+Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`. The bake installs the toolchain, creates the `boite` user, regenerates SSH host keys, configures the network and lays down the dotfiles, then purges cloud-init. At runtime the only per-instance input — the SSH public key (or the generated per-VM key) — is written onto a small vfat config disk and installed by a firstboot oneshot. The baked image is pinned by URL and SHA256 in `cmd/qemu/instance.go`; rebuild and repin when Debian or the toolchain changes.
 
 ## Features
 

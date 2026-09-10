@@ -12,29 +12,29 @@ import (
 )
 
 type startFinalizeParams struct {
-	name          string
-	workspacePath string
-	noMount       bool
-	overlayPath   string
-	configISOPath string
-	configPath    string
-	keyResolution sshKeyResolution
-	cfg           *BoiteConfig
+	name           string
+	workspacePath  string
+	noMount        bool
+	overlayPath    string
+	configDiskPath string
+	configPath     string
+	keyResolution  sshKeyResolution
+	cfg            *BoiteConfig
 }
 
 func (p *startFinalizeParams) buildInstance(pid int, sshPort int) *Instance {
 	return &Instance{
-		Name:          p.name,
-		PID:           pid,
-		SSHPort:       sshPort,
-		OverlayPath:   p.overlayPath,
-		ConfigISOPath: p.configISOPath,
-		KeyPath:       p.keyResolution.privateKeyPath,
-		PubKeyPath:    p.keyResolution.publicKeyPath,
-		CreatedAt:     time.Now(),
-		Status:        "running",
-		Workspace:     p.workspacePath,
-		NoMount:       p.noMount,
+		Name:           p.name,
+		PID:            pid,
+		SSHPort:        sshPort,
+		OverlayPath:    p.overlayPath,
+		ConfigDiskPath: p.configDiskPath,
+		KeyPath:        p.keyResolution.privateKeyPath,
+		PubKeyPath:     p.keyResolution.publicKeyPath,
+		CreatedAt:      time.Now(),
+		Status:         "running",
+		Workspace:      p.workspacePath,
+		NoMount:        p.noMount,
 	}
 }
 

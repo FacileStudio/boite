@@ -11,36 +11,51 @@ import (
 const firstbootMarker = "/var/lib/boite/firstboot.done"
 const configVolID = "BOITECFG"
 
-// BuildConfigISO writes the instance's SSH public key onto a tiny config ISO,
-// the single per-instance input the baked base does not carry. The guest's
-// boite-firstboot oneshot mounts this ISO on first boot, installs the key into
-// /home/boite/.ssh/authorized_keys, then writes firstbootMarker. User
+// BuildConfigDisk writes the instance's SSH public key onto a tiny vfat disk
+// image, the single per-instance input the baked base does not carry. The
+// guest's boite-firstboot oneshot mounts this disk on first boot, installs the
+// key into /home/boite/.ssh/authorized_keys, then writes firstbootMarker. User
 // creation, SSH host keys, package and toolchain install all live in the bake.
-func BuildConfigISO(instanceDir, sshPubKey string) (string, error) {
+func BuildConfigDisk(instanceDir, sshPubKey string) (string, error) {
 	stageDir := filepath.Join(instanceDir, "config-stage")
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		return "", fmt.Errorf("create config stage dir: %w", err)
+	}
+
+	diskPath := filepath.Join(instanceDir, "config.img")
+	if _, err := exec.Command("truncate", "-s", "4M", diskPath).CombinedOutput(); err != nil {
+		return "", fmt.Errorf("size config disk: %w", err)
+	}
+
+	if _, err := exec.Command(mkfsFat(), mkfsFatOpts(diskPath)...).CombinedOutput(); err != nil {
+		return "", fmt.Errorf("mkfs.fat: %w", err)
 	}
 
 	keyPath := filepath.Join(stageDir, "authorized_keys")
 	if err := os.WriteFile(keyPath, []byte(sshPubKey+"\n"), 0o600); err != nil {
 		return "", fmt.Errorf("write authorized_keys: %w", err)
 	}
-
-	configISOPath := filepath.Join(instanceDir, "config.iso")
-	args := []string{"-quiet", "-r", "-volid", configVolID,
-		"-o", configISOPath, keyPath}
-	if _, err := exec.Command("genisoimage", args...).CombinedOutput(); err != nil {
-		return "", fmt.Errorf("genisoimage: %w", err)
+	if _, err := exec.Command("mcopy", []string{"-i", diskPath, keyPath, "::/authorized_keys"}...).CombinedOutput(); err != nil {
+		return "", fmt.Errorf("mcopy: %w", err)
 	}
 
-	if _, err := os.Stat(configISOPath); err != nil {
-		return "", fmt.Errorf("config.iso not created: %w", err)
-	}
 	if err := os.RemoveAll(stageDir); err != nil {
 		return "", fmt.Errorf("clean config stage dir: %w", err)
 	}
-	return configISOPath, nil
+	return diskPath, nil
+}
+
+// mkfsFat resolves the mkfs.fat binary across PATH and common /sbin locations.
+func mkfsFat() string {
+	if _, err := exec.LookPath("mkfs.fat"); err == nil {
+		return "mkfs.fat"
+	}
+	return "/sbin/mkfs.fat"
+}
+
+// mkfsFatOpts builds the mkfs.fat invocation for the config volume.
+func mkfsFatOpts(diskPath string) []string {
+	return []string{"-n", configVolID, diskPath}
 }
 
 // WaitForFirstboot blocks until the guest's boite-firstboot oneshot has

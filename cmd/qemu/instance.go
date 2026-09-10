@@ -12,26 +12,25 @@ import (
 const (
 	InstancesDirName = "instances"
 	CacheDirName     = "cache"
-	BaseImageName    = "boite-base.qcow2"
 	// Base image is the baked boite image built by scripts/bake-image.sh. When
 	// the image changes, rebuild and update the URL and the SHA256 together.
-	BaseImageName    = "boite-base.qcow2"
-	BaseImageURL     = "https://boite.facile.studio/base.qcow2"
-	BaseImageSHA256  = "d0c69b37d50d4b81d36c98da20f51f96a12a0e61e0a342fdb7cfdbd43cf8b3dd"
+	BaseImageName   = "boite-base.qcow2"
+	BaseImageURL    = "https://boite.facile.studio/base.qcow2"
+	BaseImageSHA256 = "d840c754906240ebc9d54635d23d5b56a6c3ec97737f61a18ac985837a5b91ed"
 )
 
 type Instance struct {
-	Name          string    `json:"name"`
-	PID           int       `json:"pid"`
-	SSHPort       int       `json:"ssh_port"`
-	OverlayPath   string    `json:"overlay_path"`
-	ConfigISOPath string    `json:"config_iso_path"`
-	KeyPath       string    `json:"key_path"`
-	PubKeyPath    string    `json:"pub_key_path"`
-	CreatedAt     time.Time `json:"created_at"`
-	Status        string    `json:"status"`
-	Workspace     string    `json:"workspace"`
-	NoMount       bool      `json:"no_mount"`
+	Name           string    `json:"name"`
+	PID            int       `json:"pid"`
+	SSHPort        int       `json:"ssh_port"`
+	OverlayPath    string    `json:"overlay_path"`
+	ConfigDiskPath string    `json:"config_disk_path"`
+	KeyPath        string    `json:"key_path"`
+	PubKeyPath     string    `json:"pub_key_path"`
+	CreatedAt      time.Time `json:"created_at"`
+	Status         string    `json:"status"`
+	Workspace      string    `json:"workspace"`
+	NoMount        bool      `json:"no_mount"`
 }
 
 func GetBoiteDir() string {
@@ -59,8 +58,8 @@ func GetOverlayPath(name string) string {
 	return filepath.Join(GetInstanceDir(name), "overlay.qcow2")
 }
 
-func GetConfigISOPath(name string) string {
-	return filepath.Join(GetInstanceDir(name), "config.iso")
+func GetConfigDiskPath(name string) string {
+	return filepath.Join(GetInstanceDir(name), "config.img")
 }
 
 func GetKeyPath(name string) string {
