@@ -1,6 +1,6 @@
 # Plan — tiroir: env system for boite VMs
 
-Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Track C shipped (baked+repinned+deployed base image, commits `658dcb2`+`5c76107`, 2026-09-10); Track D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
+Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Track C shipped (baked+repinned+deployed base image, commits `658dcb2`+`5c76107`, 2026-09-10); v0.5.0 released (2026-09-10) with the env system; Track D step 16 done, step 17 (README) open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
 
 **Resume here (cold start):** the only work left is step 17 (Track D: README). The go.mod `replace => ../tiroir` was switched to the released module before the v0.5.0 release — `require github.com/FacileStudio/tiroir v0.2.0`, no replace, resolved from the module proxy (needed for goreleaser CI, which has no sibling repo). v0.5.0 shipped 2026-09-10.
 
@@ -30,7 +30,7 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 
 **Track B — boite host surface — DONE (commit `cef6e8e`, 2026-09-10)**
 
-7. ~~`boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released.~~ Done — `require github.com/FacileStudio/tiroir v0.1.0` + `replace github.com/FacileStudio/tiroir => ../tiroir`. `[module-path]` Cobra bumped to v1.10.2 transitively (tiroir requires ≥ that, MVS wins). The `../tiroir` replace must be switched to `github:FacileStudio/tiroir#v0.1.0` before the next boite release (CI has no sibling repo).
+7. ~~`boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released.~~ Done — `require github.com/FacileStudio/tiroir v0.1.0` + `replace github.com/FacileStudio/tiroir => ../tiroir`. `[module-path]` Cobra bumped to v1.10.2 transitively (tiroir requires ≥ that, MVS wins). **Replace resolved before the v0.5.0 release**: dropped the `../tiroir` replace (CI has no sibling repo) and switched to `require github.com/FacileStudio/tiroir v0.2.0` via `go mod tidy`, resolved from the module proxy — **not** the `github:...#branch` pin, because proxy resolution is what goreleaser on CI consumes.
 8. ~~`boite/cmd/qemu/config.go` — extend `BoiteConfig` with an `env:` block (see Config below) + an `EnvConfig` / `EnvSource` type (`local` | `casier`).~~ Done. `EnvSource` (`local`|`casier`), `EnvConfig{Source,Local,Casier}`, `EffectiveSource()` defaults to `local`. **Shape divergence**: the terse Config example mashed literal map entries and name-keys under one `vars:` key; YAML cannot hold a map and a list in one key, so `local` is `vars:` (literal `map[string]string`, non-secret only) + `resolve:` (`[]string`, key names pulled by name from the **host tiroir store** at create). Both documented.
 9. ~~`boite/cmd/qemu/config_test.go` — parse tests for the new block.~~ Done — local literal+resolve, casier, and default-source tests.
 10. ~~`boite/cmd/env.go` — new `boite env` cobra command tree: `list/set/get/delete`. Host-side; `set/get/delete` CRUD the VM store over ssh (writes are authoritative and stick).~~ Done. Surface: `boite env <list|get|set|delete> <name> [key [value]]`. The VM graph is via the guest `tiroir` binary over ssh (`SSHOutput` prints list/get; `SSHCommand` runs set/delete). Explicitly **no `sync` sub-command**. Manual set writes straight into the guest store and sticks.
@@ -87,9 +87,9 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 - `boite/cmd/env.go` — `boite env` surface (**done**)
 - `boite/cmd/qemu/ssh.go` — `WithEnv` for exec + `SSHOutput` (**done**)
 - `boite/cmd/qemu/firstboot.go` — tiroir disk payload (**done**)
-- `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read (Track C)
-- `boite/scripts/bake-image.sh` — repin (if changed)
-- `boite/cmd/qemu/instance.go` — new pinned image
+- `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read (**done, Track C**)
+- `boite/scripts/bake-image.sh` — repin (**done, Track C**)
+- `boite/cmd/qemu/paths.go` — new pinned image SHA (**done, Track C**, `51e6e296…`; consts live here, moved out of `instance.go`)
 - docs: `README.md`, `tools/skatos.md` (superseded — **done**), skatos skill (replaced by tiroir skill — **done**)
 - `facile/internal/manifest/tools.yml` — **done**: tiroir catalog entry added
 
