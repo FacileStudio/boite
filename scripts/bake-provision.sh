@@ -15,7 +15,7 @@ apt-get install -y --no-install-recommends \
   git curl unzip ca-certificates bash-completion fzf jq tmux wget make \
   build-essential zsh neovim starship docker.io gh tree htop btop zoxide \
   eza bat ripgrep prettyping fastfetch python3 python3-pip python3-venv \
-  python3-dev genisoimage
+  python3-dev genisoimage sudo
 
 # boite user with passwordless sudo
 id boite >/dev/null 2>&1 || useradd -m -s /bin/zsh -c Boite -G sudo,docker boite
