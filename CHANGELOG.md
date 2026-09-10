@@ -191,10 +191,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 [Unreleased]: https://github.com/FacileStudio/boite/compare/v0.6.0...HEAD
 [0.6.0]: https://github.com/FacileStudio/boite/releases/tag/v0.6.0
-[0.1.12]: https://github.com/FacileStudio/boite/releases/tag/v0.1.12
+[0.5.0]: https://github.com/FacileStudio/boite/releases/tag/v0.5.0
+[0.4.2]: https://github.com/FacileStudio/boite/releases/tag/v0.4.2
+[0.4.1]: https://github.com/FacileStudio/boite/releases/tag/v0.4.1
+[0.4.0]: https://github.com/FacileStudio/boite/releases/tag/v0.4.0
+[0.3.1]: https://github.com/FacileStudio/boite/releases/tag/v0.3.1
+[0.3.0]: https://github.com/FacileStudio/boite/releases/tag/v0.3.0
+[0.2.1]: https://github.com/FacileStudio/boite/releases/tag/v0.2.1
+[0.2.0]: https://github.com/FacileStudio/boite/releases/tag/v0.2.0
+[0.1.14]: https://github.com/FacileStudio/boite/releases/tag/v0.1.14
+[0.1.13]: https://github.com/FacileStudio/boite/releases/tag/v0.1.13
 [0.1.11]: https://github.com/FacileStudio/boite/releases/tag/v0.1.11
 [0.1.10]: https://github.com/FacileStudio/boite/releases/tag/v0.1.10
-[0.1.9]: https://github.com/FacileStudio/boite/releases/tag/v0.1.9
-[0.1.8]: https://github.com/FacileStudio/boite/releases/tag/v0.1.8
 [0.1.7]: https://github.com/FacileStudio/boite/releases/tag/v0.1.7
 [0.1.6]: https://github.com/FacileStudio/boite/releases/tag/v0.1.6
