@@ -87,17 +87,15 @@ compromised guest from reaching your files.
 
 ### Configuration
 
-Sync is disabled by default. Turn it on per machine with `workspace.sync_at_run:
-true`, disable it again with `false`:
+Sync is disabled by default. Turn it on per machine with `sync: true`, disable
+it again with `false`:
 
 ```yaml
-workspace:
-  sync_at_run: true   # opt in: sync the current directory to /workspace on run
+sync: true   # opt in: sync the current directory to /workspace on run
 ```
 
-Without a `workspace:` section, or with `sync_at_run` absent or `false`, nothing
-is copied into `/workspace`. `boite run --no-workspace` overrides an enabled
-config for a single session.
+Without a `sync:` key, or with it `false`, nothing is copied into `/workspace`.
+`boite run --no-workspace` overrides an enabled config for a single session.
 
 ## Configuration
 
@@ -109,11 +107,16 @@ vm:
   memory: 2G
   disk: 20G
 
-workspace:
-  sync_at_run: true
+sync: true
+
+provision:
+  packages:
+    - nala
+  commands:
+    - 'curl -fsSL https://get.facile.studio | bash'
 ```
 
-The toolchain, packages, dotfiles, SSH host keys and the `boite` user are baked into the base image by `scripts/bake-image.sh` (see **Default Image**). The config only tunes VM resources and workspace sync; there is no per-instance provisioning config, so no `cloud_init:` section and no `users:` key exist.
+The toolchain, packages, dotfiles, SSH host keys and the `boite` user are baked into the base image by `scripts/bake-image.sh` (see **Default Image**). The config tunes VM resources, sync, and per-instance provisioning. `provision.packages` are apt packages installed into a fresh instance, and `provision.commands` are shell commands run as the `boite` user, both applied once at create right after firstboot. It is the successor to the old `cloud_init.runcmd` / `cloud_init.packages` section: steps run as `boite` over SSH (use `sudo` for anything needing root; the user has passwordless sudo), and the base image already carries the toolchain, so you only add what is not baked in.
 
 ## Default Image
 

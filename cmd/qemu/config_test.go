@@ -33,18 +33,54 @@ func TestWorkspaceSyncEnabledConfigGate(t *testing.T) {
 		return p
 	}
 
-	off := write("workspace:\n  sync_at_run: false\n")
+	off := write("sync: false\n")
 	if WorkspaceSyncEnabled(&Instance{}, off, false) {
-		t.Fatal("expected sync_at_run: false to disable workspace sync")
+		t.Fatal("expected sync: false to disable workspace sync")
 	}
 
-	on := write("workspace:\n  sync_at_run: true\n")
+	on := write("sync: true\n")
 	if !WorkspaceSyncEnabled(&Instance{}, on, false) {
-		t.Fatal("expected sync_at_run: true to enable workspace sync")
+		t.Fatal("expected sync: true to enable workspace sync")
 	}
 
 	unspecified := write("vm:\n  cpus: 1\n")
 	if WorkspaceSyncEnabled(&Instance{}, unspecified, false) {
-		t.Fatal("expected absent workspace section to leave workspace sync disabled")
+		t.Fatal("expected absent sync key to leave workspace sync disabled")
+	}
+}
+
+func TestLoadBoiteConfigProvision(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "boite.yml")
+	contents := "vm:\n  cpus: 2\nprovision:\n  packages:\n    - nala\n    - tmux\n  commands:\n    - 'echo hi'\n"
+	if err := os.WriteFile(p, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadBoiteConfig(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config to load")
+	}
+	if cfg.Provision == nil {
+		t.Fatal("expected provision block to parse")
+	}
+	if len(cfg.Provision.Packages) != 2 || cfg.Provision.Packages[0] != "nala" || cfg.Provision.Packages[1] != "tmux" {
+		t.Fatalf("unexpected packages: %v", cfg.Provision.Packages)
+	}
+	if len(cfg.Provision.Commands) != 1 || cfg.Provision.Commands[0] != "echo hi" {
+		t.Fatalf("unexpected commands: %v", cfg.Provision.Commands)
+	}
+	if cfg.Provision.Empty() {
+		t.Fatal("expected populated provision block to be non-empty")
+	}
+}
+
+func TestProvisionEmpty(t *testing.T) {
+	empty := &ProvisionConfig{}
+	if !empty.Empty() {
+		t.Fatal("expected empty provision block to report empty")
 	}
 }

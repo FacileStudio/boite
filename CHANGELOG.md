@@ -7,6 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-10
+
+### Added
+
+- Per-instance provisioning returned via a new `provision` block in `~/.boite.yml`, the successor to the removed `cloud_init` section. `provision.packages` are apt packages installed into a fresh sandbox, and `provision.commands` are shell lines run as the `boite` user, both applied once at `create` right after firstboot over SSH (the `boite` user has passwordless sudo). No rebake or base-image repin needed: the base toolchain stays baked, this tunes what each new instance adds on top of it.
+
+### Changed
+
+- Workspace sync is now configured with a top-level `sync:` key instead of `workspace.sync_at_run:`. Same opt-in semantics: `sync: true` enables it, an absent or `false` value leaves it off. Existing configs must move the key up a level and rename it. `boite run --no-workspace` and `create --no-mount` overrides are unchanged.
+
 ## [0.3.1] — 2026-09-10
 
 ### Changed

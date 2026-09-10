@@ -92,6 +92,11 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 		return nil, fmt.Errorf("firstboot: %w", err)
 	}
 
+	if err := Provision(inst, p.cfg); err != nil {
+		ProgressFail("provisioning failed")
+		return nil, fmt.Errorf("provision: %w", err)
+	}
+
 	return inst, nil
 }
 
