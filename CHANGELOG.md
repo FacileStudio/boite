@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-10
+
+### Fixed
+
+- Provisioning no longer fails with "command not found: sudo". The baked base image installed the `boite` user and its passwordless sudoers rule but never the `sudo` package, so every `sudo`-based provision step (apt update, apt install) died with exit 127. The base image now installs `sudo`; the image is rebaked and repinned.
+- Sandbox DNS works again. `create` handed the guest a custom slirp subnet (`192.168.42.0/24`), but QEMU's built-in DNS server answers only at `10.0.2.3` on the default `10.0.2.0/24` guest network, so name resolution timed out for any provision step that reached the network. The netdev now uses slirp's default subnet so DNS resolves.
+
 ## [0.4.0] — 2026-09-10
 
 ### Added
