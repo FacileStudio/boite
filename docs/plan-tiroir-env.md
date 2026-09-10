@@ -2,7 +2,7 @@
 
 Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Track C shipped (baked+repinned+deployed base image, commits `658dcb2`+`5c76107`, 2026-09-10); Track D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
 
-**Resume here (cold start):** the only work left is step 17 (Track D: README). Before the next `boite` release, flip `go.mod`'s `replace github.com/FacileStudio/tiroir => ../tiroir` to `github:FacileStudio/tiroir#v0.2.0` (CI has no sibling repo) — not v0.1.0: boite's tiroir dep resolved to git HEAD, and the `export`-applies-to-shell encoding boite depends on landed in v0.2.0.
+**Resume here (cold start):** the only work left is step 17 (Track D: README). The go.mod `replace => ../tiroir` was switched to the released module before the v0.5.0 release — `require github.com/FacileStudio/tiroir v0.2.0`, no replace, resolved from the module proxy (needed for goreleaser CI, which has no sibling repo). v0.5.0 shipped 2026-09-10.
 
 ## Goal
 Give boite VMs a first-class env system: a new Go env tool **tiroir** (local-first default) that VM shells load by default and boite manages from the host, with casier as an opt-in scoped source.
