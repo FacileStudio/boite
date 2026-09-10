@@ -7,6 +7,28 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-10
+
+### Removed
+
+- Replaced cloud-init with a baked base image. `boite create` no longer boots a generic cloud image and lets cloud-init provision it; the base image is pre-baked by `scripts/bake-image.sh` (virt-builder debian-13) with the toolchain, dotfiles, `boite` user and SSH host keys, so a VM is up in seconds instead of minutes. The `cloud_init:` section of `~/.boite.yml` is gone; only `vm:` and `workspace:` remain. The host dependency on `cloud-init` is gone.
+
+### Changed
+
+- The per-instance SSH key is delivered on a small vfat config disk (attached as a virtio drive) and installed on first boot by a `boite-firstboot` systemd oneshot, which writes a marker that `create` waits on.
+- Guest networking now uses `systemd-networkd` with a wildcard interface match instead of the NIC-specific `allow-hotplug ens2` the base template hardcodes.
+- `state.json` field `seed_iso_path` renamed to `config_disk_path`; sandboxes created before 0.3.0 no longer deserialize and drop out of `boite list`.
+
+### Fixed
+
+- `boite rm` (and `stop`) now reliably stop the daemonized qemu. `IsProcessRunning` used `os.Signal(0)`, which this runtime reports as an unsupported signal type, so it always returned false and the kill was skipped — leaving an orphaned qemu running against the deleted overlay. `IsProcessRunning` now reads `/proc/<pid>/stat` and treats a zombie as not running.
+- `boite create` no longer hangs after boot: the guest's NIC was `ens3` under QEMU but the template configured `ens2`, so the guest never got an address and SSH host-forwarding accepted connections that could not be routed. `create` now fails cleanly if firstboot does not complete.
+- `Destroy` shuts the VM down via the same path as `stop` before removing the overlay.
+
+### Added
+
+- Landing page at `boite.facile.studio` (`site/`) hosting the baked base image for download and the CLI install command.
+
 ## [0.2.1] — 2026-09-10
 
 ### Changed
