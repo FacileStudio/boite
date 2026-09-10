@@ -7,6 +7,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-10
+
+### Added
+
+- A first-class `env` system for sandboxes, backed by `tiroir`. New `boite env list|get|set|delete <name>` manages a sandbox's encrypted environment store over SSH, and `~/.boite.yml` accepts an `env:` block (`source: local|casier`, `local.vars` literal values, `local.resolve` key names pulled from the host store at create). The baked base image now ships the `tiroir` CLI; interactive zsh/bash source `tiroir export` on login and `boite exec` paints the env explicitly, so a sandbox's managed variables are available everywhere. Manual `set` values are authoritative over source refresh and stick across re-entry. The host never sends a secret token into the guest — the VM holds only an encrypted snapshot.
+
+### Changed
+
+- The baked base image is rebaked and repinned (SHA256 `51e6e296…`) to ship tiroir v0.2.0.
+- Internal: per-subcommand cobra constructors replace package-level command globals; the progress animation uses an atomic snapshot; path helpers and the image SHA moved out of `instance.go`.
+
 ## [0.4.2] — 2026-09-10
 
 ### Fixed

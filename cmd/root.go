@@ -17,7 +17,7 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 
 // version is written once by the linker (-ldflags -X ...cmd.version=...) at
 // build time and only read afterwards.
-var version = "0.4.2"
+var version = "0.5.0"
 
 // Execute runs the root command, dispatching to the registered subcommands.
 func Execute() error {
