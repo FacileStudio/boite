@@ -12,7 +12,7 @@ const (
 	// the image changes, rebuild and update the URL and the SHA256 together.
 	BaseImageName   = "boite.qcow2"
 	BaseImageURL    = "https://boite.facile.studio/base.qcow2"
-	BaseImageSHA256 = "118a72ba67cd1a0f4f8e87a79faa9f06472a63e3eb8c58bf90797b23a1368f44"
+	BaseImageSHA256 = "51e6e296f25e2146f79ea0391436e1d69ef428619f77dc07922d07f1582e60c5"
 )
 
 // GetBoiteDir returns the root directory boite keeps all of its state under.
