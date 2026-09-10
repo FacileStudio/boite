@@ -16,7 +16,7 @@ const (
 	// the image changes, rebuild and update the URL and the SHA256 together.
 	BaseImageName   = "boite.qcow2"
 	BaseImageURL    = "https://boite.facile.studio/base.qcow2"
-	BaseImageSHA256 = "d840c754906240ebc9d54635d23d5b56a6c3ec97737f61a18ac985837a5b91ed"
+	BaseImageSHA256 = "2f9cdb9cd8d1eee8202c11c60194602d3974fdcd5a5e3fb446a0185597f5b3c7"
 )
 
 type Instance struct {
