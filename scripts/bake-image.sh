@@ -6,8 +6,8 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-out="${1:-boite-base.qcow2}"
-bake="boite-base.baked.qcow2"
+out="${1:-boite.qcow2}"
+bake="boite.baked.qcow2"
 rm -f "$bake"
 
 echo "==> baking $out (this downloads Debian, installs the toolchain, and may take several minutes)"

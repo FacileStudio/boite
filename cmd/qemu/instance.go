@@ -14,7 +14,7 @@ const (
 	CacheDirName     = "cache"
 	// Base image is the baked boite image built by scripts/bake-image.sh. When
 	// the image changes, rebuild and update the URL and the SHA256 together.
-	BaseImageName   = "boite-base.qcow2"
+	BaseImageName   = "boite.qcow2"
 	BaseImageURL    = "https://boite.facile.studio/base.qcow2"
 	BaseImageSHA256 = "d840c754906240ebc9d54635d23d5b56a6c3ec97737f61a18ac985837a5b91ed"
 )

@@ -6,4 +6,5 @@ tmp/
 *.log
 .DS_Store
 ascii.txt
-boite-base*.qcow2
+boite.qcow2
+boite*.qcow2

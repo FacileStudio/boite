@@ -12,7 +12,7 @@ Static nginx site for `boite.facile.studio`. Serves the landing page and the
 
 ## Serving the base image
 
-The ~2 GB `boite-base.qcow2` is deliberately **not** committed to the repo or
+The ~2 GB `boite.qcow2` is deliberately **not** committed to the repo or
 built into the image (it would bloat every deploy). It is served from a host
 directory bind-mounted read-only into the container:
 
@@ -23,7 +23,7 @@ directory bind-mounted read-only into the container:
 On la ruche the image is available at:
 
 ```
-/etc/dokploy/boite-assets/boite-base.qcow2
+/etc/dokploy/boite-assets/boite.qcow2
 ```
 
 so the Dokploy app should mount `/etc/dokploy/boite-assets:/assets:ro`.
