@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -49,6 +50,17 @@ func BuildSSHArgs(inst *Instance, command []string) []string {
 	return args
 }
 
+// WithEnv wraps a remote command so the guest's tiroir store is applied to its
+// environment. A non-interactive ssh session never sources rc, so boite exec
+// would silently lack vars without this. The store is eval'ed at the head of
+// the command and the whole thing is returned as a single argument so it
+// survives ssh's space-join/reparse intact. A missing tiroir binary becomes an
+// empty eval, so the wrapped command still runs.
+func WithEnv(command []string) []string {
+	cmd := `eval "$(tiroir export)"; ` + strings.Join(command, " ")
+	return []string{cmd}
+}
+
 // SSHCommand runs a one-shot command on the instance and propagates a nonzero
 // remote exit status as an error.
 func SSHCommand(inst *Instance, command []string) error {
@@ -62,6 +74,21 @@ func SSHCommand(inst *Instance, command []string) error {
 		return fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
 	}
 	return nil
+}
+
+// SSHOutput runs a remote command over ssh and returns its stdout. The command
+// is a single shell string so it is not torn apart by ssh's space-join/reparse.
+func SSHOutput(inst *Instance, command string) (string, error) {
+	args := BuildSSHArgs(inst, []string{command})
+	cmd := exec.Command("ssh", args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+	}
+	return out.String(), nil
 }
 
 // SSHInteractive opens a login shell. ssh reports a failed connection with

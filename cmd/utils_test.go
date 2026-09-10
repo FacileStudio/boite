@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
@@ -25,12 +26,30 @@ func TestBuildConfigDisk(t *testing.T) {
 		t.Skip("mkfs.fat/mcopy not available")
 	}
 	dir := t.TempDir()
-	diskPath, err := qemu.BuildConfigDisk(dir, "ssh-ed25519 test boite")
+	diskPath, err := qemu.BuildConfigDisk(dir, "ssh-ed25519 test boite", nil)
 	if err != nil {
 		t.Fatalf("BuildConfigDisk: %v", err)
 	}
 	if _, err := os.Stat(diskPath); err != nil {
 		t.Fatalf("config.img not created: %v", err)
+	}
+}
+
+func TestBuildConfigDiskTiroirPayload(t *testing.T) {
+	if checkCommand("mkfs.fat") != nil && checkCommand("mcopy") != nil {
+		t.Skip("mkfs.fat/mcopy not available")
+	}
+	dir := t.TempDir()
+	diskPath, err := qemu.BuildConfigDisk(dir, "ssh-ed25519 test boite", map[string]string{"LOG_LEVEL": "debug", "GREP_ME": "secret"})
+	if err != nil {
+		t.Fatalf("BuildConfigDisk: %v", err)
+	}
+	src, err := os.ReadFile(diskPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(src), "secret") {
+		t.Fatal("config disk must not contain the value in plaintext")
 	}
 }
 

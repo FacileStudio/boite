@@ -27,7 +27,7 @@ var execCmd = &cobra.Command{
 		}
 
 		command := args[1:]
-		if err := qemu.SSHCommand(inst, command); err != nil {
+		if err := qemu.SSHCommand(inst, qemu.WithEnv(command)); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: command execution failed: %v\n", err)
 			os.Exit(1)
 		}

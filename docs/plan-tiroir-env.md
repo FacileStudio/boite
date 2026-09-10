@@ -1,6 +1,6 @@
 # Plan — tiroir: env system for boite VMs
 
-Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Tracks B–D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
+Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, working tree, 2026-09-10); Tracks C–D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
 
 ## Goal
 Give boite VMs a first-class env system: a new Go env tool **tiroir** (local-first default) that VM shells load by default and boite manages from the host, with casier as an opt-in scoped source.
@@ -26,14 +26,14 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 5. ~~`tiroir/cmd/skatos_compat`~~ — SKIP, confirmed dead. Not created.
 6. ~~Release tiroir (tag on `master`, goreleaser, matches boite's flow).~~ Done — repo created `FacileStudio/tiroir` (public), tag `v0.1.0`, `.goreleaser.yml` matching boite's, release workflow green (7 tar.gz + checksums). **Extras shipped not in plan**: `.github/workflows/filet.yml` (style gate + Antenne webhook) and `.github/workflows/release.yml` (goreleaser on `v*`); tiroir added to the facile tool catalog (`facile/internal/manifest/tools.yml`, entry after `boite`, branch `master`); `CHANGELOG.md` (Keep a Changelog). Fixed a stamping bug during wiring: `main.go` overwrote the ldflags `cmd.Version` with `dev` — removed the override so `-X github.com/FacileStudio/tiroir/cmd.Version={{.Version}}` sticks.
 
-**Track B — boite host surface** (open)
+**Track B — boite host surface** (working tree, uncommitted, 2026-09-10)
 
-7. `boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released. `[module-path]`
-8. `boite/cmd/qemu/config.go` — extend `BoiteConfig` with an `env:` block (see Config below) + an `EnvConfig` / `EnvSource` type (`local` | `casier`).
-9. `boite/cmd/qemu/config_test.go` — parse tests for the new block. `[filet]`
-10. `boite/cmd/env.go` — new `boite env` cobra command tree: `list/set/get/delete`. Host-side; `set/get/delete` CRUD the VM store over ssh (writes are authoritative and stick). No `sync` sub-command — freshness is a boundary-trigger, not a command.
-11. `boite/cmd/qemu/ssh.go` — add a helper that paints tiroir env into the command env for non-interactive exec: `ssh … 'env $(tiroir export); <cmd>'` or fetch-then-`env`. Name it `WithEnv(inst, args)`. `[filet]`
-12. `boite/cmd/qemu/firstboot.go` — extend `BuildConfigDisk` to drop the **encrypted** tiroir store + its key onto the vfat disk alongside `authorized_keys`, initializing the store at VM creation. Since Track A, the payload is the `~/.tiroir` ciphertext blob **and** `~/.tiroir.key` (a store without its key cannot decrypt) — never plaintext, never a casier token. Extend the firstboot oneshot (bake side, Track C) to copy both into the guest home. Guard with the existing "finish if no vfat" logic.
+7. ~~`boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released.~~ Done — `require github.com/FacileStudio/tiroir v0.1.0` + `replace github.com/FacileStudio/tiroir => ../tiroir`. `[module-path]` Cobra bumped to v1.10.2 transitively (tiroir requires ≥ that, MVS wins). The `../tiroir` replace must be switched to `github:FacileStudio/tiroir#v0.1.0` before the next boite release (CI has no sibling repo).
+8. ~~`boite/cmd/qemu/config.go` — extend `BoiteConfig` with an `env:` block (see Config below) + an `EnvConfig` / `EnvSource` type (`local` | `casier`).~~ Done. `EnvSource` (`local`|`casier`), `EnvConfig{Source,Local,Casier}`, `EffectiveSource()` defaults to `local`. **Shape divergence**: the terse Config example mashed literal map entries and name-keys under one `vars:` key; YAML cannot hold a map and a list in one key, so `local` is `vars:` (literal `map[string]string`, non-secret only) + `resolve:` (`[]string`, key names pulled by name from the **host tiroir store** at create). Both documented.
+9. ~~`boite/cmd/qemu/config_test.go` — parse tests for the new block.~~ Done — local literal+resolve, casier, and default-source tests.
+10. ~~`boite/cmd/env.go` — new `boite env` cobra command tree: `list/set/get/delete`. Host-side; `set/get/delete` CRUD the VM store over ssh (writes are authoritative and stick).~~ Done. Surface: `boite env <list|get|set|delete> <name> [key [value]]`. The VM graph is via the guest `tiroir` binary over ssh (`SSHOutput` prints list/get; `SSHCommand` runs set/delete). Explicitly **no `sync` sub-command**. Manual set writes straight into the guest store and sticks.
+11. ~~`boite/cmd/qemu/ssh.go` — add a helper that paints tiroir env into the command env for non-interactive exec: `ssh … 'env $(tiroir export); <cmd>'` or fetch-then-`env`. Name it `WithEnv(inst, args)`.~~ Done, **diverged on signature**: `WithEnv(command []string) []string` (no `inst` — the helper only rewrites the command, and a dead param is noise). Prepend `eval "$(tiroir export); "` as a single ssh arg so it survives the join/reparse; a missing tiroir binary becomes an empty eval and the wrapped command still runs (verified by test). Wired into `boite exec`. `[filet]`
+12. ~~`boite/cmd/qemu/firstboot.go` — extend `BuildConfigDisk` to drop the **encrypted** tiroir store + its key onto the vfat disk alongside `authorized_keys`, initializing the store at VM creation.~~ Done. `BuildConfigDisk(instanceDir, sshPubKey, envVars)`; new `cmd/qemu/env.go` `materializeEnv` resolves literals + host-store names into a map; `writeTiroirPayload` uses `tiroir.NewAt(stageDir)` + `Set` per key to produce the ciphertext `.tiroir` **and** `.tiroir.key`, mcopied to the disk (empty map = no payload). `[filet]` Guard "finish if no vfat" is on the firstboot oneshot (Track C). The guest stores only ciphertext — plaintext never sits on disk or the wire.
 
 **Track C — baked base image + guest**
 
@@ -43,7 +43,7 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 
 **Track D — docs / conventions**
 
-16. ~~Retire skatos: mark `~/.mycelium/memory/tools/skatos.md` superseded (point to tiroir), repoint `~/.agents/skills/skatos` → tiroir or mark superseded.~~ Wiki part done 2026-09-10: `tools/skatos.md` marked `[SUPERSEDED by tiroir]`, tiroir page + index entry created, `tools/tiroir.md` written. **Open**: the `~/.agents/skills/skatos` skill still points at skatos and needs repointing or superseding.
+16. ~~Retire skatos: mark `~/.mycelium/memory/tools/skatos.md` superseded (point to tiroir), repoint `~/.agents/skills/skatos` → tiroir or mark superseded.~~ **DONE 2026-09-10**: wiki page marked `[SUPERSEDED by tiroir]`, tiroir page + index entry created, `tools/tiroir.md` written. Skill replaced wholesale: new `~/.mycelium/skills/tiroir.md` (name/desc triggers `tiroir` + legacy `skatos` so old triggers still fire), regenerated via `mycelium install agents` into `~/.agents/skills/tiroir/`; orphan `~/.agents/skills/skatos/` and the plaintext `~/.skatos/default.yml` deleted (migration verified: 10 keys match tiroir exactly). skatos binary had no install on ruche.
 17. Update `README.md` (Usage + Features) and add an `env:` section to the `Configuration` block.
 
 ---
@@ -54,9 +54,9 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 env:
   source: local            # local | casier
   local:
-    vars:          # literal values baked at create
+    vars:              # literal values baked at create (non-secret config only)
       LOG_LEVEL: debug
-      # resolved by name from the host store at create/entry; list, not literal
+    resolve:           # key names pulled by name from the host tiroir store at create
       - OPENROUTER_API_KEY
   casier:
     project: my-org
@@ -64,7 +64,7 @@ env:
     token_ref: CASIER_TOKEN   # read-only, scoped casier_… token; never the human's master
 ```
 
-Rule: `local.vars` name-keys are **resolved from the host's secret store (casier / skatos / host tiroir) at create and entry time**; literal inline values are only for non-secret config (LOG_LEVEL, etc.). The VM's store never holds a host master.
+Rule: `local.resolve` name-keys are **resolved from the host's secret store (host tiroir) at create time**; `local.vars` literal inline values are only for non-secret config (LOG_LEVEL, etc.). The VM's store never holds a host master.
 
 Precedence: **manual `boite env set` beats source refresh.** On entry, boite re-applies managed keys from sources, then re-applies manually-set values on top, so a per-VM override sticks across entries. (Settled 2026-09-10; flip to "source wins" if preferred.)
 
@@ -78,16 +78,17 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 ## Files to modify / new
 
 - `tiroir/` (new repo — **created**): `go.mod`, `lib/env.go`, `lib/crypto.go`, `lib/env_test.go`, `main.go`, `cmd/root.go`, `cmd/commands.go`, `.goreleaser.yml`, `.github/workflows/{filet,release}.yml`, `filet.yml`, `CHANGELOG.md`, `.gitignore`
-- `boite/go.mod` — dep + replace
-- `boite/cmd/qemu/config.go` — `env:` block
-- `boite/cmd/qemu/config_test.go` — tests
-- `boite/cmd/env.go` — `boite env` surface
-- `boite/cmd/qemu/ssh.go` — env injection for exec
-- `boite/cmd/qemu/firstboot.go` — tiroir disk payload
-- `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read
+- `boite/go.mod` — dep + replace (**done**) + `boite/go.sum` (regenerated)
+- `boite/cmd/qemu/config.go` — `env:` block (**done**)
+- `boite/cmd/qemu/config_test.go` — tests (**done**)
+- `boite/cmd/qemu/env.go` — `materializeEnv` resolution (**new, done**)
+- `boite/cmd/env.go` — `boite env` surface (**done**)
+- `boite/cmd/qemu/ssh.go` — `WithEnv` for exec + `SSHOutput` (**done**)
+- `boite/cmd/qemu/firstboot.go` — tiroir disk payload (**done**)
+- `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read (Track C)
 - `boite/scripts/bake-image.sh` — repin (if changed)
 - `boite/cmd/qemu/instance.go` — new pinned image
-- docs: `README.md`, `tools/skatos.md` (superseded — **done**), skatos skill (open)
+- docs: `README.md`, `tools/skatos.md` (superseded — **done**), skatos skill (replaced by tiroir skill — **done**)
 - `facile/internal/manifest/tools.yml` — **done**: tiroir catalog entry added
 
 ---

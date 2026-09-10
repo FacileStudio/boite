@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	tiroir "github.com/FacileStudio/tiroir/lib"
 )
 
 const firstbootMarker = "/var/lib/boite/firstboot.done"
@@ -16,7 +18,12 @@ const configVolID = "BOITECFG"
 // guest's boite-firstboot oneshot mounts this disk on first boot, installs the
 // key into /home/boite/.ssh/authorized_keys, then writes firstbootMarker. User
 // creation, SSH host keys, package and toolchain install all live in the bake.
-func BuildConfigDisk(instanceDir, sshPubKey string) (string, error) {
+//
+// When envVars is non-empty, the helper also initializes an encrypted tiroir
+// store with those values and copies the ciphertext blob plus its key onto the
+// disk, so the guest's store exists before its first command. Only the encrypted
+// .tiroir and .tiroir.key are written — never plaintext, never a host token.
+func BuildConfigDisk(instanceDir, sshPubKey string, envVars map[string]string) (string, error) {
 	stageDir := filepath.Join(instanceDir, "config-stage")
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		return "", fmt.Errorf("create config stage dir: %w", err)
@@ -39,10 +46,37 @@ func BuildConfigDisk(instanceDir, sshPubKey string) (string, error) {
 		return "", fmt.Errorf("mcopy: %w", err)
 	}
 
+	if err := writeTiroirPayload(diskPath, stageDir, envVars); err != nil {
+		return "", err
+	}
+
 	if err := os.RemoveAll(stageDir); err != nil {
 		return "", fmt.Errorf("clean config stage dir: %w", err)
 	}
 	return diskPath, nil
+}
+
+// writeTiroirPayload initializes an encrypted tiroir store in stageDir with
+// envVars and copies the ciphertext blob plus its key onto the config disk.
+// An empty map writes no payload. The split keyfile means a store without its
+// key cannot decrypt, so the guest never sees plaintext env on disk or wire.
+func writeTiroirPayload(diskPath, stageDir string, envVars map[string]string) error {
+	if len(envVars) == 0 {
+		return nil
+	}
+	store := tiroir.NewAt(stageDir)
+	for k, v := range envVars {
+		if err := store.Set(k, v); err != nil {
+			return fmt.Errorf("tiroir set %s: %w", k, err)
+		}
+	}
+	for _, name := range []string{".tiroir", ".tiroir.key"} {
+		src := filepath.Join(stageDir, name)
+		if _, err := exec.Command("mcopy", []string{"-i", diskPath, src, "::/" + name}...).CombinedOutput(); err != nil {
+			return fmt.Errorf("mcopy %s: %w", name, err)
+		}
+	}
+	return nil
 }
 
 // mkfsFat resolves the mkfs.fat binary across PATH and common /sbin locations.

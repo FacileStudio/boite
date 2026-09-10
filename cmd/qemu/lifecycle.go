@@ -29,7 +29,11 @@ func Create(name, workspacePath string, noMount bool, configPath string, generat
 	}
 
 	ProgressPhase("Building config disk")
-	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey)
+	envVars, err := materializeEnv(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("resolve env: %w", err)
+	}
+	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey, envVars)
 	if err != nil {
 		return nil, fmt.Errorf("build config disk: %w", err)
 	}
