@@ -60,6 +60,9 @@ cat > /home/boite/.zshrc <<'ZRC'
 #!/bin/zsh
 export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
 export WORKSPACE=/workspace
+if command -v tiroir >/dev/null 2>&1; then
+  eval "$(tiroir export)"
+fi
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 elif [ -x /usr/local/bin/mise ]; then
@@ -96,6 +99,18 @@ ZRC
 chown boite:boite /home/boite/.zshrc
 chmod 644 /home/boite/.zshrc
 
+# Non-interactive `sh -lc` never reads rc (boite exec paints the env itself
+# via WithEnv), but a shell started as bash still should see managed keys.
+cat > /home/boite/.bashrc <<'BRC'
+#!/bin/bash
+export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
+if command -v tiroir >/dev/null 2>&1; then
+  eval "$(tiroir export)"
+fi
+BRC
+chown boite:boite /home/boite/.bashrc
+chmod 644 /home/boite/.bashrc
+
 cat > /home/boite/.tmux.conf <<'TMC'
 set -g default-terminal "screen-256color"
 set -ag terminal-overrides ",xterm-256color:RGB"
@@ -127,6 +142,7 @@ rm -f /etc/legal /etc/motd
 export MISE_VERSION=2026.9.4
 export RUST_TOOLCHAIN=1.98.1
 export BUN_VERSION=1.4.2
+export TIROIR_VERSION=0.2.0
 
 curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 curl -fsSL https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
@@ -134,6 +150,14 @@ su - boite -c 'pip install --break-system-packages --upgrade pip'
 su - boite -c 'pip install --break-system-packages black isort flake8 pytest pytest-cov mypy poetry ipython httpie'
 su - boite -c "export RUST_TOOLCHAIN=$RUST_TOOLCHAIN; curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain \"\$RUST_TOOLCHAIN\""
 su - boite -c "export BUN_VERSION=$BUN_VERSION; curl -fsSL \"https://github.com/oven-sh/bun/releases/download/bun-v\$BUN_VERSION/bun-linux-x64.zip\" -o /tmp/bun.zip && unzip -o /tmp/bun.zip -d /tmp/bun-extract && mkdir -p ~/.bun/bin && install /tmp/bun-extract/bun-linux-x64/bun ~/.bun/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-extract"
+
+# tiroir is the encrypted env store the guest shells load at login and boite
+# manages from the host. Pinned to the same release boite consumes (go.mod
+# replace points at git HEAD, which is v0.2.0).
+curl -fsSL "https://github.com/FacileStudio/tiroir/releases/download/v$TIROIR_VERSION/tiroir_${TIROIR_VERSION}_linux_amd64.tar.gz" -o /tmp/tiroir.tar.gz
+tar -C /usr/local/bin -xzf /tmp/tiroir.tar.gz tiroir
+chmod 0755 /usr/local/bin/tiroir
+rm -f /tmp/tiroir.tar.gz
 
 su - boite -c 'git config --global init.defaultBranch main'
 su - boite -c 'git config --global safe.directory "*"'
@@ -178,6 +202,11 @@ mkdir -p /home/boite/.ssh /var/lib/boite
 cp /mnt/boitecfg/authorized_keys /home/boite/.ssh/authorized_keys
 chown boite:boite /home/boite/.ssh/authorized_keys
 chmod 600 /home/boite/.ssh/authorized_keys
+if [ -f /mnt/boitecfg/.tiroir ] && [ -f /mnt/boitecfg/.tiroir.key ]; then
+  cp /mnt/boitecfg/.tiroir /mnt/boitecfg/.tiroir.key /home/boite/
+  chown boite:boite /home/boite/.tiroir /home/boite/.tiroir.key
+  chmod 600 /home/boite/.tiroir /home/boite/.tiroir.key
+fi
 umount /mnt/boitecfg
 touch "$marker"
 FB
