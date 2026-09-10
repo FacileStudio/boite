@@ -3,7 +3,7 @@ module github.com/FacileStudio/boite
 go 1.26.0
 
 require (
-	github.com/FacileStudio/tiroir v0.1.0
+	github.com/FacileStudio/tiroir v0.2.0
 	github.com/charmbracelet/bubbles v0.21.1
 	github.com/charmbracelet/keygen v0.5.4
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -51,5 +51,3 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 )
-
-replace github.com/FacileStudio/tiroir => ../tiroir
