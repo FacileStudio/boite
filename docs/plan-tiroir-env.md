@@ -1,6 +1,6 @@
 # Plan — tiroir: env system for boite VMs
 
-Status: proposed. No code written. This is the spec to approve before executing.
+Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Tracks B–D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
 
 ## Goal
 Give boite VMs a first-class env system: a new Go env tool **tiroir** (local-first default) that VM shells load by default and boite manages from the host, with casier as an opt-in scoped source.
@@ -17,33 +17,33 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 
 ## Steps
 
-**Track A — tiroir (`github.com/FacileStudio/tiroir`, new repo)**
+**Track A — tiroir (`github.com/FacileStudio/tiroir`, new repo) — DONE (v0.1.0)**
 
-1. `tiroir/go.mod` — module `github.com/FacileStudio/tiroir`; minimal deps (`gopkg.in/yaml.v3` + cobra if flags wanted). `[module-path]`
-2. `tiroir/lib/env.go` — `EnvStore` type backed by **encrypted-at-rest** storage. Split keyfile: `~/.tiroir` holds the ciphertext blob (`0600`), `~/.tiroir.key` holds a random 32-byte key (`0600`). AEAD (AES-256-GCM) with a version + key-id header so keys can rotate later. Per invoking user via `os.UserHomeDir`. Methods: `Get`, `Set`, `Delete`, `List`, `Export` (decrypts then returns `KEY=value` lines, so the ambient rc sourcing is unchanged). Atomic rewrite on write. *Reason:* defeats passive value-scanners that grep for `KEY=` strings; not a real boundary against a tool that runs `tiroir` itself — defense against lazy scanners only.
-3. `tiroir/lib/env_test.go` — `filet`-clean tests for round-trip, perms, empty-key, `0600` enforcement. `[filet]`
-4. `tiroir/cmd/tiroir/main.go` — CLI (cobra or stdlib `flag`, whatever the repo chooses): `set/get/list/delete/export`. **No `run`.** `[filet]`
-5. ~~`tiroir/cmd/skatos_compat`~~ — SKIP, confirmed dead. Do not create.
-6. Release tiroir (tag on `master`, goreleaser, matches boite's flow).
+1. ~~`tiroir/go.mod` — module `github.com/FacileStudio/tiroir`; minimal deps (`gopkg.in/yaml.v3` + cobra if flags wanted).~~ `[module-path]` — ship reality: single `require github.com/spf13/cobra v1.10.2`; no yaml dep needed.
+2. ~~`tiroir/lib/env.go` — `EnvStore` type backed by **encrypted-at-rest** storage. Split keyfile: `~/.tiroir` (ciphertext, `0600`) + `~/.tiroir.key` (random 32-byte key, `0600`). AEAD (AES-256-GCM) with a version + key-id header. Per invoking user via `os.UserHomeDir`. Methods `Get`/`Set`/`Delete`/`List`/`Export`. Atomic rewrite on write.~~ Done as specced. Crypto split into `lib/crypto.go` (AES-GCM, `seal`/`decrypt`/`read`/`save`, atomic write); `lib/env.go` holds the store API.
+3. ~~`tiroir/lib/env_test.go` — filet-clean tests for round-trip, perms, empty-key, `0600` enforcement.~~ Done — 8 tests including at-rest encryption (grep for secret in store finds 0 hits) and tamper-detection. `[filet]`
+4. ~~`tiroir/cmd/tiroir/main.go` — CLI: `set/get/list/delete/export`. **No `run`.**~~ Done but **diverged**: layout is `main.go` at repo root + cobra tree in `cmd/root.go` / `cmd/commands.go` — mirroring boite, not `cmd/tiroir/`. `export` emits `export KEY='value'` shell statements (single-quoted) so `eval "$(tiroir export)"` applies the store directly into the current shell — not bare `KEY=value` lines, changed in v0.2.0. Confirmed no `run` subcommand (`unknown command "run"`). `[filet]`
+5. ~~`tiroir/cmd/skatos_compat`~~ — SKIP, confirmed dead. Not created.
+6. ~~Release tiroir (tag on `master`, goreleaser, matches boite's flow).~~ Done — repo created `FacileStudio/tiroir` (public), tag `v0.1.0`, `.goreleaser.yml` matching boite's, release workflow green (7 tar.gz + checksums). **Extras shipped not in plan**: `.github/workflows/filet.yml` (style gate + Antenne webhook) and `.github/workflows/release.yml` (goreleaser on `v*`); tiroir added to the facile tool catalog (`facile/internal/manifest/tools.yml`, entry after `boite`, branch `master`); `CHANGELOG.md` (Keep a Changelog). Fixed a stamping bug during wiring: `main.go` overwrote the ldflags `cmd.Version` with `dev` — removed the override so `-X github.com/FacileStudio/tiroir/cmd.Version={{.Version}}` sticks.
 
-**Track B — boite host surface**
+**Track B — boite host surface** (open)
 
 7. `boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released. `[module-path]`
 8. `boite/cmd/qemu/config.go` — extend `BoiteConfig` with an `env:` block (see Config below) + an `EnvConfig` / `EnvSource` type (`local` | `casier`).
 9. `boite/cmd/qemu/config_test.go` — parse tests for the new block. `[filet]`
 10. `boite/cmd/env.go` — new `boite env` cobra command tree: `list/set/get/delete`. Host-side; `set/get/delete` CRUD the VM store over ssh (writes are authoritative and stick). No `sync` sub-command — freshness is a boundary-trigger, not a command.
 11. `boite/cmd/qemu/ssh.go` — add a helper that paints tiroir env into the command env for non-interactive exec: `ssh … 'env $(tiroir export); <cmd>'` or fetch-then-`env`. Name it `WithEnv(inst, args)`. `[filet]`
-12. `boite/cmd/qemu/firstboot.go` — extend `BuildConfigDisk` to drop a `tiroir.env` (the *resolved values only* — never a casier token) onto the vfat disk alongside `authorized_keys`, initializing the store at VM creation; extend the firstboot oneshot (bake side, Track C) to copy it into `~/.tiroir`. Guard with the existing "finish if no vfat" logic.
+12. `boite/cmd/qemu/firstboot.go` — extend `BuildConfigDisk` to drop the **encrypted** tiroir store + its key onto the vfat disk alongside `authorized_keys`, initializing the store at VM creation. Since Track A, the payload is the `~/.tiroir` ciphertext blob **and** `~/.tiroir.key` (a store without its key cannot decrypt) — never plaintext, never a casier token. Extend the firstboot oneshot (bake side, Track C) to copy both into the guest home. Guard with the existing "finish if no vfat" logic.
 
 **Track C — baked base image + guest**
 
 13. `boite/scripts/bake-provision.sh` — `apt` or copy-install the `tiroir` binary; prepend `eval "$(tiroir export)"` to `/home/boite/.zshrc` and create/append `/home/boite/.bashrc` with the same; keep everything `chown boite:boite`. `[filet]`
-14. `boite/scripts/boite/firstboot.sh` (the oneshot laid by bake) — after mounting BOITECFG, if `tiroir.env` present copy it to `/home/boite/.tiroir`, `chmod 0600`, `chown boite:boite`. Mirrors the existing `authorized_keys` write (lines 178-180 + `mkdir -p`).
+14. `boite/scripts/boite/firstboot.sh` (the oneshot laid by bake) — after mounting BOITECFG, if the tiroir store is present copy **both** `~/.tiroir` and `~/.tiroir.key` to `/home/boite/`, `chmod 0600` each, `chown boite:boite`. Mirrors the existing `authorized_keys` write (lines 178-180 + `mkdir -p`).
 15. `boite/`base repin + SHA256 in `cmd/qemu/instance.go` — rebuild the baked image and repin `BaseImageName/URL/SHA256`.
 
 **Track D — docs / conventions**
 
-16. Retire skatos: mark `~/.mycelium/memory/tools/skatos.md` superseded (point to tiroir), repoint `~/.agents/skills/skatos` → tiroir or mark superseded.
+16. ~~Retire skatos: mark `~/.mycelium/memory/tools/skatos.md` superseded (point to tiroir), repoint `~/.agents/skills/skatos` → tiroir or mark superseded.~~ Wiki part done 2026-09-10: `tools/skatos.md` marked `[SUPERSEDED by tiroir]`, tiroir page + index entry created, `tools/tiroir.md` written. **Open**: the `~/.agents/skills/skatos` skill still points at skatos and needs repointing or superseding.
 17. Update `README.md` (Usage + Features) and add an `env:` section to the `Configuration` block.
 
 ---
@@ -68,8 +68,8 @@ Rule: `local.vars` name-keys are **resolved from the host's secret store (casier
 
 Precedence: **manual `boite env set` beats source refresh.** On entry, boite re-applies managed keys from sources, then re-applies manually-set values on top, so a per-VM override sticks across entries. (Settled 2026-09-10; flip to "source wins" if preferred.)
 
-- **Surface-change (2026-09-10):** EnvStore encrypts at rest via a split keyfile — `~/.tiroir` (ciphertext) + `~/.tiroir.key` (random 32-byte key), both `0600`. **Option 1** chosen over a machine-bound key (no keychain, no password; Option 1 keeps a visible `.key` but is simplest and dependency-light). ADVISORY: keeps a passive `KEY=` value-scanner from triggering; an adversary who can run `tiroir` still reads everything. Not security, just an anti-lazy-scanner layer.
-- **Store leak guarantees are stronger:** the config-disk payload (`tiroir.env`) materializes the *encrypted* store, so the guest never sees plaintext env on disk or on the wire — no host token ever leaves in cleartext.
+- **Surface-change status: IMPLEMENTED (2026-09-10, tiroir v0.1.0).** EnvStore encrypts at rest via a split keyfile — `~/.tiroir` (ciphertext) + `~/.tiroir.key` (random 32-byte key), both `0600`. **Option 1** chosen over a machine-bound key (no keychain, no password; Option 1 keeps a visible `.key` but is simplest and dependency-light). ADVISORY: keeps a passive `KEY=` value-scanner from triggering; an adversary who can run `tiroir` still reads everything. Not security, just an anti-lazy-scanner layer.
+- **Store leak guarantees are stronger:** the config-disk payload materializes the *encrypted* `~/.tiroir` blob **plus** `~/.tiroir.key` (step 12/14), so the guest never sees plaintext env on disk or on the wire — no host token ever leaves in cleartext.
 
 Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unless the repo chooses XDG, this is fixed.
 
@@ -77,7 +77,7 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 
 ## Files to modify / new
 
-- `tiroir/` (new repo): `go.mod`, `lib/env.go`, `lib/env_test.go`, `cmd/tiroir/main.go`
+- `tiroir/` (new repo — **created**): `go.mod`, `lib/env.go`, `lib/crypto.go`, `lib/env_test.go`, `main.go`, `cmd/root.go`, `cmd/commands.go`, `.goreleaser.yml`, `.github/workflows/{filet,release}.yml`, `filet.yml`, `CHANGELOG.md`, `.gitignore`
 - `boite/go.mod` — dep + replace
 - `boite/cmd/qemu/config.go` — `env:` block
 - `boite/cmd/qemu/config_test.go` — tests
@@ -87,7 +87,8 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 - `boite/scripts/bake-provision.sh` — tiroir install + rc lines + firstboot read
 - `boite/scripts/bake-image.sh` — repin (if changed)
 - `boite/cmd/qemu/instance.go` — new pinned image
-- docs: `README.md`, `tools/skatos.md` (supersede), skatos skill
+- docs: `README.md`, `tools/skatos.md` (superseded — **done**), skatos skill (open)
+- `facile/internal/manifest/tools.yml` — **done**: tiroir catalog entry added
 
 ---
 
@@ -97,7 +98,7 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 - `boite env set FOO bar` writes into `~/.tiroir` (ciphertext, `0600`, owned `boite`, key in `~/.tiroir.key` `0600`), appears on the next `boite run` / `exec`, and **remains** after re-entry (manual set is authoritative over source refresh).
 - `boite env sync` is **not a command** — instead, re-entering a casier-backed VM (`boite run` / `boite exec`) refreshes managed keys from the scoped token, and the previous snapshot is kept with a warning when casier is unreachable.
 - A store-leak module (a VM bound only to scratch creds) cannot reach a master token.
-- `boite` builds, `filet check` clean, `tiroir` build + lib tests green (encryption round-trip, perms, empty-key).
+- ~~`boite` builds, `filet check` clean, `tiroir` build + lib tests green (encryption round-trip, perms, empty-key).~~ **tiroir half met**: `tiroir` build + 8 lib tests green and filet `-fail error` clean (2026-09-10). The `boite` build part is Track B work, not yet done.
 
 ---
 
