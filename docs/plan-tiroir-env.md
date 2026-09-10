@@ -1,6 +1,8 @@
 # Plan — tiroir: env system for boite VMs
 
-Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, working tree, 2026-09-10); Tracks C–D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
+Status: **Track A shipped (tiroir v0.1.0, 2026-09-10); Track B shipped (boite host surface, commit `cef6e8e`, 2026-09-10); Tracks C–D open.** This is the working spec; completed steps are struck through with a note on how reality diverged.
+
+**Resume here (cold start):** the only work left is steps 13–15 (Track C: bake tiroir into the base image, source `tiroir export` in guest rc, firstboot-copy the store, then rebuild + repin the image SHA in `cmd/qemu/instance.go`) and step 17 (Track D: README). Before the next `boite` release, flip `go.mod`'s `replace github.com/FacileStudio/tiroir => ../tiroir` to `github:FacileStudio/tiroir#v0.1.0` (CI has no sibling repo).
 
 ## Goal
 Give boite VMs a first-class env system: a new Go env tool **tiroir** (local-first default) that VM shells load by default and boite manages from the host, with casier as an opt-in scoped source.
@@ -26,7 +28,7 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 5. ~~`tiroir/cmd/skatos_compat`~~ — SKIP, confirmed dead. Not created.
 6. ~~Release tiroir (tag on `master`, goreleaser, matches boite's flow).~~ Done — repo created `FacileStudio/tiroir` (public), tag `v0.1.0`, `.goreleaser.yml` matching boite's, release workflow green (7 tar.gz + checksums). **Extras shipped not in plan**: `.github/workflows/filet.yml` (style gate + Antenne webhook) and `.github/workflows/release.yml` (goreleaser on `v*`); tiroir added to the facile tool catalog (`facile/internal/manifest/tools.yml`, entry after `boite`, branch `master`); `CHANGELOG.md` (Keep a Changelog). Fixed a stamping bug during wiring: `main.go` overwrote the ldflags `cmd.Version` with `dev` — removed the override so `-X github.com/FacileStudio/tiroir/cmd.Version={{.Version}}` sticks.
 
-**Track B — boite host surface** (working tree, uncommitted, 2026-09-10)
+**Track B — boite host surface — DONE (commit `cef6e8e`, 2026-09-10)**
 
 7. ~~`boite/go.mod` — add `github.com/FacileStudio/tiroir` as a dependency; `go.mod` `require` + `replace` pinned to the local path during dev, `[distribute]` `github:FacileStudio/tiroir#vX` for released.~~ Done — `require github.com/FacileStudio/tiroir v0.1.0` + `replace github.com/FacileStudio/tiroir => ../tiroir`. `[module-path]` Cobra bumped to v1.10.2 transitively (tiroir requires ≥ that, MVS wins). The `../tiroir` replace must be switched to `github:FacileStudio/tiroir#v0.1.0` before the next boite release (CI has no sibling repo).
 8. ~~`boite/cmd/qemu/config.go` — extend `BoiteConfig` with an `env:` block (see Config below) + an `EnvConfig` / `EnvSource` type (`local` | `casier`).~~ Done. `EnvSource` (`local`|`casier`), `EnvConfig{Source,Local,Casier}`, `EffectiveSource()` defaults to `local`. **Shape divergence**: the terse Config example mashed literal map entries and name-keys under one `vars:` key; YAML cannot hold a map and a list in one key, so `local` is `vars:` (literal `map[string]string`, non-secret only) + `resolve:` (`[]string`, key names pulled by name from the **host tiroir store** at create). Both documented.
@@ -38,7 +40,7 @@ Checked against: casier conventions, agent-access-facile-apps (agents need own i
 **Track C — baked base image + guest**
 
 13. `boite/scripts/bake-provision.sh` — `apt` or copy-install the `tiroir` binary; prepend `eval "$(tiroir export)"` to `/home/boite/.zshrc` and create/append `/home/boite/.bashrc` with the same; keep everything `chown boite:boite`. `[filet]`
-14. `boite/scripts/boite/firstboot.sh` (the oneshot laid by bake) — after mounting BOITECFG, if the tiroir store is present copy **both** `~/.tiroir` and `~/.tiroir.key` to `/home/boite/`, `chmod 0600` each, `chown boite:boite`. Mirrors the existing `authorized_keys` write (lines 178-180 + `mkdir -p`).
+14. The firstboot oneshot — `scripts/bake-provision.sh` lines ~156-183, the inline `cat > /usr/local/lib/boite/firstboot.sh <<'FB'` block (no standalone `scripts/boite/firstboot.sh` exists). After mounting BOITECFG, if the tiroir store is present copy **both** `.tiroir` and `.tiroir.key` from `/mnt/boitecfg` to `/home/boite/`, `chmod 0600` each, `chown boite:boite`. Mirrors the existing `authorized_keys` write (lines 178-180 + `mkdir -p`).
 15. `boite/`base repin + SHA256 in `cmd/qemu/instance.go` — rebuild the baked image and repin `BaseImageName/URL/SHA256`.
 
 **Track D — docs / conventions**
@@ -99,7 +101,7 @@ Store path: `~/.tiroir` + `~/.tiroir.key`, both `0600`, per invoking user. Unles
 - `boite env set FOO bar` writes into `~/.tiroir` (ciphertext, `0600`, owned `boite`, key in `~/.tiroir.key` `0600`), appears on the next `boite run` / `exec`, and **remains** after re-entry (manual set is authoritative over source refresh).
 - `boite env sync` is **not a command** — instead, re-entering a casier-backed VM (`boite run` / `boite exec`) refreshes managed keys from the scoped token, and the previous snapshot is kept with a warning when casier is unreachable.
 - A store-leak module (a VM bound only to scratch creds) cannot reach a master token.
-- ~~`boite` builds, `filet check` clean, `tiroir` build + lib tests green (encryption round-trip, perms, empty-key).~~ **tiroir half met**: `tiroir` build + 8 lib tests green and filet `-fail error` clean (2026-09-10). The `boite` build part is Track B work, not yet done.
+- ~~`boite` builds, `filet check` clean, `tiroir` build + lib tests green (encryption round-trip, perms, empty-key).~~ **Met 2026-09-10** (commit `cef6e8e`): `scripts/check.sh` green (`gofmt`/vet/test/filet all pass, exit 0) on the Track B boite host surface; tiroir build + 8 lib tests green and filet clean. The end-to-end criterion (a created VM exposes `tiroir list` showing `local.vars`/`resolve`) still needs Track C — the guest has no `tiroir` binary or firstboot copy until the base image is rebuilt and repinned.
 
 ---
 
