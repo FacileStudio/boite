@@ -78,3 +78,15 @@ func TestKillQEMUGracefulTermination(t *testing.T) {
 	}
 	t.Fatal("child process still alive after KillQEMU")
 }
+
+func TestIsProcessRunningInvalidPid(t *testing.T) {
+	if IsProcessRunning(0) {
+		t.Fatal("pid 0 must not be running")
+	}
+	if IsProcessRunning(-1) {
+		t.Fatal("negative pid must not be running")
+	}
+	if IsProcessRunning(999999999) {
+		t.Fatal("nonexistent pid must not be running")
+	}
+}

@@ -170,7 +170,9 @@ func Stop(name string) error {
 
 	if inst.PID > 0 && IsProcessRunning(inst.PID) {
 		if err := KillQEMU(inst.PID); err != nil {
-			return fmt.Errorf("kill qemu: %w", err)
+			if IsProcessRunning(inst.PID) {
+				return fmt.Errorf("kill qemu: %w", err)
+			}
 		}
 		if err := WaitForProcessExit(inst.PID, 10); err != nil {
 			return fmt.Errorf("wait for qemu to exit: %w", err)
@@ -193,14 +195,10 @@ func Destroy(name string) error {
 		return nil
 	}
 
-	if inst.PID > 0 && IsProcessRunning(inst.PID) {
-		if err := KillQEMU(inst.PID); err != nil {
-			return fmt.Errorf("kill qemu: %w", err)
+	if inst.PID > 0 {
+		if err := Stop(name); err != nil {
+			return fmt.Errorf("stop before destroy: %w", err)
 		}
-		if err := WaitForProcessExit(inst.PID, 10); err != nil {
-			return fmt.Errorf("wait for qemu to exit: %w", err)
-		}
-		WaitForPortFree(inst.SSHPort, 20)
 	}
 
 	return DeleteInstanceDir(name)

@@ -109,11 +109,17 @@ func WaitForPID(pidFile string, timeout int) (int, error) {
 }
 
 func KillQEMU(pid int) error {
+	if !IsProcessRunning(pid) {
+		return nil
+	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		return err
+		return nil
 	}
 	if err := proc.Signal(syscall.SIGTERM); err != nil {
+		if !IsProcessRunning(pid) {
+			return nil
+		}
 		return err
 	}
 	for i := 0; i < 5; i++ {
@@ -122,14 +128,31 @@ func KillQEMU(pid int) error {
 		}
 		time.Sleep(time.Second)
 	}
-	return proc.Kill()
+	if err := proc.Kill(); err != nil {
+		if !IsProcessRunning(pid) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func IsProcessRunning(pid int) bool {
-	proc, err := os.FindProcess(pid)
+	// os.Signal(os.Signal(nil)) is unsupported in this runtime, so a liveness
+	// check must not rely on signal 0. Read /proc/<pid>/stat: a running process
+	// has state R/S/D/T etc., a zombie has Z. The daemonized qemu is reparented
+	// to PID 1, so os.FindProcess may still resolve a zombie before init reaps
+	// it; treat Z as not running.
+	if pid <= 0 {
+		return false
+	}
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
 	if err != nil {
 		return false
 	}
-	err = proc.Signal(os.Signal(nil))
-	return err == nil
+	fields := strings.Split(string(data), " ")
+	if len(fields) < 3 {
+		return false
+	}
+	return fields[2] != "Z"
 }
