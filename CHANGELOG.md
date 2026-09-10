@@ -7,6 +7,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-09-10
+
+### Changed
+
+- The baked base image is renamed to `boite.qcow2` (was `boite-base.qcow2`).
+- The baked image is reproducible: the toolchain (rust 1.98.1, bun 1.4.2, mise 2026.9.4) and the sandbox hostname (`boite`) are baked in and versioned, instead of "latest" on bake day.
+
+### Fixed
+
+- `boite stop` and `boite rm` now shut the guest OS down cleanly over SSH (``sudo systemctl poweroff``) before killing qemu, instead of killing the qemu process out from under the guest — so guest filesystem buffers are flushed.
+- The bake compaction gate now triggers on the apparent (downloadable) image size rather than the on-disk size; previously a slimmed image could be served as a multi-gigabyte download.
+
 ## [0.3.0] — 2026-09-10
 
 ### Removed
