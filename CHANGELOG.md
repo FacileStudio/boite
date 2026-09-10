@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-10
+
+### Added
+
+- Managed environment values now refresh on entry, not just at creation. `boite run` and `boite exec` re-materialize the `env:` block from `~/.boite.yml` and the host tiroir store into the sandbox's store before entering, so a value changed in the config or the host store reaches a VM without recreating it. Keys set manually with `boite env set` stay authoritative — they are pinned per instance and skipped by the refresh — and `boite env delete` unpins a key so the managed value can be restored. If the refresh fails (for example the host or casier source is unreachable) boite keeps the last guest snapshot and warns instead of blocking entry.
+
 ## [0.5.0] — 2026-09-10
 
 ### Added
@@ -183,7 +189,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/FacileStudio/boite/releases/tag/v0.6.0
 [0.1.12]: https://github.com/FacileStudio/boite/releases/tag/v0.1.12
 [0.1.11]: https://github.com/FacileStudio/boite/releases/tag/v0.1.11
 [0.1.10]: https://github.com/FacileStudio/boite/releases/tag/v0.1.10
