@@ -1,19 +1,13 @@
 # Plan — optimize boite's hot paths (perf + code quality)
 
-Status: **complete — code implemented, not committed.** Items 1-6 are all in
-the working tree and verified (`go build`, `filet check .`, `go test ./...`
-green). This doc is the handoff: read it to pick up exactly where the work
-stopped.
-
-## Remaining before commit/release
-
-1. Review the diff, then commit the six changes together (one conventional
-   commit, e.g. `perf(qemu): stream tar, batch env refresh, backoff waits, skip
-   cached-image hash`).
-2. One real-VM e2e pass — `boite run` on a large workspace — to confirm sync
-   lands unchanged and a multi-var env refresh materializes every non-pinned key
-   (see Exit criteria). In-tree checks already pass; this is the only still-TBD
-   item.
+Status: **done.** Committed 2026-09-11 as 9b70e64 (perf) + d170539 (this
+doc). The real-VM e2e pass ran 2026-09-11 against the built v0.7.0 binary:
+188MB / 48k-file workspace synced in ~2.1s, byte-identical both directions;
+multi-var env refresh materializes every non-pinned key (spaces and resolved
+secrets intact), pinned keys stay authoritative, deleted pins re-materialize
+on next entry. Gotcha for future sessions: the repo-root `./boite` binary was
+an ad-hoc `dev` build predating the env-refresh code, and e2e results taken
+from it are wrong — always `go build -o boite .` before a real-VM pass.
 
 Checked against: filet suite gate (CLI pace, no migrations/auth/muse/events —
 those suite sections do not apply to a local QEMU CLI). Shell finger-trap:
@@ -78,6 +72,7 @@ pass. Steps 1-2: verify with a real `boite run` that a workspace sync lands
 unchanged and a multi-var env refresh still materializes every non-pinned key
 (and stops on failure). Step 5: no observable sync regressions on a large
 workspace; verified in-tree, real-VM run still TBD before commit/release.
+All of the above verified 2026-09-11 (see Status).
 
 ## Risks / unknown unknowns
 
