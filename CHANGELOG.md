@@ -5,7 +5,11 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.7.0] — 2026-09-11
+
+### Changed
+
+- Migrated the CLI to the Charm v2 styled shell (`fang` + `lipgloss v2` + `bubbles v2`). Help, usage and error pages now render through fang; `--version` keeps the `<bin> <semver>` line; user errors print a styled block once and exit non-zero instead of being echoed twice. Status lines, the sandbox card and the `list` table are styled with lipgloss v2 writers, so colour is downsampled and stripped automatically when output is piped or `NO_COLOR` is set, and the progress bar keeps its original full-block look via the v2 `WithColors`/`WithFillCharacters` API. The v1 Charm import graph is gone.
 
 ## [0.6.0] — 2026-09-10
 
