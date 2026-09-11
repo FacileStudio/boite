@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"charm.land/lipgloss/v2"
 	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
@@ -24,5 +25,5 @@ func runList(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error: failed to list sandboxes: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Print(renderInstanceTableQEMU(instances))
+	lipgloss.Print(renderInstanceTableQEMU(instances))
 }

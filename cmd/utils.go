@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 	"os/exec"
+
+	"charm.land/lipgloss/v2"
 )
 
 func homeDir() string {
@@ -23,4 +25,19 @@ func RunCommand(args ...string) ([]byte, error) {
 func checkCommand(name string) error {
 	_, err := exec.LookPath(name)
 	return err
+}
+
+// statusCellStyle returns the style for an instance status cell in the table
+// render: green for running, dimmed for stopped, amber for anything else.
+func statusCellStyle(status string) lipgloss.Style {
+	st := lipgloss.NewStyle()
+	switch status {
+	case "running":
+		st = st.Foreground(successColor).Bold(true)
+	case "stopped":
+		st = st.Foreground(subtleColor)
+	default:
+		st = st.Foreground(warnColor)
+	}
+	return st
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"charm.land/lipgloss/v2"
 	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +38,7 @@ func runRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	fmt.Println(styleBanner(asciiBanner, versionString()))
+	lipgloss.Println(styleBanner(asciiBanner, versionString()))
 
 	if err := qemu.SSHInteractive(inst); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to connect to SSH: %v\n", err)

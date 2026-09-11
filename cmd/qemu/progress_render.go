@@ -2,10 +2,11 @@ package qemu
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/progress"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/term"
 	"github.com/clipperhouse/displaywidth"
 )
@@ -13,8 +14,9 @@ import (
 const progressBarWidth = 40
 
 var barModel = progress.New(
-	progress.WithSolidFill("#7D56F4"),
+	progress.WithColors(lipgloss.Color("#7D56F4")),
 	progress.WithWidth(progressBarWidth),
+	progress.WithFillCharacters('█', '░'),
 )
 
 var progressFrames = []string{
@@ -104,7 +106,7 @@ func spinnerFrame(spin int) string {
 	return f
 }
 
-func glyph(s string, col lipgloss.Color) string {
+func glyph(s string, col color.Color) string {
 	p := pstate.Load()
 	if p == nil || !p.color {
 		return s

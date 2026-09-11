@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"charm.land/fang/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -20,8 +22,13 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 var version = "0.6.0"
 
 // Execute runs the root command, dispatching to the registered subcommands.
+// fang renders the styled error and returns it, so a non-nil result is only
+// forwarded as the exit code — the error is never printed a second time.
 func Execute() error {
-	return newRootCmd().Execute()
+	if fang.Execute(context.Background(), newRootCmd(), fang.WithVersion(version)) != nil {
+		os.Exit(1)
+	}
+	return nil
 }
 
 // newRootCmd assembles the boite command tree and its persistent flags.

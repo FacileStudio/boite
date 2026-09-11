@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"charm.land/lipgloss/v2"
 	"github.com/FacileStudio/boite/cmd/qemu"
 	"github.com/spf13/cobra"
 )
@@ -54,7 +55,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println()
-	fmt.Println(renderSandboxCard(name, workspacePath, noMount, inst.SSHPort))
+	lipgloss.Println(renderSandboxCard(name, workspacePath, noMount, inst.SSHPort))
 }
 
 // isConfigPresent reports whether a config file is available for this run.

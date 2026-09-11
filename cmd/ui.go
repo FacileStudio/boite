@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 	"github.com/FacileStudio/boite/cmd/qemu"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 )
 
 var (
@@ -24,20 +24,25 @@ var (
 	infoIcon    = lipgloss.NewStyle().Foreground(accentColor).Bold(true).Render("▸")
 )
 
+// The printers route through lipgloss's colorprofile writers, which strip ANSI
+// entirely when the target stream is not a TTY or NO_COLOR is set. Piped output
+// (logs, scripts) therefore carries no escape sequences.
+
 func printSuccess(msg string) {
-	fmt.Printf("%s %s\n", successIcon, msg)
+	lipgloss.Println(successIcon, msg)
 }
 
 func printError(msg string) {
-	fmt.Fprintf(os.Stderr, "%s %s\n", errorIcon, msg)
+	lipgloss.Fprintln(os.Stderr, errorIcon, msg)
 }
 
 func printInfo(msg string) {
-	fmt.Printf("%s %s\n", infoIcon, msg)
+	lipgloss.Println(infoIcon, msg)
 }
 
 func printSessionEnd(msg string) {
-	fmt.Printf("\n%s\n", lipgloss.NewStyle().Foreground(subtleColor).Render(msg))
+	fmt.Println()
+	lipgloss.Println(lipgloss.NewStyle().Foreground(subtleColor).Render(msg))
 }
 
 func styleBanner(ascii string, version string) string {
@@ -51,7 +56,7 @@ func styleBanner(ascii string, version string) string {
 func renderSandboxCard(name, workspace string, noMount bool, sshPort int) string {
 	titleStyle := lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
 	labelStyle := lipgloss.NewStyle().Foreground(accentColor)
-	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#F3F4F6"))
+	valueStyle := lipgloss.NewStyle().Foreground(subtleColor)
 	cmdStyle := lipgloss.NewStyle().Foreground(successColor).Bold(true)
 
 	lines := []string{
@@ -97,29 +102,29 @@ func renderInstanceTableQEMU(instances []*qemu.Instance) string {
 		return renderEmptyTable()
 	}
 
+	header := lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
 	t := table.New().
 		Border(lipgloss.RoundedBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(borderColor)).
-		Headers("NAME", "STATUS", "SSH PORT", "CREATED")
+		BorderStyle(header).
+		Headers("NAME", "STATUS", "SSH PORT", "CREATED").
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return header
+			}
+			switch col {
+			case 0:
+				return lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
+			case 1:
+				return statusCellStyle(instances[row].Status)
+			case 2:
+				return lipgloss.NewStyle().Foreground(accentColor)
+			default:
+				return lipgloss.NewStyle().Foreground(subtleColor)
+			}
+		})
 
 	for _, inst := range instances {
-		var stateStyled string
-		switch inst.Status {
-		case "running":
-			stateStyled = lipgloss.NewStyle().Foreground(successColor).Bold(true).Render(inst.Status)
-		case "stopped":
-			stateStyled = lipgloss.NewStyle().Foreground(subtleColor).Render(inst.Status)
-		default:
-			stateStyled = lipgloss.NewStyle().Foreground(warnColor).Render(inst.Status)
-		}
-
-		t.Row(
-			lipgloss.NewStyle().Foreground(primaryColor).Bold(true).Render(inst.Name),
-			stateStyled,
-			lipgloss.NewStyle().Foreground(accentColor).Render(fmt.Sprintf("%d", inst.SSHPort)),
-			lipgloss.NewStyle().Foreground(subtleColor).Render(inst.CreatedAt.Format("2006-01-02 15:04")),
-		)
+		t.Row(inst.Name, inst.Status, fmt.Sprintf("%d", inst.SSHPort), inst.CreatedAt.Format("2006-01-02 15:04"))
 	}
-
 	return t.Render()
 }
