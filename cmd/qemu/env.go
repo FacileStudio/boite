@@ -68,10 +68,21 @@ func RefreshGuestEnv(inst *Instance, cfg *BoiteConfig) error {
 	if err != nil {
 		return fmt.Errorf("materialize env: %w", err)
 	}
-	for _, name := range envRefreshPlan(envVars, inst.PinnedEnv) {
-		if err := SSHCommand(inst, []string{"tiroir set " + name + " " + shellQuote(envVars[name])}); err != nil {
-			return fmt.Errorf("refresh %s on guest: %w", name, err)
+	plan := envRefreshPlan(envVars, inst.PinnedEnv)
+	if len(plan) == 0 {
+		return nil
+	}
+	var remote string
+	for i, name := range plan {
+		set := "tiroir set " + name + " " + shellQuote(envVars[name])
+		if i == 0 {
+			remote = set
+		} else {
+			remote += " && " + set
 		}
+	}
+	if err := SSHCommand(inst, []string{remote}); err != nil {
+		return fmt.Errorf("refresh env on guest: %w", err)
 	}
 	return nil
 }

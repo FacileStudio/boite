@@ -18,12 +18,8 @@ func EnsureBaseImage() (string, error) {
 	}
 
 	basePath := GetBaseImagePath()
-	if _, err := os.Stat(basePath); err == nil {
-		if err := verifyChecksum(basePath); err != nil {
-			os.Remove(basePath)
-		} else {
-			return basePath, nil
-		}
+	if fi, err := os.Stat(basePath); err == nil && fi.Size() > 0 {
+		return basePath, nil
 	}
 
 	return downloadBaseImage(basePath)

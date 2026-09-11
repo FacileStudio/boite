@@ -3,6 +3,7 @@ package qemu
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 )
@@ -15,56 +16,103 @@ const workspaceDir = "/workspace"
 // or permissions across the boundary: the guest only ever touches its own
 // mounted-empty directory.
 func SyncWorkspaceIn(inst *Instance, srcDir string) error {
-	archive, err := captureCommand("tar", "-C", srcDir, "-czf", "-", ".")
-	if err != nil {
-		return fmt.Errorf("tar workspace: %w", err)
-	}
-	remote := fmt.Sprintf("mkdir -p %s && find %s -mindepth 1 -delete && tar -xzf - -C %s",
+	tarCmd := exec.Command("tar", "-C", srcDir, "-cf", "-", ".")
+	tarCmd.Stderr = os.Stderr
+	remote := fmt.Sprintf("mkdir -p %s && find %s -mindepth 1 -delete && tar -xf - -C %s",
 		workspaceDir, workspaceDir, workspaceDir)
-	return sendArchive(inst, remote, archive)
+	sshCmd := exec.Command("ssh", BuildSSHArgs(inst, []string{remote})...)
+	sshCmd.Stderr = os.Stderr
+	return streamIn(tarCmd, sshCmd)
 }
 
 // SyncWorkspaceOut copies /workspace from the sandbox back into destDir,
 // overwriting matching files. Ownership from the guest (user boite) is not
 // preserved so the copies stay owned by the host user.
 func SyncWorkspaceOut(inst *Instance, destDir string) error {
-	archive, err := captureRemote(inst, fmt.Sprintf("tar -czf - -C %s .", workspaceDir))
-	if err != nil {
-		return fmt.Errorf("tar workspace in VM: %w", err)
-	}
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("create dest dir: %w", err)
 	}
-	untar := exec.Command("tar", "-xzf", "-", "-C", destDir, "--no-same-owner")
-	untar.Stdin = bytes.NewReader(archive)
-	if out, err := untar.CombinedOutput(); err != nil {
-		return fmt.Errorf("untar to %s: %w: %s", destDir, err, out)
-	}
-	return nil
-}
-
-// captureCommand runs a local command and returns its stdout. Stderr is
-// swallowed because tar is quiet unless it actually fails.
-func captureCommand(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...)
-	return cmd.Output()
-}
-
-// sendArchive pipes an in-memory archive into ssh stdin, where the remote
-// command consumes it.
-func sendArchive(inst *Instance, remote string, archive []byte) error {
+	remote := fmt.Sprintf("tar -cf - -C %s .", workspaceDir)
 	sshCmd := exec.Command("ssh", BuildSSHArgs(inst, []string{remote})...)
-	sshCmd.Stdin = bytes.NewReader(archive)
 	sshCmd.Stderr = os.Stderr
-	if err := sshCmd.Run(); err != nil {
-		return fmt.Errorf("workspace sync over ssh: %w", err)
+	untarCmd := exec.Command("tar", "-xf", "-", "-C", destDir, "--no-same-owner")
+	return streamOut(sshCmd, untarCmd, destDir)
+}
+
+// streamIn pipes the host tar producer's archive into the ssh consumer while
+// both run, and reports the first failure: tar, then ssh, then the pipe.
+func streamIn(producer, consumer *exec.Cmd) error {
+	copyErr, producerErr, consumerErr := pipeStream(producer, consumer)
+	switch {
+	case producerErr != nil:
+		return fmt.Errorf("tar workspace: %w", producerErr)
+	case consumerErr != nil:
+		return fmt.Errorf("workspace sync over ssh: %w", consumerErr)
+	case copyErr != nil:
+		return fmt.Errorf("stream tar workspace: %w", copyErr)
 	}
 	return nil
 }
 
-// captureRemote runs a remote command over ssh and returns its stdout, which
-// is the tar archive in the sync-out direction.
-func captureRemote(inst *Instance, remote string) ([]byte, error) {
-	sshCmd := exec.Command("ssh", BuildSSHArgs(inst, []string{remote})...)
-	return sshCmd.Output()
+// streamOut pipes the ssh producer's archive into the host untar consumer
+// while both run, and reports the first failure: ssh, then untar, then the
+// pipe. Untar's stderr is captured so a failure includes what tar said.
+func streamOut(producer, consumer *exec.Cmd, destDir string) error {
+	var untarErr bytes.Buffer
+	consumer.Stderr = &untarErr
+	copyErr, producerErr, consumerErr := pipeStream(producer, consumer)
+	switch {
+	case producerErr != nil:
+		return fmt.Errorf("tar workspace in VM: %w", producerErr)
+	case consumerErr != nil:
+		return fmt.Errorf("untar to %s: %w: %s", destDir, consumerErr, untarErr.String())
+	case copyErr != nil:
+		return fmt.Errorf("stream tar workspace in VM: %w", copyErr)
+	}
+	return nil
+}
+
+// pipeStream starts producer and consumer, streams producer's stdout into
+// consumer's stdin, then waits for the copy and both processes. The copy runs
+// concurrently with the waits so a full pipe never blocks the producer.
+func pipeStream(producer, consumer *exec.Cmd) (copyErr, producerErr, consumerErr error) {
+	producerOut, err := producer.StdoutPipe()
+	if err != nil {
+		producerErr = err
+		return copyErr, producerErr, consumerErr
+	}
+	consumerIn, err := consumer.StdinPipe()
+	if err != nil {
+		producerErr = err
+		return copyErr, producerErr, consumerErr
+	}
+	if err := producer.Start(); err != nil {
+		producerErr = err
+		return copyErr, producerErr, consumerErr
+	}
+	if err := consumer.Start(); err != nil {
+		producer.Process.Kill()
+		producer.Wait()
+		consumerErr = err
+		return copyErr, producerErr, consumerErr
+	}
+	copied := make(chan error, 1)
+	go func() {
+		copied <- copyArchive(consumerIn, producerOut)
+	}()
+	consumerErr = consumer.Wait()
+	producerErr = producer.Wait()
+	copyErr = <-copied
+	return copyErr, producerErr, consumerErr
+}
+
+// copyArchive drains producer's stdout into consumer's stdin until EOF, then
+// closes the consumer's stdin so it sees the end of the stream.
+func copyArchive(consumerIn io.WriteCloser, producerOut io.Reader) error {
+	_, copyErr := io.Copy(consumerIn, producerOut)
+	closeErr := consumerIn.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }

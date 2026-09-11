@@ -88,7 +88,6 @@ func WaitForSSH(port, timeoutSeconds int) error {
 		if err == nil {
 			conn.Close()
 			ProgressDone(fmt.Sprintf("SSH up on %s (%ds)", addr, i+2))
-			time.Sleep(2 * time.Second)
 			return nil
 		}
 		ProgressTick(fmt.Sprintf("Waiting for SSH on %s (%ds)...", addr, i+1), float64(i)/float64(timeoutSeconds))
