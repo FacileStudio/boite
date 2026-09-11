@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
+## [0.7.1] — 2026-09-11
+
+### Changed
+
+- Workspace sync now streams the tar archive over ssh instead of buffering it in memory, so `boite run` and `boite sync` no longer hold the whole workspace in RAM; large workspaces (188MB / 48k files verified) sync in a couple of seconds with byte-identical results both directions.
+- The managed env refresh batches all keys into a single ssh roundtrip instead of one per key.
+- Firstboot polling backs off exponentially (500ms to 2s) instead of a fixed 5s tick, so `create` reports completion as soon as the marker lands; the dead 2s wait after the SSH probe is gone.
+- `create` no longer re-verifies the 2.1GB cached base image checksum on every run; the image is trusted once downloaded.
+
 ## [0.7.0] — 2026-09-11
 
 ### Changed
@@ -193,7 +202,9 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/FacileStudio/boite/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/FacileStudio/boite/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FacileStudio/boite/releases/tag/v0.6.0
 [0.5.0]: https://github.com/FacileStudio/boite/releases/tag/v0.5.0
 [0.4.2]: https://github.com/FacileStudio/boite/releases/tag/v0.4.2
