@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
+## [0.7.2] — 2026-09-11
+
+### Fixed
+
+- `boite run` no longer empties the sandbox workspace before the incoming archive is verified. The archive now extracts into a guest-side staging directory and is swapped in only after extraction succeeds and the host reports a clean tar exit, so a failed or interrupted sync leaves the previous workspace intact. The swap requires the baked-in passwordless sudo, and the guest's `/etc/hosts` gains its own hostname on first sync to keep sudo quiet.
+
 ## [0.7.1] — 2026-09-11
 
 ### Changed
@@ -202,7 +208,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/FacileStudio/boite/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/FacileStudio/boite/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/FacileStudio/boite/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FacileStudio/boite/releases/tag/v0.6.0

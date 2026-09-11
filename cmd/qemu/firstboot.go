@@ -105,7 +105,7 @@ func WaitForFirstboot(inst *Instance, timeoutSeconds int) error {
 			return nil
 		}
 		msg := fmt.Sprintf("firstboot (%ds): waiting for provisioned marker", int(elapsed.Seconds()))
-		frac := float64(elapsed.Nanoseconds())/float64(timeout.Nanoseconds())
+		frac := float64(elapsed.Nanoseconds()) / float64(timeout.Nanoseconds())
 		ProgressTick(msg, frac)
 		time.Sleep(delay)
 		elapsed += delay
