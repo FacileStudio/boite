@@ -32,7 +32,7 @@ func runExec(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if err := RefreshManagedEnv(name, configPath(cmd)); err != nil {
+	if err := RefreshManagedEnv(name, configPath(cmd), warnEnv); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not refresh managed env, keeping last snapshot: %v\n", err)
 	}
 

@@ -117,7 +117,7 @@ func TestLoadBoiteConfigEnvLocal(t *testing.T) {
 func TestLoadBoiteConfigEnvCasier(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "boite.yml")
-	contents := "env:\n  source: casier\n  casier:\n    project: my-org\n    environment: dev\n    token_ref: CASIER_TOKEN\n"
+	contents := "env:\n  source: casier\n  casier:\n    project: my-org\n    environment: dev\n    token_ref: CASIER_TOKEN\n    ttl: 8h\n"
 	if err := os.WriteFile(p, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -134,6 +134,9 @@ func TestLoadBoiteConfigEnvCasier(t *testing.T) {
 	}
 	if cfg.Env.Casier.Project != "my-org" || cfg.Env.Casier.Environment != "dev" || cfg.Env.Casier.TokenRef != "CASIER_TOKEN" {
 		t.Fatalf("unexpected casier block: %+v", cfg.Env.Casier)
+	}
+	if cfg.Env.Casier.TTL != "8h" {
+		t.Fatalf("expected casier ttl 8h, got %q", cfg.Env.Casier.TTL)
 	}
 }
 

@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+
+- `env.casier.ttl` in `~/.boite.yml` makes the materialized casier token session-scoped: the guest store carries an expiry marker (`<KEY>__expires`, unix-epoch seconds), `boite run` and `boite exec` drop the token once it expires (with a one-line warning) and re-materialize a fresh token on the next successful refresh while casier is reachable. Unset (the default) keeps the previous behaviour: the token persists for the VM lifetime.
+
 ## [0.7.2] — 2026-09-11
 
 ### Fixed

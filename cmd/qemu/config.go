@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -86,6 +87,29 @@ type CasierEnv struct {
 	Project     string `yaml:"project"`
 	Environment string `yaml:"environment"`
 	TokenRef    string `yaml:"token_ref"`
+	// TTL bounds how long the materialized token may live in the guest store.
+	// Empty means no expiry: the token persists for the VM lifetime. A set
+	// value must be a positive Go duration (30m, 8h, 168h); each boite run and
+	// exec then drops the token once its marker expires and re-materializes a
+	// fresh one while casier is reachable.
+	TTL string `yaml:"ttl"`
+}
+
+// tokenTTL parses env.casier.ttl. Empty means no expiry: the materialized
+// token persists for the VM lifetime, the behaviour before session scoping
+// existed.
+func (c *CasierEnv) tokenTTL() (time.Duration, error) {
+	if c == nil || c.TTL == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(c.TTL)
+	if err != nil {
+		return 0, fmt.Errorf("parse env.casier.ttl %q: %w", c.TTL, err)
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("env.casier.ttl %q must be positive", c.TTL)
+	}
+	return d, nil
 }
 
 // EnvConfig is the env source block of ~/.boite.yml.

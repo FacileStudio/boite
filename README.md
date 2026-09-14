@@ -120,6 +120,7 @@ env:
     project: my-org
     environment: dev
     token_ref: CASIER_TOKEN
+    ttl: 8h                 # optional: session-scope the materialized token (default: VM lifetime)
 
 provision:
   packages:
@@ -136,6 +137,7 @@ VMs load an env store sourced by [tiroir](https://github.com/FacileStudio/tiroir
 
 - `env.source: local` (default) resolves `env.local.vars` (literal, non-secret) and `env.local.resolve` key names (pulled from the **host** tiroir store) at create time.
 - `env.source: casier` (opt-in) materializes a scoped read-only `casier_` project token into the VM's store. Casier is never installed in the guest; the guest holds only a bounded snapshot, never a live token.
+- `env.casier.ttl` (optional, e.g. `8h`) makes that token **session-scoped**. With a ttl set, the guest store also holds an expiry marker `<KEY>__expires` (unix-epoch seconds, visible in `boite env list`), and every `boite run` / `boite exec` checks it: an expired token is dropped from the store — stale credentials are never silently kept — and a warning names it once. The next successful refresh re-materializes a fresh token with a new marker; while casier is unreachable the key stays absent and the warning says so. Without `ttl` the token persists for the VM lifetime (the behaviour before session scoping).
 - There is **no `sync` command**. `boite run` and `boite exec` re-materialize managed keys before entering the VM, so the store is always current; if casier is unreachable the last snapshot is kept with a warning.
 - `boite env set` writes straight into the VM store and **sticks** — a manual value is authoritative over a later source refresh.
 
