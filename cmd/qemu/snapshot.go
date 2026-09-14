@@ -68,6 +68,9 @@ func validateSnapshotTag(tag string) error {
 	if len(tag) == 0 || len(tag) > 40 {
 		return fmt.Errorf("invalid snapshot tag '%s': use 1 to 40 characters", tag)
 	}
+	if tag[0] == '-' {
+		return fmt.Errorf("invalid snapshot tag '%s': tag cannot start with a dash", tag)
+	}
 	for _, r := range tag {
 		switch {
 		case r >= 'a' && r <= 'z':

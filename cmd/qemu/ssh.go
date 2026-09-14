@@ -55,13 +55,13 @@ func BuildSSHArgs(inst *Instance, command []string) []string {
 }
 
 // WithEnv wraps a remote command so the guest's tiroir store is applied to its
-// environment. A non-interactive ssh session never sources rc, so boite exec
-// would silently lack vars without this. The store is eval'ed at the head of
-// the command and the whole thing is returned as a single argument so it
-// survives ssh's space-join/reparse intact. A missing tiroir binary becomes an
-// empty eval, so the wrapped command still runs.
+// environment and the toolchain PATH is available for non-interactive execution.
 func WithEnv(command []string) []string {
-	cmd := `eval "$(tiroir export)"; ` + strings.Join(command, " ")
+	quoted := make([]string, len(command))
+	for i, c := range command {
+		quoted[i] = shellQuote(c)
+	}
+	cmd := `export PATH="/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:/usr/local/bin:$PATH"; eval "$(tiroir export 2>/dev/null || true)"; ` + strings.Join(quoted, " ")
 	return []string{cmd}
 }
 

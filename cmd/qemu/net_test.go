@@ -14,6 +14,7 @@ func TestEffectiveNet(t *testing.T) {
 		{"", "open", false},
 		{"open", "open", false},
 		{"offline", "offline", false},
+		{" Offline ", "offline", false},
 		{"transparent", "", true},
 	}
 	for _, c := range cases {

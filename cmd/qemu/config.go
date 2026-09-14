@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -27,9 +28,10 @@ func (v *VMConfig) EffectiveNet() (string, error) {
 	if v == nil || v.Net == "" {
 		return "open", nil
 	}
-	switch v.Net {
+	mode := strings.TrimSpace(strings.ToLower(v.Net))
+	switch mode {
 	case "open", "offline":
-		return v.Net, nil
+		return mode, nil
 	default:
 		return "", fmt.Errorf("vm.net %q must be open or offline", v.Net)
 	}

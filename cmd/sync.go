@@ -38,7 +38,7 @@ func runSync(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if inst.PID == 0 {
+	if inst.PID == 0 || !qemu.IsProcessRunning(inst.PID) {
 		fmt.Fprintf(os.Stderr, "Error: sandbox '%s' is not running\n", name)
 		os.Exit(1)
 	}

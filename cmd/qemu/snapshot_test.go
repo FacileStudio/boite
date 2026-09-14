@@ -14,7 +14,7 @@ func TestValidateSnapshotTagAccepts(t *testing.T) {
 }
 
 func TestValidateSnapshotTagRejects(t *testing.T) {
-	for _, tag := range []string{"", strings.Repeat("x", 41), "has space", "has.dot", "slash/ed", "accenté", "tab\ttag"} {
+	for _, tag := range []string{"", strings.Repeat("x", 41), "-c", "-tag", "has space", "has.dot", "slash/ed", "accenté", "tab\ttag"} {
 		if err := validateSnapshotTag(tag); err == nil {
 			t.Errorf("expected tag %q to be rejected", tag)
 		}

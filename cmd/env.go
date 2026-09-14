@@ -39,7 +39,7 @@ func runEnvList(cmd *cobra.Command, args []string) {
 
 func runEnvGet(cmd *cobra.Command, args []string) {
 	inst := requireRunning(args[0])
-	out, err := qemu.SSHOutput(inst, "tiroir get "+args[1])
+	out, err := qemu.SSHOutput(inst, "tiroir get "+shellQuoteArg(args[1]))
 	if err != nil {
 		printError(fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
@@ -49,7 +49,7 @@ func runEnvGet(cmd *cobra.Command, args []string) {
 
 func runEnvSet(cmd *cobra.Command, args []string) {
 	inst := requireRunning(args[0])
-	remote := "tiroir set " + args[1] + " " + shellQuoteArg(args[2])
+	remote := "tiroir set " + shellQuoteArg(args[1]) + " " + shellQuoteArg(args[2])
 	if err := qemu.SSHCommand(inst, []string{remote}); err != nil {
 		printError(fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
@@ -62,7 +62,8 @@ func runEnvSet(cmd *cobra.Command, args []string) {
 
 func runEnvDelete(cmd *cobra.Command, args []string) {
 	inst := requireRunning(args[0])
-	if err := qemu.SSHCommand(inst, []string{"tiroir delete " + args[1]}); err != nil {
+	remote := "tiroir delete " + shellQuoteArg(args[1])
+	if err := qemu.SSHCommand(inst, []string{remote}); err != nil {
 		printError(fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
@@ -79,7 +80,7 @@ func requireRunning(name string) *qemu.Instance {
 		fmt.Fprintf(os.Stderr, "Error: instance '%s' not found. Create it first with 'boite create %s'\n", name, name)
 		os.Exit(1)
 	}
-	if inst.PID == 0 {
+	if inst.PID == 0 || !qemu.IsProcessRunning(inst.PID) {
 		fmt.Fprintf(os.Stderr, "Error: sandbox '%s' is not running\n", name)
 		os.Exit(1)
 	}

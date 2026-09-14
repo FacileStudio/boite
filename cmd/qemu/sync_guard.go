@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -25,6 +26,7 @@ const (
 // and 'boite sync --all' disables the whole guard.
 var syncOutDenyList = []string{
 	".git/hooks/*",
+	".git/config",
 	".envrc",
 	".env",
 	".env.*",
@@ -48,6 +50,7 @@ func syncOutPump(consumerIn io.WriteCloser, producerOut io.Reader, allowAll bool
 // closed when the archive ends or the first error surfaces, so untar always
 // sees a terminated stream.
 func filterSyncOut(consumerIn io.WriteCloser, producerOut io.Reader, warn io.Writer) error {
+	defer consumerIn.Close()
 	tr := tar.NewReader(producerOut)
 	tw := tar.NewWriter(consumerIn)
 	for {
@@ -56,21 +59,26 @@ func filterSyncOut(consumerIn io.WriteCloser, producerOut io.Reader, warn io.Wri
 			break
 		}
 		if err != nil {
-			return closeSyncOut(consumerIn, err)
+			return err
 		}
 		if reason := syncOutDenyReason(hdr); reason != "" {
-			fmt.Fprintf(warn, "warning: sync-out skipped %s (%s)\n", cleanSyncOutName(hdr.Name), reason)
+			warnSkippedEntry(warn, hdr, reason)
 			continue
 		}
 		if err := emitSyncOutEntry(tw, tr, hdr); err != nil {
-			return closeSyncOut(consumerIn, err)
+			return err
 		}
 	}
-	if err := tw.Close(); err != nil {
-		consumerIn.Close()
-		return err
+	return tw.Close()
+}
+
+// warnSkippedEntry prints a skip notice for a denied tar header.
+func warnSkippedEntry(warn io.Writer, hdr *tar.Header, reason string) {
+	name, _ := cleanSyncOutName(hdr.Name)
+	if name == "" {
+		name = hdr.Name
 	}
-	return consumerIn.Close()
+	fmt.Fprintf(warn, "warning: sync-out skipped %s (%s)\n", name, reason)
 }
 
 // emitSyncOutEntry re-emits one allowed tar entry, header then body, so the
@@ -83,23 +91,20 @@ func emitSyncOutEntry(tw *tar.Writer, tr *tar.Reader, hdr *tar.Header) error {
 	return err
 }
 
-// closeSyncOut closes the consumer's stdin and returns the error the caller
-// was already handling.
-func closeSyncOut(consumerIn io.WriteCloser, err error) error {
-	consumerIn.Close()
-	return err
-}
-
 // syncOutDenyReason reports the first reason a tar entry must not reach the
-// host tree, or "" when the entry passes. The mode check covers regular
-// files only: symlinks always carry world-writable modes and directories
-// transfer no executable content.
+// host tree, or "" when the entry passes.
 func syncOutDenyReason(hdr *tar.Header) string {
-	name := cleanSyncOutName(hdr.Name)
+	name, escape := cleanSyncOutName(hdr.Name)
+	if escape {
+		return "path traversal outside workspace"
+	}
 	for _, pattern := range syncOutDenyList {
 		if matchSyncOutDeny(pattern, name) {
 			return fmt.Sprintf("matches deny list entry %s", pattern)
 		}
+	}
+	if reason := checkSpecialOrLink(hdr, name); reason != "" {
+		return reason
 	}
 	if hdr.Typeflag != tar.TypeReg {
 		return ""
@@ -111,6 +116,32 @@ func syncOutDenyReason(hdr *tar.Header) string {
 		return "setgid bit set"
 	case hdr.Mode&modeWorldWritable != 0:
 		return "world-writable"
+	}
+	return ""
+}
+
+// checkSpecialOrLink rejects device files, symlinks and links that violate safety.
+func checkSpecialOrLink(hdr *tar.Header, name string) string {
+	switch hdr.Typeflag {
+	case tar.TypeBlock, tar.TypeChar, tar.TypeFifo:
+		return "special file not allowed"
+	case tar.TypeSymlink:
+		switch name {
+		case ".git", ".git/hooks", ".husky":
+			return "git directory cannot be a symlink"
+		}
+	case tar.TypeLink:
+	default:
+		return ""
+	}
+	target, escape := cleanSyncOutName(hdr.Linkname)
+	if escape {
+		return "link target escapes workspace"
+	}
+	for _, pattern := range syncOutDenyList {
+		if matchSyncOutDeny(pattern, target) {
+			return fmt.Sprintf("link target matches deny list entry %s", pattern)
+		}
 	}
 	return ""
 }
@@ -127,10 +158,20 @@ func matchSyncOutDeny(pattern, name string) bool {
 	return err == nil && matched
 }
 
-// cleanSyncOutName strips the "./" root prefix and the trailing slash of
-// directory entries, so deny patterns match plain relative paths.
-func cleanSyncOutName(name string) string {
-	name = strings.TrimPrefix(name, "./")
-	name = strings.TrimPrefix(name, "/")
-	return strings.TrimSuffix(name, "/")
+// cleanSyncOutName strips redundant prefixes and trailing slashes from name,
+// reporting whether the path escapes the workspace root.
+func cleanSyncOutName(name string) (string, bool) {
+	slashed := filepath.ToSlash(name)
+	for strings.HasPrefix(slashed, "./") || strings.HasPrefix(slashed, "/") {
+		slashed = strings.TrimPrefix(slashed, "./")
+		slashed = strings.TrimPrefix(slashed, "/")
+	}
+	cleaned := path.Clean(slashed)
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", true
+	}
+	if cleaned == "." {
+		return "", false
+	}
+	return strings.TrimSuffix(cleaned, "/"), false
 }

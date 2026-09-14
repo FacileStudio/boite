@@ -130,7 +130,7 @@ func rematerializeCasierToken(inst *Instance, key string, ttl time.Duration) (bo
 		return ok, err
 	}
 	expiry := strconv.FormatInt(time.Now().Add(ttl).Unix(), 10)
-	remote := "tiroir set " + key + " " + shellQuote(token) + " && tiroir set " + expiryMarker(key) + " " + shellQuote(expiry)
+	remote := "tiroir set " + shellQuote(key) + " " + shellQuote(token) + " && tiroir set " + shellQuote(expiryMarker(key)) + " " + shellQuote(expiry)
 	return true, SSHCommand(inst, []string{remote})
 }
 

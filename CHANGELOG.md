@@ -9,9 +9,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ### Added
 
-- Sync-out guard: `boite sync` skips guest-authored executable hooks and env files (`.git/hooks/*`, `.envrc`, `.env`, `.env.*`, `.vscode/tasks.json`, `.husky/*`) and setuid, setgid or world-writable files when copying `/workspace` back to the host, printing a warning per skipped path; `boite sync --all` disables the filter for a single sync.
+- Snapshot/rollback: `boite snapshot <name> <tag>`, `rollback <name> <tag>` and `snapshots <name>` provide internal qcow2 overlay snapshots on stopped sandbox VMs for instant retries.
+- Sync-out guard: `boite sync` skips guest-authored executable hooks, git config and env files (`.git/hooks/*`, `.git/config`, `.envrc`, `.env`, `.env.*`, `.vscode/tasks.json`, `.husky/*`), setuid, setgid or world-writable files, symlinks targeting denied or escaping paths, and path traversal attempts when copying `/workspace` back to the host, printing a warning per skipped path; `boite sync --all` disables the filter for a single sync.
 - `env.casier.ttl` in `~/.boite.yml` makes the materialized casier token session-scoped: the guest store carries an expiry marker (`<KEY>__expires`, unix-epoch seconds), `boite run` and `boite exec` drop the token once it expires (with a one-line warning) and re-materialize a fresh token on the next successful refresh while casier is reachable. Unset (the default) keeps the previous behaviour: the token persists for the VM lifetime.
 - `vm.net: offline` in `~/.boite.yml` denies the guest all outbound network access by setting slirp `restrict=on` in the host-side QEMU flags, so a passwordless-root guest cannot undo it; inbound SSH over the host-forwarded port keeps working. Default remains `open`.
+
+### Fixed
+
+- `boite exec` now forwards flags directly to the guest command (e.g. `boite exec <name> ls -la` or `bun --version`) without Cobra intercepting them, quotes command arguments, and exports the toolchain PATH so tools like `go`, `bun`, and `cargo` resolve during non-interactive execution.
 
 ## [0.7.2] — 2026-09-11
 

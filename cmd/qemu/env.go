@@ -139,7 +139,7 @@ func refreshManagedKeys(inst *Instance, cfg *BoiteConfig) error {
 	}
 	var remote string
 	for i, name := range plan {
-		set := "tiroir set " + name + " " + shellQuote(envVars[name])
+		set := "tiroir set " + shellQuote(name) + " " + shellQuote(envVars[name])
 		if i == 0 {
 			remote = set
 		} else {

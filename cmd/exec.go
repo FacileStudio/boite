@@ -11,11 +11,12 @@ import (
 // newExecCmd builds the "exec" subcommand.
 func newExecCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "exec <name> <command...>",
-		Short: "Execute a command in a running sandbox",
-		Long:  `Execute a command in the specified sandbox VM via SSH.`,
-		Args:  cobra.MinimumNArgs(1),
-		Run:   runExec,
+		Use:                "exec <name> <command...>",
+		Short:              "Execute a command in a running sandbox",
+		Long:               `Execute a command in the specified sandbox VM via SSH.`,
+		Args:               cobra.MinimumNArgs(1),
+		DisableFlagParsing: true,
+		Run:                runExec,
 	}
 }
 
@@ -27,8 +28,14 @@ func runExec(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if inst.PID == 0 {
+	if inst.PID == 0 || !qemu.IsProcessRunning(inst.PID) {
 		fmt.Fprintf(os.Stderr, "Error: sandbox '%s' is not running\n", name)
+		os.Exit(1)
+	}
+
+	command := args[1:]
+	if len(command) == 0 {
+		fmt.Fprintln(os.Stderr, "Error: command is required")
 		os.Exit(1)
 	}
 
@@ -36,7 +43,6 @@ func runExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Warning: could not refresh managed env, keeping last snapshot: %v\n", err)
 	}
 
-	command := args[1:]
 	if err := qemu.SSHCommand(inst, qemu.WithEnv(command)); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: command execution failed: %v\n", err)
 		os.Exit(1)
