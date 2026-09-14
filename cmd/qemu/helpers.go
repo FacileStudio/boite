@@ -57,6 +57,9 @@ func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig) {
 	if cfg != nil && cfg.VM != nil {
 		qemuCfg.Memory = cfg.VM.Memory
 		qemuCfg.CPUs = cfg.VM.CPUs
+		if net, _ := cfg.VM.EffectiveNet(); net == "offline" {
+			qemuCfg.RestrictNet = true
+		}
 	}
 }
 

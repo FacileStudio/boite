@@ -141,6 +141,21 @@ setuid, setgid or world-writable bit; each skip prints a warning line. The
 incoming sync (`boite run`) stays complete. Pass `--all` to disable the guard
 for one sync and copy everything.
 
+### Egress
+
+Set `vm.net: offline` in `~/.boite.yml` to deny the guest all outbound
+network access: the restriction is set in the QEMU slirp flags on the host,
+so a root process inside the VM cannot undo it. Inbound SSH through the
+host-forwarded port keeps working, so `boite run`, `exec` and `sync` behave
+as usual. The default is `open` (unrestricted). A per-host allowlist is not
+supported: slirp cannot filter by destination, and in-guest firewall rules
+would be rewritable by the guest's passwordless-root user.
+
+```yaml
+vm:
+  net: offline
+```
+
 ## Configuration
 
 Boite uses `~/.boite.yml` for configuration. If the file doesn't exist, a default config is created automatically.

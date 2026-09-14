@@ -11,6 +11,7 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 - Sync-out guard: `boite sync` skips guest-authored executable hooks and env files (`.git/hooks/*`, `.envrc`, `.env`, `.env.*`, `.vscode/tasks.json`, `.husky/*`) and setuid, setgid or world-writable files when copying `/workspace` back to the host, printing a warning per skipped path; `boite sync --all` disables the filter for a single sync.
 - `env.casier.ttl` in `~/.boite.yml` makes the materialized casier token session-scoped: the guest store carries an expiry marker (`<KEY>__expires`, unix-epoch seconds), `boite run` and `boite exec` drop the token once it expires (with a one-line warning) and re-materialize a fresh token on the next successful refresh while casier is reachable. Unset (the default) keeps the previous behaviour: the token persists for the VM lifetime.
+- `vm.net: offline` in `~/.boite.yml` denies the guest all outbound network access by setting slirp `restrict=on` in the host-side QEMU flags, so a passwordless-root guest cannot undo it; inbound SSH over the host-forwarded port keeps working. Default remains `open`.
 
 ## [0.7.2] — 2026-09-11
 

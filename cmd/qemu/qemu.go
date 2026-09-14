@@ -39,6 +39,9 @@ type QEMUConfig struct {
 	ConsoleLog     string
 	Memory         string
 	CPUs           int
+	// RestrictNet sets slirp restrict=on: the guest gets no outbound access,
+	// only inbound SSH via hostfwd. Enforced host-side in the QEMU flags.
+	RestrictNet bool
 }
 
 // BuildQEMUArgs assembles the qemu-system-x86_64 command line for cfg:
@@ -61,13 +64,13 @@ func BuildQEMUArgs(cfg QEMUConfig) []string {
 		cpus = 2
 	}
 
+	restrict := "off"
+	if cfg.RestrictNet {
+		restrict = "on"
+	}
+	args = append(args, baseArgs(cfg, cpuModel, memory, cpus)...)
 	args = append(args,
-		"-cpu", cpuModel,
-		"-m", memory,
-		"-smp", strconv.Itoa(cpus),
-		"-drive", fmt.Sprintf("file=%s,format=qcow2,if=virtio", cfg.OverlayPath),
-		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", cfg.ConfigDiskPath),
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=off,hostfwd=tcp:127.0.0.1:%d-:22", cfg.HostFwdPort),
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=%s,hostfwd=tcp:127.0.0.1:%d-:22", restrict, cfg.HostFwdPort),
 		"-device", "virtio-net-pci,netdev=net0",
 		"-serial", fmt.Sprintf("file:%s", cfg.ConsoleLog),
 		"-display", "none",
@@ -76,6 +79,16 @@ func BuildQEMUArgs(cfg QEMUConfig) []string {
 		"-name", "boite-vm",
 	)
 	return args
+}
+
+func baseArgs(cfg QEMUConfig, cpuModel, memory string, cpus int) []string {
+	return []string{
+		"-cpu", cpuModel,
+		"-m", memory,
+		"-smp", strconv.Itoa(cpus),
+		"-drive", fmt.Sprintf("file=%s,format=qcow2,if=virtio", cfg.OverlayPath),
+		"-drive", fmt.Sprintf("file=%s,format=raw,if=virtio,readonly=on", cfg.ConfigDiskPath),
+	}
 }
 
 // StartQEMU creates the console log file, launches qemu-system-x86_64 with the

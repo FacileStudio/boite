@@ -14,6 +14,25 @@ type VMConfig struct {
 	CPUs   int    `yaml:"cpus"`
 	Disk   string `yaml:"disk"`
 	Memory string `yaml:"memory"`
+	// Net is the egress mode: open (default) gives the guest unrestricted
+	// outbound access through slirp; offline sets slirp restrict=on, which
+	// denies all guest-initiated traffic while the SSH hostfwd keeps working.
+	// Enforcement lives in the QEMU process flags on the host, so a
+	// passwordless-root guest cannot undo it.
+	Net string `yaml:"net"`
+}
+
+// EffectiveNet returns the egress mode, defaulting to open when unset.
+func (v *VMConfig) EffectiveNet() (string, error) {
+	if v == nil || v.Net == "" {
+		return "open", nil
+	}
+	switch v.Net {
+	case "open", "offline":
+		return v.Net, nil
+	default:
+		return "", fmt.Errorf("vm.net %q must be open or offline", v.Net)
+	}
 }
 
 // WorkspaceSyncEnabled reports whether the current directory should be synced
@@ -163,6 +182,9 @@ func LoadBoiteConfig(path string) (*BoiteConfig, error) {
 
 	var cfg BoiteConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("parse config: %w", err)
+	}
+	if _, err := cfg.VM.EffectiveNet(); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 
