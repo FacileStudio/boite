@@ -16,7 +16,7 @@ const asciiBanner = `▄▄▄▄   ▄▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄�
 
 // version is written once by the linker (-ldflags -X ...cmd.version=...) at
 // build time and only read afterwards.
-var version = "0.7.2"
+var version = "0.8.0"
 
 // Execute runs the root command, dispatching to the registered subcommands.
 // fang renders the styled error and returns it, so a non-nil result is only

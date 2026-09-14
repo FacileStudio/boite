@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-14
+
 ### Added
 
 - Snapshot/rollback: `boite snapshot <name> <tag>`, `rollback <name> <tag>` and `snapshots <name>` provide internal qcow2 overlay snapshots on stopped sandbox VMs for instant retries.
@@ -221,7 +223,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/FacileStudio/boite/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/FacileStudio/boite/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/FacileStudio/boite/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/FacileStudio/boite/compare/v0.6.0...v0.7.0
