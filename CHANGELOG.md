@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+
+- Sync-out guard: `boite sync` skips guest-authored executable hooks and env files (`.git/hooks/*`, `.envrc`, `.env`, `.env.*`, `.vscode/tasks.json`, `.husky/*`) and setuid, setgid or world-writable files when copying `/workspace` back to the host, printing a warning per skipped path; `boite sync --all` disables the filter for a single sync.
+
 ## [0.7.2] — 2026-09-11
 
 ### Fixed

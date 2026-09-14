@@ -97,6 +97,15 @@ sync: true   # opt in: sync the current directory to /workspace on run
 Without a `sync:` key, or with it `false`, nothing is copied into `/workspace`.
 `boite run --no-workspace` overrides an enabled config for a single session.
 
+### Sync-out guard
+
+`boite sync` never copies guest-authored hooks or env files into the host
+tree. The sync-out deny list skips `.git/hooks/*`, `.envrc`, `.env`, `.env.*`,
+`.vscode/tasks.json` and `.husky/*`, plus any regular file carrying the
+setuid, setgid or world-writable bit; each skip prints a warning line. The
+incoming sync (`boite run`) stays complete. Pass `--all` to disable the guard
+for one sync and copy everything.
+
 ## Configuration
 
 Boite uses `~/.boite.yml` for configuration. If the file doesn't exist, a default config is created automatically.
