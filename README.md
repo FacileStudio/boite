@@ -71,6 +71,9 @@ boite rm my-project
 | `start <name>` | Start sandbox VM |
 | `stop <name>` | Stop sandbox VM (preserves data) |
 | `rm <name>` | Destroy sandbox VM permanently |
+| `snapshot <name> <tag>` | Snapshot a stopped sandbox's overlay disk |
+| `rollback <name> <tag>` | Roll a stopped sandbox's overlay back to a snapshot (discards current state) |
+| `snapshots <name>` | List the qcow2 snapshots on a sandbox's overlay |
 | `install` | Install boite to system PATH |
 
 ## Workspace sync
@@ -96,6 +99,38 @@ sync: true   # opt in: sync the current directory to /workspace on run
 
 Without a `sync:` key, or with it `false`, nothing is copied into `/workspace`.
 `boite run --no-workspace` overrides an enabled config for a single session.
+
+## Snapshot/rollback
+
+Sandboxes support cheap retries: snapshot the overlay while the VM is stopped,
+break things inside the VM, then roll back to the snapshot instead of
+recreating the sandbox.
+
+```bash
+boite stop my-project
+boite snapshot my-project clean
+boite start my-project
+
+# ...work, break things, stop again...
+
+boite stop my-project
+boite rollback my-project clean
+boite start my-project
+```
+
+Snapshots are internal qcow2 snapshots on the instance's overlay
+(`~/.boite/instances/<name>/overlay.qcow2`), taken with `qemu-img snapshot`.
+Create, apply and list all require the VM to be stopped: running qemu holds a
+write lock on the overlay that `qemu-img` cannot take. Tags are 1 to 40
+characters of letters, digits, dash or underscore.
+
+**Rollback discards the current state.** Everything on the overlay since the
+snapshot was taken is gone. The config disk, SSH keys and state file are
+untouched, so `boite start` boots the rolled-back disk as usual.
+
+Boite does not resume from a snapshot twice in the same boot session
+(QEMU/Firecracker RNG-state caveat): boot the rolled-back disk once, stop the
+VM, and roll back again before booting from the same tag another time.
 
 ## Configuration
 
