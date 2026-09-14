@@ -99,6 +99,14 @@ ZRC
 chown boite:boite /home/boite/.zshrc
 chmod 644 /home/boite/.zshrc
 
+# zsh -c (what sshd runs for boite exec) reads only .zshenv, so the
+# toolchain PATH must live here for non-interactive commands.
+cat > /home/boite/.zshenv <<'ZEV'
+export PATH="/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+ZEV
+chown boite:boite /home/boite/.zshenv
+chmod 644 /home/boite/.zshenv
+
 # Non-interactive `sh -lc` never reads rc (boite exec paints the env itself
 # via WithEnv), but a shell started as bash still should see managed keys.
 cat > /home/boite/.bashrc <<'BRC'
