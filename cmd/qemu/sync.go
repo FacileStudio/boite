@@ -30,9 +30,12 @@ func SyncWorkspaceIn(inst *Instance, srcDir string) error {
 }
 
 // SyncWorkspaceOut copies /workspace from the sandbox back into destDir,
-// overwriting matching files. Ownership from the guest (user boite) is not
-// preserved so the copies stay owned by the host user.
-func SyncWorkspaceOut(inst *Instance, destDir string) error {
+// overwriting matching files. Guest-authored paths on the sync-out deny list
+// and regular files with setuid, setgid or world-writable modes are skipped
+// with a warning, so the guest cannot plant executable content in the host
+// tree; allowAll copies everything unfiltered. Ownership from the guest
+// (user boite) is not preserved so the copies stay owned by the host user.
+func SyncWorkspaceOut(inst *Instance, destDir string, allowAll bool) error {
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("create dest dir: %w", err)
 	}
@@ -40,7 +43,7 @@ func SyncWorkspaceOut(inst *Instance, destDir string) error {
 	sshCmd := exec.Command("ssh", BuildSSHArgs(inst, []string{remote})...)
 	sshCmd.Stderr = os.Stderr
 	untarCmd := exec.Command("tar", "-xf", "-", "-C", destDir, "--no-same-owner")
-	return streamOut(sshCmd, untarCmd, destDir)
+	return streamOut(sshCmd, untarCmd, destDir, allowAll)
 }
 
 // streamIn pipes the host tar producer's archive into the ssh consumer while
@@ -103,10 +106,10 @@ func streamInError(producerErr, consumerErr error) error {
 // streamOut pipes the ssh producer's archive into the host untar consumer
 // while both run, and reports the first failure: ssh, then untar, then the
 // pipe. Untar's stderr is captured so a failure includes what tar said.
-func streamOut(producer, consumer *exec.Cmd, destDir string) error {
+func streamOut(producer, consumer *exec.Cmd, destDir string, allowAll bool) error {
 	var untarErr bytes.Buffer
 	consumer.Stderr = &untarErr
-	copyErr, producerErr, consumerErr := pipeStream(producer, consumer)
+	copyErr, producerErr, consumerErr := pipeStream(producer, consumer, allowAll)
 	switch {
 	case producerErr != nil:
 		return fmt.Errorf("tar workspace in VM: %w", producerErr)
@@ -121,7 +124,7 @@ func streamOut(producer, consumer *exec.Cmd, destDir string) error {
 // pipeStream starts producer and consumer, streams producer's stdout into
 // consumer's stdin, then waits for the copy and both processes. The copy runs
 // concurrently with the waits so a full pipe never blocks the producer.
-func pipeStream(producer, consumer *exec.Cmd) (copyErr, producerErr, consumerErr error) {
+func pipeStream(producer, consumer *exec.Cmd, allowAll bool) (copyErr, producerErr, consumerErr error) {
 	producerOut, err := producer.StdoutPipe()
 	if err != nil {
 		producerErr = err
@@ -144,7 +147,7 @@ func pipeStream(producer, consumer *exec.Cmd) (copyErr, producerErr, consumerErr
 	}
 	copied := make(chan error, 1)
 	go func() {
-		copied <- copyArchive(consumerIn, producerOut)
+		copied <- syncOutPump(consumerIn, producerOut, allowAll)
 	}()
 	consumerErr = consumer.Wait()
 	producerErr = producer.Wait()
