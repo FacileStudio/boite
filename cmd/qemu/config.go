@@ -66,19 +66,6 @@ func WorkspaceSyncEnabled(inst *Instance, configPath string, forceSkip bool) boo
 	return false
 }
 
-// ProvisionConfig is the per-instance provisioning block of ~/.boite.yml.
-// Packages are apt packages installed into the guest, and commands are shell
-// lines run as the boite user. The base toolchain stays baked in the image;
-// this tunes what each new instance adds on top of it.
-type ProvisionConfig struct {
-	Packages []string `yaml:"packages"`
-	Commands []string `yaml:"commands"`
-}
-
-// Empty reports whether the provision block declares nothing to do.
-func (p *ProvisionConfig) Empty() bool {
-	return len(p.Packages) == 0 && len(p.Commands) == 0
-}
 
 // EnvSource selects where a VM's environment comes from. local is the default:
 // values are injected at create time. casier is an opt-in source where the host

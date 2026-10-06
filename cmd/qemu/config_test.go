@@ -67,8 +67,9 @@ func TestLoadBoiteConfigProvision(t *testing.T) {
 	if cfg.Provision == nil {
 		t.Fatal("expected provision block to parse")
 	}
-	if len(cfg.Provision.Packages) != 2 || cfg.Provision.Packages[0] != "nala" || cfg.Provision.Packages[1] != "tmux" {
-		t.Fatalf("unexpected packages: %v", cfg.Provision.Packages)
+	pkgs, _ := cfg.Provision.ForDistro("debian")
+	if len(pkgs) != 2 || pkgs[0] != "nala" || pkgs[1] != "tmux" {
+		t.Fatalf("unexpected packages: %v", pkgs)
 	}
 	if len(cfg.Provision.Commands) != 1 || cfg.Provision.Commands[0] != "echo hi" {
 		t.Fatalf("unexpected commands: %v", cfg.Provision.Commands)

@@ -15,17 +15,21 @@ func Provision(inst *Instance, cfg *BoiteConfig) error {
 	if cfg == nil || cfg.Provision == nil || cfg.Provision.Empty() {
 		return nil
 	}
+	packages, commands := cfg.Provision.ForDistro(inst.Distro)
+	if len(packages) == 0 && len(commands) == 0 {
+		return nil
+	}
 
 	ProgressPhase("Provisioning instance")
 
-	hasPackages := len(cfg.Provision.Packages) > 0
-	if err := provisionPackages(inst, cfg.Provision.Packages); err != nil {
+	hasPackages := len(packages) > 0
+	if err := provisionPackages(inst, packages); err != nil {
 		return err
 	}
 
-	for i, command := range cfg.Provision.Commands {
-		frac := commandFrac(hasPackages, i, len(cfg.Provision.Commands))
-		ProgressTick(fmt.Sprintf("running command %d/%d", i+1, len(cfg.Provision.Commands)), frac)
+	for i, command := range commands {
+		frac := commandFrac(hasPackages, i, len(commands))
+		ProgressTick(fmt.Sprintf("running command %d/%d", i+1, len(commands)), frac)
 		if err := runProvisionStep(inst, []string{"sh", "-lc", shellQuote(command)}); err != nil {
 			return fmt.Errorf("provision command %d: %w", i+1, err)
 		}
