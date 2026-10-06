@@ -53,16 +53,20 @@ func styleBanner(ascii string, version string) string {
 		Render(ascii + " v" + version)
 }
 
-func renderSandboxCard(name, workspace string, noMount bool, sshPort int) string {
+func renderSandboxCard(name, distro, workspace string, noMount bool, sshPort int) string {
 	titleStyle := lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
 	labelStyle := lipgloss.NewStyle().Foreground(accentColor)
 	valueStyle := lipgloss.NewStyle().Foreground(subtleColor)
 	cmdStyle := lipgloss.NewStyle().Foreground(successColor).Bold(true)
 
+	if distro == "" {
+		distro = qemu.DefaultDistro
+	}
 	lines := []string{
 		titleStyle.Render("Sandbox Ready"),
 		"",
 		fmt.Sprintf("%s  %s", labelStyle.Render("VM:       "), valueStyle.Render(name)),
+		fmt.Sprintf("%s  %s", labelStyle.Render("Distro:   "), valueStyle.Render(distro)),
 		fmt.Sprintf("%s  %s", labelStyle.Render("User:     "), valueStyle.Render("boite (/home/boite)")),
 		fmt.Sprintf("%s  %s", labelStyle.Render("SSH Port: "), valueStyle.Render(fmt.Sprintf("%d", sshPort))),
 	}

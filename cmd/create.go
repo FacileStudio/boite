@@ -75,7 +75,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println()
-	lipgloss.Println(renderSandboxCard(name, opts.WorkspacePath, opts.NoMount, inst.SSHPort))
+	lipgloss.Println(renderSandboxCard(name, inst.Distro, opts.WorkspacePath, opts.NoMount, inst.SSHPort))
 }
 
 func buildCreateOptions(cmd *cobra.Command, name, distro, cfgPath string) qemu.CreateOptions {

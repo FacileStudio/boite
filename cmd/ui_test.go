@@ -21,15 +21,15 @@ func TestRenderSandboxCard(t *testing.T) {
 	name := "pingu"
 	ws := "/home/yann/Code/test"
 	sshPort := 22222
-	card := renderSandboxCard(name, ws, false, sshPort)
-	if !strings.Contains(card, name) || !strings.Contains(card, ws) {
-		t.Fatalf("expected card to contain name and workspace, got: %s", card)
+	card := renderSandboxCard(name, "nixos", ws, false, sshPort)
+	if !strings.Contains(card, name) || !strings.Contains(card, ws) || !strings.Contains(card, "nixos") {
+		t.Fatalf("expected card to contain name, workspace and distro, got: %s", card)
 	}
 	if !strings.Contains(card, "boite run pingu") {
 		t.Fatalf("expected card to contain connect instruction, got: %s", card)
 	}
 
-	cardNoMount := renderSandboxCard(name, ws, true, sshPort)
+	cardNoMount := renderSandboxCard(name, "nixos", ws, true, sshPort)
 	if strings.Contains(cardNoMount, ws) {
 		t.Fatalf("expected card with noMount=true to not contain workspace, got: %s", cardNoMount)
 	}
