@@ -23,30 +23,34 @@ Use --no-mount so 'boite run' never syncs a workspace into /workspace for this i
 	}
 	createCmd.Flags().Bool("no-mount", false, "Create VM without mounting workspace")
 	createCmd.Flags().Bool("generate-key", false, "Generate a unique SSH key pair for this VM instead of using your existing ~/.ssh key")
+	createCmd.Flags().StringP("distro", "d", "", "Guest distribution (debian, alpine, nixos)")
 	return createCmd
 }
 
 func runCreate(cmd *cobra.Command, args []string) {
-	noMount, _ := cmd.Flags().GetBool("no-mount")
-	generateKey, _ := cmd.Flags().GetBool("generate-key")
 	cfgPath := configPath(cmd)
 	name := args[0]
-
 	if name == "" {
 		fmt.Fprintln(os.Stderr, "Error: sandbox name is required")
 		os.Exit(1)
 	}
 
-	workspacePath, _ := os.Getwd()
+	distroFlag, _ := cmd.Flags().GetString("distro")
+	distro, err := resolveCreateDistro(distroFlag, cfgPath)
+	if err != nil {
+		printError(err.Error())
+		os.Exit(1)
+	}
 
 	if !isConfigPresent(cfgPath) {
 		printInfo("No ~/.boite.yml file found nor config file passed, falling back to default config")
 	}
 
 	fmt.Fprintf(os.Stderr, "Creating sandbox '%s'...\n", name)
+	opts := buildCreateOptions(cmd, name, distro, cfgPath)
 
 	qemu.ProgressStart()
-	inst, err := qemu.Create(name, workspacePath, noMount, cfgPath, generateKey)
+	inst, err := qemu.Create(opts)
 	qemu.ProgressStop()
 
 	if err != nil {
@@ -55,7 +59,39 @@ func runCreate(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println()
-	lipgloss.Println(renderSandboxCard(name, workspacePath, noMount, inst.SSHPort))
+	lipgloss.Println(renderSandboxCard(name, opts.WorkspacePath, opts.NoMount, inst.SSHPort))
+}
+
+func buildCreateOptions(cmd *cobra.Command, name, distro, cfgPath string) qemu.CreateOptions {
+	noMount, _ := cmd.Flags().GetBool("no-mount")
+	generateKey, _ := cmd.Flags().GetBool("generate-key")
+	workspacePath, _ := os.Getwd()
+	return qemu.CreateOptions{
+		Name:          name,
+		WorkspacePath: workspacePath,
+		NoMount:       noMount,
+		ConfigPath:    cfgPath,
+		GenerateKey:   generateKey,
+		Distro:        distro,
+	}
+}
+
+func resolveCreateDistro(flagVal, cfgPath string) (string, error) {
+	if flagVal != "" {
+		spec, err := qemu.GetDistro(flagVal)
+		if err != nil {
+			return "", err
+		}
+		return spec.Name, nil
+	}
+	cfg, err := qemu.LoadBoiteConfig(cfgPath)
+	if err != nil {
+		return "", err
+	}
+	if cfg != nil && cfg.VM != nil {
+		return cfg.VM.EffectiveDistro(), nil
+	}
+	return qemu.DefaultDistro, nil
 }
 
 // isConfigPresent reports whether a config file is available for this run.

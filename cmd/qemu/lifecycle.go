@@ -8,37 +8,39 @@ import (
 // Create provisions a brand new instance: a fresh overlay disk, its SSH key,
 // a config disk with the environment, then boots the VM and waits for it to
 // finish firstboot. Returns the running instance, or (nil, err) on failure.
-func Create(name, workspacePath string, noMount bool, configPath string, generateKey bool) (*Instance, error) {
-	if InstanceExists(name) {
-		return nil, fmt.Errorf("instance '%s' already exists", name)
+func Create(opts CreateOptions) (*Instance, error) {
+	if InstanceExists(opts.Name) {
+		return nil, fmt.Errorf("instance '%s' already exists", opts.Name)
 	}
 
-	cfg, err := LoadBoiteConfig(configPath)
+	cfg, err := LoadBoiteConfig(opts.ConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("load boite config: %w", err)
 	}
+	distro := ResolveDistro(opts.Distro, cfg)
 
 	ProgressPhase("Preparing instance disk")
-	overlayPath, err := prepareInstanceDisk(name, cfg)
+	overlayPath, err := prepareInstanceDisk(opts.Name, distro, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	configDiskPath, keyResolution, err := prepareConfig(GetInstanceDir(name), generateKey, cfg)
+	configDiskPath, keyResolution, err := prepareConfig(GetInstanceDir(opts.Name), opts.GenerateKey, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	ProgressPhase("Starting VM")
 	inst, err := startAndFinalizeInstance(&startFinalizeParams{
-		name: name, workspacePath: workspacePath, noMount: noMount, overlayPath: overlayPath,
-		configDiskPath: configDiskPath, configPath: configPath, keyResolution: keyResolution, cfg: cfg,
+		name: opts.Name, workspacePath: opts.WorkspacePath, noMount: opts.NoMount, overlayPath: overlayPath,
+		configDiskPath: configDiskPath, configPath: opts.ConfigPath, keyResolution: keyResolution, cfg: cfg,
+		distro: distro,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	setupCleanupHandler(name)
+	setupCleanupHandler(opts.Name)
 	return inst, nil
 }
 
@@ -51,7 +53,7 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage: GetBaseImagePath(), OverlayPath: p.overlayPath, ConfigDiskPath: p.configDiskPath,
+		BaseImage: GetBaseImagePath(p.distro), OverlayPath: p.overlayPath, ConfigDiskPath: p.configDiskPath,
 		HostFwdPort: sshPort + 1, PIDFile: GetPIDPath(p.name), ConsoleLog: GetConsoleLogPath(p.name),
 	}
 	applyVMConfig(&qemuCfg, p.cfg)
@@ -119,8 +121,8 @@ func launchVM(cfg QEMUConfig) (int, error) {
 	return pid, nil
 }
 
-func prepareInstanceDisk(name string, cfg *BoiteConfig) (string, error) {
-	baseImage, err := EnsureBaseImage()
+func prepareInstanceDisk(name, distro string, cfg *BoiteConfig) (string, error) {
+	baseImage, err := EnsureBaseImage(distro)
 	if err != nil {
 		return "", fmt.Errorf("base image: %w", err)
 	}
@@ -156,7 +158,7 @@ func Start(name string, configPath string) (*Instance, error) {
 	}
 
 	qemuCfg := QEMUConfig{
-		BaseImage: GetBaseImagePath(), OverlayPath: inst.OverlayPath, ConfigDiskPath: inst.ConfigDiskPath,
+		BaseImage: GetBaseImagePath(inst.Distro), OverlayPath: inst.OverlayPath, ConfigDiskPath: inst.ConfigDiskPath,
 		HostFwdPort: inst.SSHPort, PIDFile: GetPIDPath(name), ConsoleLog: GetConsoleLogPath(name),
 	}
 	applyVMConfig(&qemuCfg, cfg)

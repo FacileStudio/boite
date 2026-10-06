@@ -7,6 +7,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-10-07
+
+### Added
+
+- Multi-distro sandbox VM support: `boite create <name> --distro debian|alpine|nixos` (or `-d <distro>`) and `vm.distro` in `~/.boite.yml` allow creating VMs backed by Debian, Alpine, or NixOS base images.
+- Distro-aware base image registry in `cmd/qemu/distro.go` with per-distro image naming, URLs, and checksums.
+- Distro-aware package provisioning in `cmd/qemu/provision.go`: automatically routes `packages` to `apt-get` on Debian, `apk` on Alpine, and `nix profile` on NixOS.
+- Distro visibility: `boite list` displays the active distribution for every sandbox instance.
+- Distro base image bake pipelines: `scripts/bake-alpine.sh` and `scripts/firstboot-alpine.sh` (OpenRC firstboot for Alpine), and `scripts/bake-nixos.sh` and `nix/boite-configuration.nix` (declarative systemd firstboot for NixOS).
+
+### Changed
+
+- Debian bake image now uses `bob` (`v4.2.0`) to install and manage the latest upstream Neovim release instead of Debian's packaged `apt` Neovim, exposing `~/.local/share/bob/nvim-bin` on PATH and via `/usr/local/bin/nvim`.
+
 ## [0.8.0] — 2026-09-14
 
 ### Added
@@ -223,7 +237,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/FacileStudio/boite/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/FacileStudio/boite/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/FacileStudio/boite/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/FacileStudio/boite/compare/v0.7.0...v0.7.1

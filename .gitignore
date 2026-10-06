@@ -8,3 +8,6 @@ tmp/
 ascii.txt
 boite.qcow2
 boite*.qcow2
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

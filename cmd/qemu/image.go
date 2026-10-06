@@ -9,25 +9,30 @@ import (
 	"os/exec"
 )
 
-// EnsureBaseImage returns the path to the Debian base image, downloading and
-// checksum-verifying it into the cache when it is not already there.
-func EnsureBaseImage() (string, error) {
+// EnsureBaseImage returns the path to the base image for the given distro,
+// downloading and checksum-verifying it into the cache when not already there.
+func EnsureBaseImage(distro string) (string, error) {
+	spec, err := GetDistro(distro)
+	if err != nil {
+		return "", err
+	}
+
 	cacheDir := GetCacheDir()
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return "", fmt.Errorf("create cache dir: %w", err)
 	}
 
-	basePath := GetBaseImagePath()
+	basePath := GetBaseImagePath(spec.Name)
 	if fi, err := os.Stat(basePath); err == nil && fi.Size() > 0 {
 		return basePath, nil
 	}
 
-	return downloadBaseImage(basePath)
+	return downloadBaseImage(spec, basePath)
 }
 
-func downloadBaseImage(destPath string) (string, error) {
-	fmt.Fprintf(os.Stderr, "Downloading Debian base image...\n")
-	resp, err := http.Get(BaseImageURL)
+func downloadBaseImage(spec DistroSpec, destPath string) (string, error) {
+	fmt.Fprintf(os.Stderr, "Downloading %s base image...\n", spec.Name)
+	resp, err := http.Get(spec.URL)
 	if err != nil {
 		return "", fmt.Errorf("download failed: %w", err)
 	}
@@ -50,15 +55,17 @@ func downloadBaseImage(destPath string) (string, error) {
 
 	fmt.Fprintf(os.Stderr, "Downloaded %.1f MB\n", float64(written)/(1024*1024))
 
-	if err := verifyChecksum(destPath); err != nil {
-		os.Remove(destPath)
-		return "", err
+	if spec.SHA256 != "" {
+		if err := verifyChecksum(destPath, spec.SHA256); err != nil {
+			os.Remove(destPath)
+			return "", err
+		}
 	}
 
 	return destPath, nil
 }
 
-func verifyChecksum(path string) error {
+func verifyChecksum(path, expectedSHA string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -70,8 +77,8 @@ func verifyChecksum(path string) error {
 		return err
 	}
 	sum := fmt.Sprintf("%x", h.Sum(nil))
-	if sum != BaseImageSHA256 {
-		return fmt.Errorf("checksum mismatch: got %s, expected %s", sum, BaseImageSHA256)
+	if sum != expectedSHA {
+		return fmt.Errorf("checksum mismatch: got %s, expected %s", sum, expectedSHA)
 	}
 	return nil
 }

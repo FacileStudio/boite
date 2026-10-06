@@ -20,7 +20,16 @@ type VMConfig struct {
 	// denies all guest-initiated traffic while the SSH hostfwd keeps working.
 	// Enforcement lives in the QEMU process flags on the host, so a
 	// passwordless-root guest cannot undo it.
-	Net string `yaml:"net"`
+	Net    string `yaml:"net"`
+	Distro string `yaml:"distro"`
+}
+
+// EffectiveDistro returns the configured distribution, defaulting to debian when unset.
+func (v *VMConfig) EffectiveDistro() string {
+	if v == nil || v.Distro == "" {
+		return DefaultDistro
+	}
+	return strings.TrimSpace(strings.ToLower(v.Distro))
 }
 
 // EffectiveNet returns the egress mode, defaulting to open when unset.

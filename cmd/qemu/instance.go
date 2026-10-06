@@ -8,20 +8,36 @@ import (
 	"time"
 )
 
+// SSHKeyPaths holds the paths to the instance SSH private and public keys.
+type SSHKeyPaths struct {
+	KeyPath    string `json:"key_path"`
+	PubKeyPath string `json:"pub_key_path"`
+}
+
+// CreateOptions holds settings required to provision a new instance.
+type CreateOptions struct {
+	Name          string
+	WorkspacePath string
+	NoMount       bool
+	ConfigPath    string
+	GenerateKey   bool
+	Distro        string
+}
+
 // Instance is the persisted state boite keeps for one sandbox: where its
 // overlay and keys live, the SSH port, and whether the workspace is mounted.
 type Instance struct {
-	Name           string    `json:"name"`
-	PID            int       `json:"pid"`
-	SSHPort        int       `json:"ssh_port"`
-	OverlayPath    string    `json:"overlay_path"`
-	ConfigDiskPath string    `json:"config_disk_path"`
-	KeyPath        string    `json:"key_path"`
-	PubKeyPath     string    `json:"pub_key_path"`
-	CreatedAt      time.Time `json:"created_at"`
-	Status         string    `json:"status"`
-	Workspace      string    `json:"workspace"`
-	NoMount        bool      `json:"no_mount"`
+	Name           string `json:"name"`
+	PID            int    `json:"pid"`
+	SSHPort        int    `json:"ssh_port"`
+	OverlayPath    string `json:"overlay_path"`
+	ConfigDiskPath string `json:"config_disk_path"`
+	SSHKeyPaths
+	CreatedAt time.Time `json:"created_at"`
+	Status    string    `json:"status"`
+	Workspace string    `json:"workspace"`
+	NoMount   bool      `json:"no_mount"`
+	Distro    string    `json:"distro"`
 	// PinnedEnv lists keys the user set via 'boite env set'. They are
 	// authoritative: source refresh skips them, so the manual value sticks.
 	PinnedEnv []string `json:"pinned_env,omitempty"`

@@ -37,6 +37,23 @@ func GetInstanceDir(name string) string {
 }
 
 // GetBaseImagePath returns where the downloaded base image lives in the cache.
-func GetBaseImagePath() string {
-	return filepath.Join(GetCacheDir(), BaseImageName)
+func GetBaseImagePath(distro string) string {
+	spec, err := GetDistro(distro)
+	name := distro + ".qcow2"
+	if err == nil && spec.ImageName != "" {
+		name = spec.ImageName
+	}
+	dest := filepath.Join(GetCacheDir(), name)
+	if (distro == "" || distro == "debian") && !pathExists(dest) {
+		legacy := filepath.Join(GetCacheDir(), BaseImageName)
+		if pathExists(legacy) {
+			return legacy
+		}
+	}
+	return dest
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

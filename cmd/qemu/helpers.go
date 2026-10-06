@@ -20,6 +20,7 @@ type startFinalizeParams struct {
 	configPath     string
 	keyResolution  sshKeyResolution
 	cfg            *BoiteConfig
+	distro         string
 }
 
 func (p *startFinalizeParams) buildInstance(pid int, sshPort int) *Instance {
@@ -29,12 +30,15 @@ func (p *startFinalizeParams) buildInstance(pid int, sshPort int) *Instance {
 		SSHPort:        sshPort,
 		OverlayPath:    p.overlayPath,
 		ConfigDiskPath: p.configDiskPath,
-		KeyPath:        p.keyResolution.privateKeyPath,
-		PubKeyPath:     p.keyResolution.publicKeyPath,
-		CreatedAt:      time.Now(),
-		Status:         "running",
-		Workspace:      p.workspacePath,
-		NoMount:        p.noMount,
+		SSHKeyPaths: SSHKeyPaths{
+			KeyPath:    p.keyResolution.privateKeyPath,
+			PubKeyPath: p.keyResolution.publicKeyPath,
+		},
+		CreatedAt: time.Now(),
+		Status:    "running",
+		Workspace: p.workspacePath,
+		NoMount:   p.noMount,
+		Distro:    p.distro,
 	}
 }
 

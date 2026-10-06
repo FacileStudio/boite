@@ -13,7 +13,7 @@ apt-get update -y
 
 apt-get install -y --no-install-recommends \
   git curl unzip ca-certificates bash-completion fzf jq tmux wget make \
-  build-essential zsh neovim starship docker.io gh tree htop btop zoxide \
+  build-essential zsh starship docker.io gh tree htop btop zoxide \
   eza bat ripgrep prettyping fastfetch python3 python3-pip python3-venv \
   python3-dev genisoimage sudo
 
@@ -58,7 +58,7 @@ systemctl enable ssh.service 2>/dev/null || true
 # dotfiles
 cat > /home/boite/.zshrc <<'ZRC'
 #!/bin/zsh
-export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
+export PATH="/usr/local/go/bin:$HOME/.cargo/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.bun/bin:$HOME/.local/share/bob/nvim-bin:$PATH"
 export WORKSPACE=/workspace
 if command -v tiroir >/dev/null 2>&1; then
   eval "$(tiroir export)"
@@ -102,7 +102,7 @@ chmod 644 /home/boite/.zshrc
 # zsh -c (what sshd runs for boite exec) reads only .zshenv, so the
 # toolchain PATH must live here for non-interactive commands.
 cat > /home/boite/.zshenv <<'ZEV'
-export PATH="/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+export PATH="/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:$HOME/.local/share/bob/nvim-bin:/usr/local/bin:$PATH"
 ZEV
 chown boite:boite /home/boite/.zshenv
 chmod 644 /home/boite/.zshenv
@@ -150,6 +150,7 @@ rm -f /etc/legal /etc/motd
 export MISE_VERSION=2026.9.4
 export RUST_TOOLCHAIN=1.98.1
 export BUN_VERSION=1.4.2
+export BOB_VERSION=v4.2.0
 export TIROIR_VERSION=0.2.0
 
 curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
@@ -158,6 +159,12 @@ su - boite -c 'pip install --break-system-packages --upgrade pip'
 su - boite -c 'pip install --break-system-packages black isort flake8 pytest pytest-cov mypy poetry ipython httpie'
 su - boite -c "export RUST_TOOLCHAIN=$RUST_TOOLCHAIN; curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain \"\$RUST_TOOLCHAIN\""
 su - boite -c "export BUN_VERSION=$BUN_VERSION; curl -fsSL \"https://github.com/oven-sh/bun/releases/download/bun-v\$BUN_VERSION/bun-linux-x64.zip\" -o /tmp/bun.zip && unzip -o /tmp/bun.zip -d /tmp/bun-extract && mkdir -p ~/.bun/bin && install /tmp/bun-extract/bun-linux-x64/bun ~/.bun/bin/bun && rm -rf /tmp/bun.zip /tmp/bun-extract"
+curl -fsSL "https://github.com/MordechaiHadad/bob/releases/download/${BOB_VERSION}/bob-linux-x86_64.zip" -o /tmp/bob.zip
+unzip -o /tmp/bob.zip -d /tmp/bob-extract
+install -m 0755 /tmp/bob-extract/bob-linux-x86_64/bob /usr/local/bin/bob
+rm -rf /tmp/bob.zip /tmp/bob-extract
+su - boite -c 'bob use latest'
+ln -sfn /home/boite/.local/share/bob/nvim-bin/nvim /usr/local/bin/nvim
 
 # tiroir is the encrypted env store the guest shells load at login and boite
 # manages from the host. Pinned to the same release boite consumes (go.mod

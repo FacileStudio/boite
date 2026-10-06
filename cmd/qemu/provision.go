@@ -44,12 +44,26 @@ func shellQuote(cmd string) string {
 	return "'" + strings.ReplaceAll(cmd, "'", `'\''`) + "'"
 }
 
-// provisionPackages refreshes apt and installs the requested packages in one
-// invocation.
+// provisionPackages installs custom packages using the distro package manager.
 func provisionPackages(inst *Instance, packages []string) error {
 	if len(packages) == 0 {
 		return nil
 	}
+	spec, err := GetDistro(inst.Distro)
+	if err != nil {
+		return err
+	}
+	switch spec.PkgManager {
+	case "apk":
+		return provisionApk(inst, packages)
+	case "nix":
+		return provisionNix(inst, packages)
+	default:
+		return provisionApt(inst, packages)
+	}
+}
+
+func provisionApt(inst *Instance, packages []string) error {
 	ProgressTick("apt: refreshing package lists", 0)
 	if err := runProvisionStep(inst, []string{"sudo", "apt-get", "update"}); err != nil {
 		return fmt.Errorf("apt-get update: %w", err)
@@ -58,6 +72,28 @@ func provisionPackages(inst *Instance, packages []string) error {
 	install := append([]string{"sudo", "apt-get", "install", "-y", "--no-install-recommends"}, packages...)
 	if err := runProvisionStep(inst, install); err != nil {
 		return fmt.Errorf("apt-get install %s: %w", strings.Join(packages, " "), err)
+	}
+	return nil
+}
+
+func provisionApk(inst *Instance, packages []string) error {
+	ProgressTick("apk: refreshing package lists", 0)
+	if err := runProvisionStep(inst, []string{"sudo", "apk", "update"}); err != nil {
+		return fmt.Errorf("apk update: %w", err)
+	}
+	ProgressTick("apk: installing custom packages", 0.4)
+	install := append([]string{"sudo", "apk", "add", "--no-cache"}, packages...)
+	if err := runProvisionStep(inst, install); err != nil {
+		return fmt.Errorf("apk add %s: %w", strings.Join(packages, " "), err)
+	}
+	return nil
+}
+
+func provisionNix(inst *Instance, packages []string) error {
+	ProgressTick("nix: installing custom packages", 0.2)
+	install := append([]string{"nix", "profile", "install"}, packages...)
+	if err := runProvisionStep(inst, install); err != nil {
+		return fmt.Errorf("nix profile install %s: %w", strings.Join(packages, " "), err)
 	}
 	return nil
 }

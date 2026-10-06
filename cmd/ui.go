@@ -101,12 +101,9 @@ func renderInstanceTableQEMU(instances []*qemu.Instance) string {
 	if len(instances) == 0 {
 		return renderEmptyTable()
 	}
-
 	header := lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
-	t := table.New().
-		Border(lipgloss.RoundedBorder()).
-		BorderStyle(header).
-		Headers("NAME", "STATUS", "SSH PORT", "CREATED").
+	t := table.New().Border(lipgloss.RoundedBorder()).BorderStyle(header).
+		Headers("NAME", "STATUS", "DISTRO", "SSH PORT", "CREATED").
 		StyleFunc(func(row, col int) lipgloss.Style {
 			if row == table.HeaderRow {
 				return header
@@ -116,15 +113,18 @@ func renderInstanceTableQEMU(instances []*qemu.Instance) string {
 				return lipgloss.NewStyle().Foreground(primaryColor).Bold(true)
 			case 1:
 				return statusCellStyle(instances[row].Status)
-			case 2:
+			case 2, 3:
 				return lipgloss.NewStyle().Foreground(accentColor)
 			default:
 				return lipgloss.NewStyle().Foreground(subtleColor)
 			}
 		})
-
 	for _, inst := range instances {
-		t.Row(inst.Name, inst.Status, fmt.Sprintf("%d", inst.SSHPort), inst.CreatedAt.Format("2006-01-02 15:04"))
+		d := inst.Distro
+		if d == "" {
+			d = qemu.DefaultDistro
+		}
+		t.Row(inst.Name, inst.Status, d, fmt.Sprintf("%d", inst.SSHPort), inst.CreatedAt.Format("2006-01-02 15:04"))
 	}
 	return t.Render()
 }

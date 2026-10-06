@@ -37,11 +37,14 @@ func TestRenderSandboxCard(t *testing.T) {
 
 func TestRenderInstanceTableQEMU(t *testing.T) {
 	instances := []*qemu.Instance{
-		{Name: "pingu", Status: "running", SSHPort: 22222, CreatedAt: time.Now()},
+		{Name: "pingu", Status: "running", SSHPort: 22222, CreatedAt: time.Now(), Distro: "alpine"},
 		{Name: "test-box", Status: "stopped", SSHPort: 22223, CreatedAt: time.Now()},
 	}
 	rendered := renderInstanceTableQEMU(instances)
 	if !strings.Contains(rendered, "pingu") || !strings.Contains(rendered, "test-box") {
 		t.Fatalf("expected table to contain instances, got: %s", rendered)
+	}
+	if !strings.Contains(rendered, "DISTRO") || !strings.Contains(rendered, "alpine") || !strings.Contains(rendered, "debian") {
+		t.Fatalf("expected table to contain distro info, got: %s", rendered)
 	}
 }
