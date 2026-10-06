@@ -24,7 +24,24 @@ Use --no-mount so 'boite run' never syncs a workspace into /workspace for this i
 	createCmd.Flags().Bool("no-mount", false, "Create VM without mounting workspace")
 	createCmd.Flags().Bool("generate-key", false, "Generate a unique SSH key pair for this VM instead of using your existing ~/.ssh key")
 	createCmd.Flags().StringP("distro", "d", "", "Guest distribution (debian, alpine, nixos)")
+	createCmd.Flags().Bool("nixos", false, "Use NixOS guest distribution (shorthand for --distro nixos)")
+	createCmd.Flags().Bool("alpine", false, "Use Alpine guest distribution (shorthand for --distro alpine)")
+	createCmd.Flags().Bool("debian", false, "Use Debian guest distribution (shorthand for --distro debian)")
 	return createCmd
+}
+
+func extractDistroFlag(cmd *cobra.Command) string {
+	if n, _ := cmd.Flags().GetBool("nixos"); n {
+		return "nixos"
+	}
+	if a, _ := cmd.Flags().GetBool("alpine"); a {
+		return "alpine"
+	}
+	if d, _ := cmd.Flags().GetBool("debian"); d {
+		return "debian"
+	}
+	val, _ := cmd.Flags().GetString("distro")
+	return val
 }
 
 func runCreate(cmd *cobra.Command, args []string) {
@@ -35,8 +52,7 @@ func runCreate(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	distroFlag, _ := cmd.Flags().GetString("distro")
-	distro, err := resolveCreateDistro(distroFlag, cfgPath)
+	distro, err := resolveCreateDistro(extractDistroFlag(cmd), cfgPath)
 	if err != nil {
 		printError(err.Error())
 		os.Exit(1)

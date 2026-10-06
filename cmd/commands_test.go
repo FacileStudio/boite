@@ -49,9 +49,10 @@ func TestCommandFlags(t *testing.T) {
 	if createCmd == nil {
 		t.Fatal("expected create command to exist")
 	}
-	flag := createCmd.Flags().Lookup("no-mount")
-	if flag == nil {
-		t.Fatal("expected create command to have --no-mount flag")
+	for _, name := range []string{"no-mount", "distro", "nixos", "alpine", "debian"} {
+		if createCmd.Flags().Lookup(name) == nil {
+			t.Fatalf("expected create command to have --%s flag", name)
+		}
 	}
 
 	runCmd := findCommand(rootCmd, "run")

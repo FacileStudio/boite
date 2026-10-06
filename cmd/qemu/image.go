@@ -39,7 +39,7 @@ func downloadBaseImage(spec DistroSpec, destPath string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
+		return "", checkHTTPError(spec, resp.StatusCode)
 	}
 
 	out, err := os.Create(destPath)
@@ -96,4 +96,12 @@ func CreateOverlay(baseImage, overlayPath string, sizeGB int) error {
 		return fmt.Errorf("qemu-img failed: %s (%w)", string(output), err)
 	}
 	return nil
+}
+
+func checkHTTPError(spec DistroSpec, status int) error {
+	if status == http.StatusNotFound {
+		return fmt.Errorf("base image for %s not found (HTTP 404 at %s): bake with scripts/bake-%s.sh or copy into cache",
+			spec.Name, spec.URL, spec.Name)
+	}
+	return fmt.Errorf("download failed: HTTP %d", status)
 }

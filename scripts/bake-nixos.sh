@@ -24,8 +24,22 @@ elif command -v nixos-rebuild >/dev/null 2>&1; then
 elif command -v nix-build >/dev/null 2>&1; then
   nix-build '<nixpkgs/nixos>' -A config.system.build.qcow2 -I nixos-config="$config_file"
   image_path=$(find -L ./result -name "*.qcow2" | head -n 1)
+elif command -v docker >/dev/null 2>&1; then
+  echo "==> host has no nix toolchain, baking via docker nixos/nix container"
+  docker run --rm --privileged --device /dev/kvm -v "$(pwd)":/workspace -w /workspace nixos/nix \
+    nix-shell -p nixos-generators --run '
+      target=$(nixos-generate --system x86_64-linux -f qcow -c /workspace/nix/boite-configuration.nix --option system-features "kvm benchmark big-parallel nixos-test uid-range")
+      if [ -f "$target" ]; then
+        cp "$target" /workspace/boite-nixos.baked.qcow2
+      elif [ -f "$target/nixos.qcow2" ]; then
+        cp "$target/nixos.qcow2" /workspace/boite-nixos.baked.qcow2
+      else
+        cp "$target"/*.qcow2 /workspace/boite-nixos.baked.qcow2
+      fi
+    '
+  image_path="$bake"
 else
-  echo "Error: neither nixos-generate, nixos-rebuild, nor nix-build found" >&2
+  echo "Error: neither nixos-generate, nixos-rebuild, nix-build, nor docker found" >&2
   exit 1
 fi
 
@@ -34,7 +48,9 @@ if [ -z "$image_path" ] || [ ! -f "$image_path" ]; then
   exit 1
 fi
 
-cp "$image_path" "$bake"
+if [ "$image_path" != "$bake" ]; then
+  cp "$image_path" "$bake"
+fi
 
 apparent_bytes=$(stat -c %s "$bake" 2>/dev/null || stat -f %z "$bake")
 apparent_gb=$((apparent_bytes / 1073741824))

@@ -42,7 +42,7 @@ func builtInDistros() map[string]DistroSpec {
 			Name:       "nixos",
 			ImageName:  "nixos.qcow2",
 			URL:        "https://boite.facile.studio/nixos.qcow2",
-			SHA256:     "",
+			SHA256:     "e8cd77eb6686d7407e049f1e3024bd7a1ab05cf9d2a2da36562b8ca77ef5e67e",
 			PkgManager: "nix",
 		},
 	}

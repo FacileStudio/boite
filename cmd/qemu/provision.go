@@ -91,9 +91,17 @@ func provisionApk(inst *Instance, packages []string) error {
 
 func provisionNix(inst *Instance, packages []string) error {
 	ProgressTick("nix: installing custom packages", 0.2)
-	install := append([]string{"nix", "profile", "install"}, packages...)
-	if err := runProvisionStep(inst, install); err != nil {
-		return fmt.Errorf("nix profile install %s: %w", strings.Join(packages, " "), err)
+	targets := make([]string, len(packages))
+	for i, pkg := range packages {
+		if strings.Contains(pkg, "#") {
+			targets[i] = shellQuote(pkg)
+		} else {
+			targets[i] = shellQuote("nixpkgs#" + pkg)
+		}
+	}
+	cmd := fmt.Sprintf("nix --extra-experimental-features 'nix-command flakes' profile add %s", strings.Join(targets, " "))
+	if err := runProvisionStep(inst, []string{"sh", "-lc", shellQuote(cmd)}); err != nil {
+		return fmt.Errorf("nix profile add %s: %w", strings.Join(packages, " "), err)
 	}
 	return nil
 }
