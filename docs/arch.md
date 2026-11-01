@@ -10,7 +10,7 @@ A web dashboard (boite-web, Bulle) needs to create, start, stop and snapshot QEM
 
 ### Decision
 
-`boite-worker` is a systemd service on the host. It runs as root, owns `/dev/kvm` and the box pool in `/var/lib/boite`, and exposes a token-authenticated HTTP API on a Unix socket (mode 0600). The web tier runs in its normal minimal container and mounts that socket.
+`boite-worker` is a systemd service on the host. It runs as root, owns `/dev/kvm` and the box pool in `/var/lib/boite`, and exposes a token-authenticated HTTP API on a Unix socket (mode 0600 by default; `BOITE_WORKER_SOCK_MODE` and `BOITE_WORKER_SOCK_GROUP` open it to one group). The web tier runs in its normal minimal container and mounts that socket.
 
 ### Why
 
