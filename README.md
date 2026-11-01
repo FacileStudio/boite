@@ -76,6 +76,62 @@ boite rm my-project
 | `snapshots <name>` | List the qcow2 snapshots on a sandbox's overlay |
 | `install` | Install boite to system PATH |
 
+## Worker (self-hosted control API)
+
+`boite-worker` is a host daemon that drives the same QEMU lifecycle as the CLI behind a small HTTP API on a Unix socket. A web tier (boite-web, Bulle) calls it; users never reach it directly. See [docs/arch.md](docs/arch.md) for why it is a separate process.
+
+Prerequisites on the host:
+
+- `sudo apt install qemu-kvm dosfstools mtools genisoimage`
+- `/dev/kvm` readable by the worker (it runs as root)
+
+Build and install:
+
+```sh
+go build -o boite-worker ./cmd/boite-worker
+sudo install boite-worker /usr/local/bin/
+sudo install -m 0644 scripts/boite-worker.service /etc/systemd/system/
+sudo install -d -m 0700 /etc/boite
+sudoedit /etc/boite/worker.env
+sudo systemctl enable --now boite-worker
+```
+
+`/etc/boite/worker.env` holds `KEY=value` lines (see below). The unit sets `StateDirectory=boite` (state in `/var/lib/boite`), `RuntimeDirectory=boite` (socket in `/run/boite`) and `KillMode=process`, so stopping or redeploying the worker leaves running boxes alone.
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `BOITE_WORKER_TOKEN` | none, required | Bearer token every request must carry. The worker refuses to start without it. |
+| `BOITE_WORKER_SOCK` | `/run/boite/worker.sock` | Unix socket path, created with mode 0600. |
+| `BOITE_SSH_BIND` | `127.0.0.1` | Address each box's forwarded SSH port binds to. Use a private address such as a Docker bridge gateway; never `0.0.0.0` on a public host. The CLI also honors it. |
+| `BOITE_WORKER_HOST` | value of `BOITE_SSH_BIND` | Host reported to clients in connect info. Set it when the bind is a wildcard. |
+| `BOITE_CONTROL_PUBKEY` | unset | One public key added to every new box beside the user's keys, so the caller can SSH in as the control plane. |
+| `BOITE_DIR` | `~/.boite` | State root (instances and image cache). The unit sets `/var/lib/boite`. |
+
+Every request needs `Authorization: Bearer <BOITE_WORKER_TOKEN>`. Errors are `{"error": "...", "code": "..."}` with codes `unauthorized`, `invalid`, `not_found`, `exists`, `not_stopped`, `busy`, `internal`.
+
+| Method and path | Body | Success |
+|-----------------|------|---------|
+| `POST /boxes` | `{"name","owner","cpus","memory","disk","ssh_key"}` (`name` and `owner` required; defaults 2, `2G`, `20G`) | 201 box. Blocks until the box is up. |
+| `GET /boxes[?owner=]` | | 200 `[box]` |
+| `GET /boxes/{id}` | | 200 box |
+| `POST /boxes/{id}/start` | | 200 box |
+| `POST /boxes/{id}/stop` | | 200 box |
+| `POST /boxes/{id}/rm` | | 204 |
+| `PUT /boxes/{id}/ssh-key` | `{"ssh_key"}` replaces the user key | 200 box |
+| `POST /boxes/{id}/snapshot` | `{"tag"}` | 201 `{"id","tag"}` |
+| `POST /boxes/{id}/rollback` | `{"tag"}` | 200 `{"id","tag"}` |
+| `GET /boxes/{id}/snapshots` | | 200 `[{"id","tag","created_at"}]` |
+
+A box is `{"id","name","owner","status","cpus","memory","disk","ssh":{"host","port","user"},"created_at"}`; `id` equals `name` (lowercase letters, digits, dashes, max 40). `status` is `running` or `stopped`. Snapshot, rollback and snapshot listing need a stopped box and answer 409 `not_stopped` otherwise. A second call on a box that is mid-operation answers 409 `busy`.
+
+A key set with `PUT /boxes/{id}/ssh-key` is written into a running box at once, and into a stopped box on its next start.
+
+Idle stop lives in the caller. The worker never stops a box on its own: the web tier decides when a box is idle and calls `POST /boxes/{id}/stop`.
+
+```sh
+curl --unix-socket /run/boite/worker.sock -H "Authorization: Bearer $BOITE_WORKER_TOKEN" http://worker/boxes
+```
+
 ## Workspace sync
 
 Workspace sync is an opt-in feature. When enabled, `boite run` copies the

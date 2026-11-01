@@ -136,7 +136,7 @@ env:
 ### References
 
 - `README.md` – Full usage documentation
-- `boite/cmd/worker.go` – Host QEMU daemon
+- `cmd/worker/` and `cmd/boite-worker/` – Host QEMU daemon (control API on a Unix socket)
 - `boite/cmd/qemu/lifecycle.go` – Instance lifecycle (create, start, stop, snapshot)
 - `tiroir/cmd/tiroir/main.go` – Env CRUD CLI
 - `scripts/check.sh` – Code quality gate (gofmt, vet, test, filet)

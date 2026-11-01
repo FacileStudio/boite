@@ -1,0 +1,20 @@
+[Unit]
+Description=Boite worker (QEMU sandbox control API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/boite-worker
+EnvironmentFile=/etc/boite/worker.env
+Environment=BOITE_DIR=/var/lib/boite
+StateDirectory=boite
+RuntimeDirectory=boite
+RuntimeDirectoryPreserve=yes
+KillMode=process
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
