@@ -26,10 +26,35 @@ builds:
       - -w
       - -X github.com/FacileStudio/boite/cmd.version={{.Version}}
 
+  - id: boite-worker
+    main: ./cmd/boite-worker
+    binary: boite-worker
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -X github.com/FacileStudio/boite/cmd.version={{.Version}}
+
 archives:
-  - formats:
+  - ids:
+      - boite
+    formats:
       - tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - id: worker
+    ids:
+      - boite-worker
+    formats:
+      - tar.gz
+    name_template: "boite-worker_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: checksums.txt
