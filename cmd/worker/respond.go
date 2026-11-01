@@ -35,6 +35,8 @@ func classify(err error) (int, string) {
 		return http.StatusConflict, "exists"
 	case errors.Is(err, ErrNotStopped):
 		return http.StatusConflict, "not_stopped"
+	case errors.Is(err, ErrNotReady):
+		return http.StatusConflict, "not_ready"
 	case errors.Is(err, ErrBusy):
 		return http.StatusConflict, "busy"
 	case errors.Is(err, ErrInvalid):

@@ -16,11 +16,20 @@ type Server struct {
 	token [sha256.Size]byte
 	mu    sync.Mutex
 	busy  map[string]bool
+	jobs  map[string]*createJob
+	queue chan *createJob
 }
 
-// NewServer builds a Server that authorizes requests against token.
+// NewServer builds a Server that authorizes requests against token. It marks
+// boxes a previous worker left in status creating as failed, then starts the
+// queue that runs creates one at a time.
 func NewServer(life Lifecycle, token string) *Server {
-	return &Server{life: life, token: sha256.Sum256([]byte(token)), busy: map[string]bool{}}
+	s := &Server{
+		life: life, token: sha256.Sum256([]byte(token)), busy: map[string]bool{},
+		jobs: map[string]*createJob{}, queue: make(chan *createJob, queueSize),
+	}
+	s.startJobs()
+	return s
 }
 
 // Handler returns the routed, authenticated, logged API handler.

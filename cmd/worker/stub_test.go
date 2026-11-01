@@ -7,10 +7,12 @@ import (
 )
 
 type stubLife struct {
-	mu    sync.Mutex
-	boxes map[string]*Box
-	snaps map[string][]string
-	calls []string
+	mu      sync.Mutex
+	boxes   map[string]*Box
+	snaps   map[string][]string
+	calls   []string
+	gate    chan struct{}
+	failure error
 }
 
 func newStub() *stubLife {
@@ -21,20 +23,65 @@ func (s *stubLife) record(call string) {
 	s.calls = append(s.calls, call)
 }
 
-func (s *stubLife) Create(req CreateRequest) (Box, error) {
+func (s *stubLife) Reserve(req CreateRequest) (Box, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.record("create " + req.Name)
+	s.record("reserve " + req.Name)
 	if _, ok := s.boxes[req.Name]; ok {
 		return Box{}, ErrExists
 	}
 	box := &Box{
-		ID: req.Name, Name: req.Name, Owner: req.Owner, Status: StatusRunning,
+		ID: req.Name, Name: req.Name, Owner: req.Owner, Status: StatusCreating,
 		CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk,
-		SSH: SSHInfo{Host: "10.0.0.1", Port: 2223, User: sshUser},
+		SSH: SSHInfo{Host: "10.0.0.1", User: sshUser},
 	}
 	s.boxes[req.Name] = box
 	return *box, nil
+}
+
+func (s *stubLife) Create(req CreateRequest) (Box, error) {
+	s.mu.Lock()
+	s.record("create " + req.Name)
+	gate, failure := s.gate, s.failure
+	s.mu.Unlock()
+	if gate != nil {
+		<-gate
+	}
+	if failure != nil {
+		return Box{}, failure
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	box, ok := s.boxes[req.Name]
+	if !ok {
+		return Box{}, ErrNotFound
+	}
+	box.Status = StatusRunning
+	box.SSH.Port = 2223
+	return *box, nil
+}
+
+func (s *stubLife) Fail(box Box, msg string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.record("fail " + box.ID)
+	stored, ok := s.boxes[box.ID]
+	if !ok {
+		return ErrNotFound
+	}
+	stored.Status, stored.Error = StatusError, msg
+	return nil
+}
+
+func (s *stubLife) Recover() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, box := range s.boxes {
+		if box.Status == StatusCreating {
+			box.Status, box.Error = StatusError, "interrupted"
+		}
+	}
+	return nil
 }
 
 func (s *stubLife) setStatus(id, status string) (Box, error) {

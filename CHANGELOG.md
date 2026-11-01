@@ -7,6 +7,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Changed
+
+- Worker `POST /boxes` now answers 202 at once with the box in status `creating` and creates it in a background queue, one at a time. The box becomes `running`, or `error` with an `error` message that stays listed until `rm`. Boxes left `creating` by a restart become `error` with `interrupted`. Start, stop and key calls on such boxes answer 409 `not_ready`.
+
 ### Added
 
 - `BOITE_WORKER_SOCK_MODE` and `BOITE_WORKER_SOCK_GROUP` let a non-root client such as the Bulle API reach the worker socket. Bad values stop the worker at start.

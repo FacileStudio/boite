@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
 
 type socketClient struct {
@@ -65,6 +66,23 @@ func (c *socketClient) expect(want int, method, path, body, token string) string
 	return out
 }
 
+func (c *socketClient) waitStatus(id, want string) Box {
+	c.t.Helper()
+	var box Box
+	for range 200 {
+		out := c.expect(http.StatusOK, "GET", "/boxes/"+id, "", testToken)
+		if err := json.Unmarshal([]byte(out), &box); err != nil {
+			c.t.Fatal(err)
+		}
+		if box.Status == want {
+			return box
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	c.t.Fatalf("box %s never reached %s: %+v", id, want, box)
+	return box
+}
+
 func TestSocketAuthAndMode(t *testing.T) {
 	client, sock := startSocketServer(t, newStub())
 	info, err := os.Stat(sock)
@@ -78,10 +96,14 @@ func TestSocketAuthAndMode(t *testing.T) {
 
 func TestSocketCreateStopSnapshot(t *testing.T) {
 	client, _ := startSocketServer(t, newStub())
-	body := client.expect(http.StatusCreated, "POST", "/boxes", `{"name":"dev","owner":"ann","cpus":4}`, testToken)
+	body := client.expect(http.StatusAccepted, "POST", "/boxes", `{"name":"dev","owner":"ann","cpus":4}`, testToken)
 	var box Box
-	if err := json.Unmarshal([]byte(body), &box); err != nil || box.SSH.Port != 2223 || box.CPUs != 4 || box.SSH.User != "boite" {
+	if err := json.Unmarshal([]byte(body), &box); err != nil || box.Status != StatusCreating || box.CPUs != 4 || box.SSH.User != "boite" {
 		t.Fatalf("create body: %s (%v)", body, err)
+	}
+	box = client.waitStatus("dev", StatusRunning)
+	if box.SSH.Port != 2223 {
+		t.Fatalf("running box: %+v", box)
 	}
 	body = client.expect(http.StatusConflict, "POST", "/boxes/dev/snapshot", `{"tag":"base"}`, testToken)
 	if !strings.Contains(body, "not_stopped") {

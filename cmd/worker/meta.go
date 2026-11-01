@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
 	"gopkg.in/yaml.v3"
@@ -16,6 +17,10 @@ type boxMeta struct {
 	Memory string `json:"memory"`
 	Disk   string `json:"disk"`
 	SSHKey string `json:"ssh_key,omitempty"`
+
+	Status    string `json:"status,omitempty"`
+	Error     string `json:"error,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
 }
 
 type boxConfig struct {
@@ -62,6 +67,9 @@ func writeBoxFiles(req CreateRequest) error {
 	if err := os.WriteFile(configPath(req.Name), data, 0o644); err != nil {
 		return fmt.Errorf("write box config: %w", err)
 	}
-	meta := boxMeta{Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey}
+	meta := boxMeta{
+		Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey,
+		Status: StatusCreating, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}
 	return saveMeta(req.Name, meta)
 }

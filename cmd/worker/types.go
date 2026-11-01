@@ -8,13 +8,16 @@ var (
 	ErrInvalid    = errors.New("invalid request")
 	ErrNotStopped = errors.New("box is running: stop it first")
 	ErrBusy       = errors.New("box is busy with another operation")
+	ErrNotReady   = errors.New("box is not ready: it is still being created or its creation failed")
 )
 
 const sshUser = "boite"
 
 const (
-	StatusRunning = "running"
-	StatusStopped = "stopped"
+	StatusRunning  = "running"
+	StatusStopped  = "stopped"
+	StatusCreating = "creating"
+	StatusError    = "error"
 )
 
 // CreateRequest is the body of POST /boxes. Zero resources take defaults.
@@ -45,6 +48,7 @@ type Box struct {
 	Disk      string  `json:"disk"`
 	SSH       SSHInfo `json:"ssh"`
 	CreatedAt string  `json:"created_at"`
+	Error     string  `json:"error,omitempty"`
 }
 
 // Snapshot is one internal qcow2 snapshot on a box's overlay disk.

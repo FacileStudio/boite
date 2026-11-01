@@ -17,15 +17,19 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var box Box
-	err = s.exclusive(req.Name, func() (err error) {
-		box, err = s.life.Create(req)
-		return err
+	err = s.exclusive(req.Name, func() error {
+		reserved, err := s.life.Reserve(req)
+		if err != nil {
+			return err
+		}
+		box = reserved
+		return s.enqueue(reserved, req)
 	})
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, box)
+	writeJSON(w, http.StatusAccepted, box)
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +84,10 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
+	if job := s.pendingJob(r.PathValue("id")); job != nil {
+		s.cancelCreate(w, r, job)
+		return
+	}
 	err := s.exclusive(r.PathValue("id"), func() error {
 		return s.life.Remove(r.PathValue("id"))
 	})

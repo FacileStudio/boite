@@ -25,3 +25,4 @@ A web dashboard (boite-web, Bulle) needs to create, start, stop and snapshot QEM
 - SSH ports are host ports. `BOITE_SSH_BIND` picks the interface; bind a private address, never a public wildcard.
 - Idle policy stays in the caller. The worker only offers `stop`.
 - The control key (`BOITE_CONTROL_PUBKEY`) is written into every box so the caller can reach it; its private half stays with the caller.
+- Creates are asynchronous. `POST /boxes` persists the box as `creating` and returns 202; a single queue runs creates one at a time, so two boxes never pick the same SSH port. A restart marks unfinished creates as `error`.

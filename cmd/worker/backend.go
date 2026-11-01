@@ -1,9 +1,10 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
-	"log/slog"
-	"sync"
+	"io/fs"
+	"os"
 	"time"
 
 	"github.com/FacileStudio/boite/cmd/qemu"
@@ -11,9 +12,9 @@ import (
 
 // Backend is the production Lifecycle: it drives cmd/qemu directly and keeps
 // each box's owner, resources and user key in worker.json beside state.json.
+// A box that is being created or failed to create has worker.json only.
 type Backend struct {
-	host     string
-	createMu sync.Mutex
+	host string
 }
 
 // NewBackend returns a Backend that reports host in every box's SSH info.
@@ -34,16 +35,38 @@ func (b *Backend) box(inst *qemu.Instance, meta boxMeta) Box {
 	}
 }
 
-func (b *Backend) load(id string) (*qemu.Instance, boxMeta, error) {
-	var meta boxMeta
-	if !qemu.InstanceExists(id) {
-		return nil, meta, ErrNotFound
+func (b *Backend) pendingBox(id string, meta boxMeta) Box {
+	return Box{
+		ID: id, Name: id, Owner: meta.Owner, Status: meta.Status,
+		CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk,
+		SSH:       SSHInfo{Host: b.host, User: sshUser},
+		CreatedAt: meta.CreatedAt, Error: meta.Error,
+	}
+}
+
+func (b *Backend) readyBox(id string, meta boxMeta) (Box, error) {
+	if meta.Status != "" {
+		return b.pendingBox(id, meta), nil
 	}
 	inst, err := qemu.LoadInstanceState(id)
 	if err != nil {
+		return Box{}, err
+	}
+	return b.box(inst, meta), nil
+}
+
+func (b *Backend) load(id string) (*qemu.Instance, boxMeta, error) {
+	meta, err := loadMeta(id)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, meta, ErrNotFound
+	}
+	if err != nil {
 		return nil, meta, err
 	}
-	meta, err = loadMeta(id)
+	if meta.Status != "" {
+		return nil, meta, ErrNotReady
+	}
+	inst, err := qemu.LoadInstanceState(id)
 	if err != nil {
 		return nil, meta, err
 	}
@@ -52,39 +75,42 @@ func (b *Backend) load(id string) (*qemu.Instance, boxMeta, error) {
 
 // Get returns one box with its live status.
 func (b *Backend) Get(id string) (Box, error) {
-	inst, meta, err := b.load(id)
+	meta, err := loadMeta(id)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Box{}, ErrNotFound
+	}
 	if err != nil {
 		return Box{}, err
 	}
-	return b.box(inst, meta), nil
+	return b.readyBox(id, meta)
 }
 
-// List returns every box that has state on disk.
+// List returns every box that has a worker.json, including boxes that are
+// still being created or failed to create.
 func (b *Backend) List() ([]Box, error) {
-	instances, err := qemu.ListInstances()
-	if err != nil {
+	entries, err := os.ReadDir(qemu.GetInstancesDir())
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("list instances: %w", err)
 	}
-	boxes := make([]Box, 0, len(instances))
-	for _, inst := range instances {
-		if meta, err := loadMeta(inst.Name); err == nil {
-			boxes = append(boxes, b.box(inst, meta))
+	boxes := make([]Box, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		meta, err := loadMeta(e.Name())
+		if err != nil {
+			continue
+		}
+		if box, err := b.readyBox(e.Name(), meta); err == nil {
+			boxes = append(boxes, box)
 		}
 	}
 	return boxes, nil
 }
 
-// Create provisions and boots a box. Creates run one at a time so two boxes
-// never pick the same SSH port. A failed create leaves nothing behind.
+// Create provisions and boots a reserved box. A failed create leaves nothing
+// behind; the caller records the failure with Fail.
 func (b *Backend) Create(req CreateRequest) (Box, error) {
-	b.createMu.Lock()
-	defer b.createMu.Unlock()
-	if qemu.InstanceExists(req.Name) {
-		return Box{}, ErrExists
-	}
-	if err := writeBoxFiles(req); err != nil {
-		return Box{}, discard(req.Name, err)
-	}
 	var extra []string
 	if req.SSHKey != "" {
 		extra = []string{req.SSHKey}
@@ -98,19 +124,11 @@ func (b *Backend) Create(req CreateRequest) (Box, error) {
 	}
 	meta, err := loadMeta(req.Name)
 	if err != nil {
-		return Box{}, err
+		return Box{}, discard(req.Name, err)
+	}
+	meta.Status, meta.Error = "", ""
+	if err := saveMeta(req.Name, meta); err != nil {
+		return Box{}, discard(req.Name, err)
 	}
 	return b.box(inst, meta), nil
-}
-
-func discard(id string, cause error) error {
-	if qemu.InstanceExists(id) {
-		if err := qemu.Destroy(id); err != nil {
-			slog.Warn("cleanup failed create: stop", "id", id, "err", err)
-		}
-	}
-	if err := qemu.DeleteInstanceDir(id); err != nil {
-		slog.Warn("cleanup failed create: delete", "id", id, "err", err)
-	}
-	return cause
 }
