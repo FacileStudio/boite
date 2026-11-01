@@ -101,7 +101,9 @@ sudo systemctl enable --now boite-worker
 | Variable | Default | Meaning |
 |----------|---------|---------|
 | `BOITE_WORKER_TOKEN` | none, required | Bearer token every request must carry. The worker refuses to start without it. |
-| `BOITE_WORKER_SOCK` | `/run/boite/worker.sock` | Unix socket path, created with mode 0600. |
+| `BOITE_WORKER_SOCK` | `/run/boite/worker.sock` | Unix socket path. |
+| `BOITE_WORKER_SOCK_MODE` | `0600` | Socket permissions as an octal string. The owner needs read and write, and no bit may open it to other users. The worker refuses to start on a bad value. |
+| `BOITE_WORKER_SOCK_GROUP` | unset | Group name or numeric gid. The socket is chowned to `root:<group>`. Needs a mode with group read and write, such as `0660`. A client in that group (for example uid 65532, the distroless nonroot user, with `group_add`) can then connect. |
 | `BOITE_SSH_BIND` | `127.0.0.1` | Address each box's forwarded SSH port binds to. Use a private address such as a Docker bridge gateway; never `0.0.0.0` on a public host. The CLI also honors it. |
 | `BOITE_WORKER_HOST` | value of `BOITE_SSH_BIND` | Host reported to clients in connect info. Set it when the bind is a wildcard. |
 | `BOITE_CONTROL_PUBKEY` | unset | One public key added to every new box beside the user's keys, so the caller can SSH in as the control plane. |

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ type socketClient struct {
 func startSocketServer(t *testing.T, stub *stubLife) (*socketClient, string) {
 	t.Helper()
 	sock := filepath.Join(t.TempDir(), "w.sock")
-	ln, err := Listen(sock)
+	ln, err := Listen(sock, 0o600, noGroup)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +100,24 @@ func TestListenRefusesRegularFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Listen(path); err == nil {
+	if _, err := Listen(path, 0o600, noGroup); err == nil {
 		t.Fatal("Listen must not replace a regular file")
+	}
+}
+
+func TestListenAppliesModeAndGroup(t *testing.T) {
+	sock := filepath.Join(t.TempDir(), "w.sock")
+	gid := os.Getgid()
+	ln, err := Listen(sock, 0o660, gid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	info, err := os.Stat(sock)
+	if err != nil || info.Mode().Perm() != 0o660 {
+		t.Fatalf("socket mode = %v, err %v; want 0660", info.Mode().Perm(), err)
+	}
+	if got := int(info.Sys().(*syscall.Stat_t).Gid); got != gid {
+		t.Fatalf("socket gid = %d, want %d", got, gid)
 	}
 }

@@ -14,9 +14,10 @@ import (
 
 const shutdownGrace = 30 * time.Second
 
-// Listen binds a Unix socket at path with mode 0600, replacing a stale
-// socket file but refusing to touch any other kind of file.
-func Listen(path string) (net.Listener, error) {
+// Listen binds a Unix socket at path with the given mode, replacing a stale
+// socket file but refusing to touch any other kind of file. A gid of zero or
+// more also hands the socket to that group.
+func Listen(path string, mode os.FileMode, gid int) (net.Listener, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, fmt.Errorf("create socket dir: %w", err)
 	}
@@ -34,11 +35,23 @@ func Listen(path string) (net.Listener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("listen on %s: %w", path, err)
 	}
-	if err := os.Chmod(path, sockMode); err != nil {
+	if err := secureSocket(path, mode, gid); err != nil {
 		ln.Close()
-		return nil, fmt.Errorf("chmod socket: %w", err)
+		return nil, err
 	}
 	return ln, nil
+}
+
+func secureSocket(path string, mode os.FileMode, gid int) error {
+	if gid >= 0 {
+		if err := os.Chown(path, -1, gid); err != nil {
+			return fmt.Errorf("chown socket to group %d: %w", gid, err)
+		}
+	}
+	if err := os.Chmod(path, mode); err != nil {
+		return fmt.Errorf("chmod socket: %w", err)
+	}
+	return nil
 }
 
 // Serve answers requests on ln until ctx ends, then drains for a grace

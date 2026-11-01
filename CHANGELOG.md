@@ -7,6 +7,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Added
+
+- `BOITE_WORKER_SOCK_MODE` and `BOITE_WORKER_SOCK_GROUP` let a non-root client such as the Bulle API reach the worker socket. Bad values stop the worker at start.
+
 ## [0.9.1] — 2026-10-07
 
 ### Added

@@ -7,6 +7,9 @@ Wants=network-online.target
 Type=simple
 User=root
 ExecStart=/usr/local/bin/boite-worker
+# Socket access: BOITE_WORKER_SOCK_MODE (octal, default 0600) and
+# BOITE_WORKER_SOCK_GROUP (group name or gid, chowns the socket to root:group)
+# are set in the env file. A non-root client needs both, e.g. 0660 and its group.
 EnvironmentFile=/etc/boite/worker.env
 Environment=BOITE_DIR=/var/lib/boite
 StateDirectory=boite
