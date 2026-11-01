@@ -93,3 +93,9 @@ func qemuImgSnapshot(args []string) (string, error) {
 	}
 	return strings.TrimSpace(string(out)), nil
 }
+
+// ValidSnapshotTag reports whether tag is acceptable to SnapshotCreate and
+// SnapshotRollback, so callers can refuse a bad tag before touching the disk.
+func ValidSnapshotTag(tag string) error {
+	return validateSnapshotTag(tag)
+}

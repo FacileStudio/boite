@@ -46,7 +46,7 @@ func BuildSSHArgs(inst *Instance, command []string) []string {
 		"-o", "ConnectTimeout=10",
 		"-o", "ServerAliveInterval=30",
 		"-o", "ServerAliveCountMax=3",
-		"boite@127.0.0.1",
+		"boite@" + SSHDialHost(),
 	}
 	if len(command) > 0 {
 		args = append(args, command...)
@@ -75,7 +75,7 @@ func SSHCommand(inst *Instance, command []string) error {
 	sshCmd.Stderr = os.Stderr
 	err := sshCmd.Run()
 	if err != nil {
-		return fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+		return fmt.Errorf("ssh -i %s -p %d boite@%s: %w", getSSHIdentityFile(inst), inst.SSHPort, SSHDialHost(), err)
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func SSHOutput(inst *Instance, command string) (string, error) {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+		return "", fmt.Errorf("ssh -i %s -p %d boite@%s: %w", getSSHIdentityFile(inst), inst.SSHPort, SSHDialHost(), err)
 	}
 	return out.String(), nil
 }
@@ -109,7 +109,7 @@ func SSHInteractive(inst *Instance) error {
 		return nil
 	}
 	if sc.ProcessState == nil || sc.ProcessState.ExitCode() == 255 {
-		return fmt.Errorf("ssh -i %s -p %d boite@127.0.0.1: %w", getSSHIdentityFile(inst), inst.SSHPort, err)
+		return fmt.Errorf("ssh -i %s -p %d boite@%s: %w", getSSHIdentityFile(inst), inst.SSHPort, SSHDialHost(), err)
 	}
 	return nil
 }

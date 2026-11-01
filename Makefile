@@ -1,4 +1,4 @@
-.PHONY: all build install clean version shell
+.PHONY: all build worker install clean version shell
 
 BINARY=boite
 VERSION?=dev
@@ -9,6 +9,9 @@ all: build
 build:
 	go build -ldflags="$(LDFLAGS)" -o $(BINARY) .
 
+worker:
+	go build -o boite-worker ./cmd/boite-worker
+
 install: build
 	cp $(BINARY) /usr/local/bin/$(BINARY)
 
@@ -16,7 +19,7 @@ version:
 	@echo $(VERSION)
 
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) boite-worker
 
 shell:
 	@echo "Build successful! Use './boite --help' to get started."

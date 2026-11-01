@@ -70,7 +70,7 @@ func BuildQEMUArgs(cfg QEMUConfig) []string {
 	}
 	args = append(args, baseArgs(cfg, cpuModel, memory, cpus)...)
 	args = append(args,
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=%s,hostfwd=tcp:127.0.0.1:%d-:22", restrict, cfg.HostFwdPort),
+		"-netdev", fmt.Sprintf("user,id=net0,restrict=%s,hostfwd=tcp:%s:%d-:22", restrict, SSHBindAddr(), cfg.HostFwdPort),
 		"-device", "virtio-net-pci,netdev=net0",
 		"-serial", fmt.Sprintf("file:%s", cfg.ConsoleLog),
 		"-display", "none",

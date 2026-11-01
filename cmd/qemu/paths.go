@@ -15,8 +15,12 @@ const (
 	BaseImageSHA256 = "51e6e296f25e2146f79ea0391436e1d69ef428619f77dc07922d07f1582e60c5"
 )
 
-// GetBoiteDir returns the root directory boite keeps all of its state under.
+// GetBoiteDir returns the root directory boite keeps all of its state under:
+// BOITE_DIR when set, otherwise ~/.boite.
 func GetBoiteDir() string {
+	if dir := os.Getenv("BOITE_DIR"); dir != "" {
+		return dir
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".boite")
 }

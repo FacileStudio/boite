@@ -25,7 +25,7 @@ func Create(opts CreateOptions) (*Instance, error) {
 		return nil, err
 	}
 
-	configDiskPath, keyResolution, err := prepareConfig(GetInstanceDir(opts.Name), opts.GenerateKey, cfg)
+	configDiskPath, keyResolution, err := prepareConfig(GetInstanceDir(opts.Name), opts, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,9 @@ func Create(opts CreateOptions) (*Instance, error) {
 		return nil, err
 	}
 
-	setupCleanupHandler(opts.Name)
+	if !opts.Detached {
+		setupCleanupHandler(opts.Name)
+	}
 	return inst, nil
 }
 
@@ -87,9 +89,9 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 
 // prepareConfig resolves or generates the instance SSH key, then materialises
 // the config disk from the boite config: everything the guest needs before boot.
-func prepareConfig(instanceDir string, generateKey bool, cfg *BoiteConfig) (string, sshKeyResolution, error) {
+func prepareConfig(instanceDir string, opts CreateOptions, cfg *BoiteConfig) (string, sshKeyResolution, error) {
 	ProgressPhase("Resolving SSH key")
-	keyResolution, err := resolveSSHKey(instanceDir, generateKey)
+	keyResolution, err := resolveSSHKey(instanceDir, opts.GenerateKey)
 	if err != nil {
 		return "", keyResolution, err
 	}
@@ -99,7 +101,7 @@ func prepareConfig(instanceDir string, generateKey bool, cfg *BoiteConfig) (stri
 	if err != nil {
 		return "", keyResolution, fmt.Errorf("resolve env: %w", err)
 	}
-	configDiskPath, err := BuildConfigDisk(instanceDir, keyResolution.pubKey, envVars)
+	configDiskPath, err := BuildConfigDisk(instanceDir, JoinAuthorizedKeys(keyResolution.pubKey, opts.ExtraKeys), envVars)
 	if err != nil {
 		return configDiskPath, keyResolution, fmt.Errorf("build config disk: %w", err)
 	}
@@ -138,46 +140,6 @@ func prepareInstanceDisk(name, distro string, cfg *BoiteConfig) (string, error) 
 	}
 
 	return overlayPath, nil
-}
-
-// Start boots an existing instance: it loads the saved state, starts qemu
-// if the process is not already running, and waits for SSH to come up.
-func Start(name string, configPath string) (*Instance, error) {
-	inst, err := LoadInstanceState(name)
-	if err != nil {
-		return nil, fmt.Errorf("load state: %w", err)
-	}
-
-	if inst.Status == "running" && IsProcessRunning(inst.PID) {
-		return inst, nil
-	}
-
-	cfg, err := LoadBoiteConfig(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("load boite config: %w", err)
-	}
-
-	qemuCfg := QEMUConfig{
-		BaseImage: GetBaseImagePath(inst.Distro), OverlayPath: inst.OverlayPath, ConfigDiskPath: inst.ConfigDiskPath,
-		HostFwdPort: inst.SSHPort, PIDFile: GetPIDPath(name), ConsoleLog: GetConsoleLogPath(name),
-	}
-	applyVMConfig(&qemuCfg, cfg)
-
-	pid, err := launchVM(qemuCfg)
-	if err != nil {
-		return nil, err
-	}
-	inst.PID, inst.Status = pid, "running"
-	if err := SaveInstanceState(inst); err != nil {
-		return nil, fmt.Errorf("save state: %w", err)
-	}
-
-	if err := WaitForSSH(inst.SSHPort, 60); err != nil {
-		return nil, fmt.Errorf("wait for ssh: %w", err)
-	}
-
-	setupCleanupHandler(name)
-	return inst, nil
 }
 
 // Stop powers the instance down: the guest is asked to power off cleanly so

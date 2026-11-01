@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +23,8 @@ type CreateOptions struct {
 	ConfigPath    string
 	GenerateKey   bool
 	Distro        string
+	ExtraKeys     []string
+	Detached      bool
 }
 
 // Instance is the persisted state boite keeps for one sandbox: where its
@@ -113,9 +116,9 @@ func FindFreePort() (int, error) {
 	return 0, fmt.Errorf("no free port in range 2222-2322")
 }
 
-// isPortFree reports whether a localhost TCP port is not accepting connections.
+// isPortFree reports whether a TCP port on the SSH host is not accepting connections.
 func isPortFree(port int) bool {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 50*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(SSHDialHost(), strconv.Itoa(port)), 50*time.Millisecond)
 	if err == nil {
 		conn.Close()
 		return false

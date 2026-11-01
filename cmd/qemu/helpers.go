@@ -89,7 +89,7 @@ func parseDiskGB(value string) int {
 // reporting progress along the way, and fails with an error once
 // timeoutSeconds have elapsed.
 func WaitForSSH(port, timeoutSeconds int) error {
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	addr := net.JoinHostPort(SSHDialHost(), strconv.Itoa(port))
 	for i := range timeoutSeconds {
 		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 		if err == nil {
