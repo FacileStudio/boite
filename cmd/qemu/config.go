@@ -66,7 +66,6 @@ func WorkspaceSyncEnabled(inst *Instance, configPath string, forceSkip bool) boo
 	return false
 }
 
-
 // EnvSource selects where a VM's environment comes from. local is the default:
 // values are injected at create time. casier is an opt-in source where the host
 // holds a scoped token and materializes values into the guest store.
