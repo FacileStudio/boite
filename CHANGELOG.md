@@ -7,6 +7,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Added
+
+- The bake installs Node 24.22.0, Playwright 1.64.1 in `/opt/playwright` and its Chromium in `/opt/ms-playwright`, for Bulle's `bulle-browser` daemon. Needs a rebake and repin of `cmd/qemu/paths.go` to reach boxes.
+
 ## [0.10.0] — 2026-11-01
 
 ### Added

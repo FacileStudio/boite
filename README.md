@@ -266,7 +266,7 @@ Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by 
 
 ## Features
 
-- **Pre-configured tools**: Go 1.26, Bun, Rust, mise, git, fzf, jq, tmux, wget, make, tiroir, starship
+- **Pre-configured tools**: Go 1.26, Bun, Rust, Node 24 with Playwright 1.64.1 and Chromium (`/opt/playwright`, `/opt/ms-playwright`), mise, git, fzf, jq, tmux, wget, make, tiroir, starship
 - **Secure VM isolation**: Full virtual machine separation from host
 - **Workspace sync**: Current directory copied into /workspace on every `run`
 - **Custom shell configuration**: Bakes `.zshrc` and `.tmux.conf` into the base image

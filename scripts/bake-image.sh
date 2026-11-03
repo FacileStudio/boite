@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the baked boite base image with virt-builder. Run by a maintainer when
 # Debian or the toolchain changes; boite never calls this at runtime. After a
-# successful build it prints the SHA256 to repin into cmd/qemu/instance.go and
+# successful build it prints the SHA256 to repin into cmd/qemu/paths.go and
 # the URL where the image must be published.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -34,7 +34,7 @@ sha=$(sha256sum "$bake" | awk '{print $1}')
 mv "$bake" "$out"
 echo "==> built $out ($(du -h "$out" | cut -f1))"
 echo "SHA256: $sha"
-echo "Repin cmd/qemu/instance.go:"
+echo "Repin cmd/qemu/paths.go:"
 echo "  BaseImageName    = \"$out\""
 echo "  BaseImageSHA256  = \"$sha\""
 echo "  BaseImageURL     = <where the image is published>"

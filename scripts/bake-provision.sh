@@ -152,6 +152,8 @@ export RUST_TOOLCHAIN=1.98.1
 export BUN_VERSION=1.4.2
 export BOB_VERSION=v4.2.0
 export TIROIR_VERSION=0.2.0
+export NODE_VERSION=24.22.0
+export PLAYWRIGHT_VERSION=1.64.1
 
 curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 curl -fsSL https://go.dev/dl/go1.26.0.linux-amd64.tar.gz | tar -C /usr/local -xzf -
@@ -173,6 +175,24 @@ curl -fsSL "https://github.com/FacileStudio/tiroir/releases/download/v$TIROIR_VE
 tar -C /usr/local/bin -xzf /tmp/tiroir.tar.gz tiroir
 chmod 0755 /usr/local/bin/tiroir
 rm -f /tmp/tiroir.tar.gz
+
+# Node plus a pinned Playwright and Chromium for the bulle-browser daemon,
+# which Bulle copies in at run time. Playwright supports Node, not bun, so the
+# daemon runs on this Node. The library lives in /opt/playwright and the
+# browser in /opt/ms-playwright, both read-only to boite; the daemon's
+# launcher sets NODE_PATH and PLAYWRIGHT_BROWSERS_PATH to them. Bulle pins the
+# same PLAYWRIGHT_VERSION in its daemon bundle and refuses a mismatch.
+node_tar="node-v${NODE_VERSION}-linux-x64.tar.xz"
+curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/${node_tar}" -o "/tmp/${node_tar}"
+curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | grep " ${node_tar}\$" | (cd /tmp && sha256sum -c -)
+tar -C /usr/local --strip-components=1 -xJf "/tmp/${node_tar}"
+rm -f "/tmp/${node_tar}"
+mkdir -p /opt/playwright /opt/ms-playwright
+npm install --prefix /opt/playwright --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}"
+PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright /opt/playwright/node_modules/.bin/playwright install --with-deps --no-shell chromium
+chmod -R a+rX /opt/playwright /opt/ms-playwright
+printf '%s\n' "$PLAYWRIGHT_VERSION" > /opt/playwright/VERSION
+npm cache clean --force
 
 su - boite -c 'git config --global init.defaultBranch main'
 su - boite -c 'git config --global safe.directory "*"'
