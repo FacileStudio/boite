@@ -20,7 +20,13 @@ const (
 	StatusError    = "error"
 )
 
-// CreateRequest is the body of POST /boxes. Zero resources take defaults.
+const (
+	NetOpen    = "open"
+	NetOffline = "offline"
+)
+
+// CreateRequest is the body of POST /boxes. Zero resources take defaults and
+// an empty Net means NetOpen.
 type CreateRequest struct {
 	Name   string `json:"name"`
 	Owner  string `json:"owner"`
@@ -28,6 +34,7 @@ type CreateRequest struct {
 	Memory string `json:"memory"`
 	Disk   string `json:"disk"`
 	SSHKey string `json:"ssh_key"`
+	Net    string `json:"net"`
 }
 
 // SSHInfo tells a client where and as whom to open an SSH session.
@@ -47,6 +54,7 @@ type Box struct {
 	Memory    string  `json:"memory"`
 	Disk      string  `json:"disk"`
 	SSH       SSHInfo `json:"ssh"`
+	Net       string  `json:"net"`
 	CreatedAt string  `json:"created_at"`
 	Error     string  `json:"error,omitempty"`
 }
@@ -60,6 +68,10 @@ type Snapshot struct {
 
 type tagRequest struct {
 	Tag string `json:"tag"`
+}
+
+type netRequest struct {
+	Net string `json:"net"`
 }
 
 type keyRequest struct {

@@ -113,20 +113,23 @@ Every request needs `Authorization: Bearer <BOITE_WORKER_TOKEN>`. Errors are `{"
 
 | Method and path | Body | Success |
 |-----------------|------|---------|
-| `POST /boxes` | `{"name","owner","cpus","memory","disk","ssh_key"}` (`name` and `owner` required; defaults 2, `2G`, `20G`) | 202 box with `status` `creating`. The box is created in the background, one at a time. 409 `exists` if the name is taken, including by a box still creating or in error. |
+| `POST /boxes` | `{"name","owner","cpus","memory","disk","ssh_key","net"}` (`name` and `owner` required; defaults 2, `2G`, `20G`, `open`) | 202 box with `status` `creating`. The box is created in the background, one at a time. 409 `exists` if the name is taken, including by a box still creating or in error. |
 | `GET /boxes[?owner=]` | | 200 `[box]` |
 | `GET /boxes/{id}` | | 200 box |
 | `POST /boxes/{id}/start` | | 200 box |
 | `POST /boxes/{id}/stop` | | 200 box |
 | `POST /boxes/{id}/rm` | | 204. Works in every status. On a creating box it cancels a queued create at once, or waits for the running create to end and removes the result. |
 | `PUT /boxes/{id}/ssh-key` | `{"ssh_key"}` replaces the user key | 200 box |
+| `PUT /boxes/{id}/net` | `{"net"}`, `open` or `offline` | 200 box |
 | `POST /boxes/{id}/snapshot` | `{"tag"}` | 201 `{"id","tag"}` |
 | `POST /boxes/{id}/rollback` | `{"tag"}` | 200 `{"id","tag"}` |
 | `GET /boxes/{id}/snapshots` | | 200 `[{"id","tag","created_at"}]` |
 
-A box is `{"id","name","owner","status","cpus","memory","disk","ssh":{"host","port","user"},"created_at"}`; `id` equals `name` (lowercase letters, digits, dashes, max 40). `status` is `running`, `stopped`, `creating` or `error`. A creating box has `ssh.port` 0 until it is up. An `error` box carries an `"error"` string and stays listed until you `rm` it. After a worker restart, boxes left `creating` become `error` with the message `interrupted`. Start, stop, key and snapshot calls on a creating or error box answer 409 `not_ready` (snapshots answer `not_stopped`). Snapshot, rollback and snapshot listing need a stopped box and answer 409 `not_stopped` otherwise. A second call on a box that is mid-operation answers 409 `busy`.
+A box is `{"id","name","owner","status","cpus","memory","disk","net","ssh":{"host","port","user"},"created_at"}`; `id` equals `name` (lowercase letters, digits, dashes, max 40). `status` is `running`, `stopped`, `creating` or `error`. A creating box has `ssh.port` 0 until it is up. An `error` box carries an `"error"` string and stays listed until you `rm` it. After a worker restart, boxes left `creating` become `error` with the message `interrupted`. Start, stop, key and snapshot calls on a creating or error box answer 409 `not_ready` (snapshots answer `not_stopped`). Snapshot, rollback and snapshot listing need a stopped box and answer 409 `not_stopped` otherwise. A second call on a box that is mid-operation answers 409 `busy`.
 
 A key set with `PUT /boxes/{id}/ssh-key` is written into a running box at once, and into a stopped box on its next start.
+
+`net` is the box's egress mode, as in [Egress](#egress): `offline` sets slirp `restrict=on`, so the guest reaches nothing while SSH through the forwarded port keeps working. The worker stores it in the box's `boite.yml` and `worker.json`. QEMU reads it at boot, so `PUT /boxes/{id}/net` on a running box changes the reported `net` at once but the box keeps its old mode until a stop and start. Boxes created before this field report `open`.
 
 Idle stop lives in the caller. The worker never stops a box on its own: the web tier decides when a box is idle and calls `POST /boxes/{id}/stop`.
 

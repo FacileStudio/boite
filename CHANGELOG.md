@@ -7,6 +7,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Added
+
+- Worker boxes take an egress mode. `POST /boxes` accepts `"net": "open"` (default) or `"offline"`, and `PUT /boxes/{id}/net` changes it. Every box reports `net`. Offline reuses `vm.net: offline`: slirp `restrict=on`, with SSH still forwarded. A change applies on the box's next start.
+
 ## [0.11.0] — 2026-11-03
 
 ### Added

@@ -76,6 +76,12 @@ func routeCases() []routeCase {
 		{"stop missing", "POST", "/boxes/ghost/stop", "", StatusRunning, 404, "not_found"},
 		{"rm", "POST", "/boxes/dev/rm", "", StatusRunning, 204, ""},
 		{"ssh key", "PUT", "/boxes/dev/ssh-key", `{"ssh_key":"` + validKey + `"}`, StatusRunning, 200, ""},
+		{"create offline", "POST", "/boxes", `{"name":"new","owner":"b","net":"offline"}`, StatusStopped, 202, ""},
+		{"create bad net", "POST", "/boxes", `{"name":"new","owner":"b","net":"lan"}`, StatusStopped, 400, "invalid"},
+		{"net", "PUT", "/boxes/dev/net", `{"net":"offline"}`, StatusRunning, 200, ""},
+		{"net bad", "PUT", "/boxes/dev/net", `{"net":"lan"}`, StatusStopped, 400, "invalid"},
+		{"net empty", "PUT", "/boxes/dev/net", `{}`, StatusStopped, 400, "invalid"},
+		{"net missing", "PUT", "/boxes/ghost/net", `{"net":"open"}`, StatusStopped, 404, "not_found"},
 		{"snapshot stopped", "POST", "/boxes/dev/snapshot", `{"tag":"a"}`, StatusStopped, 201, ""},
 		{"snapshot running", "POST", "/boxes/dev/snapshot", `{"tag":"a"}`, StatusRunning, 409, "not_stopped"},
 		{"rollback running", "POST", "/boxes/dev/rollback", `{"tag":"a"}`, StatusRunning, 409, "not_stopped"},
@@ -133,7 +139,7 @@ func TestNormalizeDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if req.CPUs != 2 || req.Memory != "2G" || req.Disk != "20G" || req.Owner != "ann" {
+	if req.CPUs != 2 || req.Memory != "2G" || req.Disk != "20G" || req.Owner != "ann" || req.Net != NetOpen {
 		t.Fatalf("defaults not applied: %+v", req)
 	}
 	req, err = CreateRequest{Name: "a", Owner: "o", Memory: "512m", Disk: "40"}.Normalize()

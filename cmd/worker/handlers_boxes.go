@@ -1,9 +1,6 @@
 package worker
 
-import (
-	"net/http"
-	"strings"
-)
+import "net/http"
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req CreateRequest
@@ -96,16 +93,4 @@ func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *Server) handleSSHKey(w http.ResponseWriter, r *http.Request) {
-	var req keyRequest
-	if err := decodeBody(w, r, &req); err != nil {
-		writeError(w, err)
-		return
-	}
-	key := strings.TrimSpace(req.SSHKey)
-	s.boxAction(w, r, func(id string) (Box, error) {
-		return s.life.SetSSHKey(id, key)
-	})
 }

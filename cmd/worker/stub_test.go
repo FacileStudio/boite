@@ -32,7 +32,7 @@ func (s *stubLife) Reserve(req CreateRequest) (Box, error) {
 	}
 	box := &Box{
 		ID: req.Name, Name: req.Name, Owner: req.Owner, Status: StatusCreating,
-		CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk,
+		CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, Net: req.Net,
 		SSH: SSHInfo{Host: "10.0.0.1", User: sshUser},
 	}
 	s.boxes[req.Name] = box
@@ -174,6 +174,18 @@ func (s *stubLife) SetSSHKey(id, key string) (Box, error) {
 	if !ok {
 		return Box{}, ErrNotFound
 	}
+	return *box, nil
+}
+
+func (s *stubLife) SetNet(id, net string) (Box, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.record("net " + id + " " + net)
+	box, ok := s.boxes[id]
+	if !ok {
+		return Box{}, ErrNotFound
+	}
+	box.Net = net
 	return *box, nil
 }
 

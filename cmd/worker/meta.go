@@ -17,6 +17,7 @@ type boxMeta struct {
 	Memory string `json:"memory"`
 	Disk   string `json:"disk"`
 	SSHKey string `json:"ssh_key,omitempty"`
+	Net    string `json:"net,omitempty"`
 
 	Status    string `json:"status,omitempty"`
 	Error     string `json:"error,omitempty"`
@@ -59,17 +60,31 @@ func writeBoxFiles(req CreateRequest) error {
 	if err := os.MkdirAll(qemu.GetInstanceDir(req.Name), 0o755); err != nil {
 		return fmt.Errorf("create box dir: %w", err)
 	}
-	cfg := boxConfig{VM: qemu.VMConfig{CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk}}
+	meta := boxMeta{
+		Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey, Net: req.Net,
+		Status: StatusCreating, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err := writeBoxConfig(req.Name, meta); err != nil {
+		return err
+	}
+	return saveMeta(req.Name, meta)
+}
+
+func writeBoxConfig(id string, meta boxMeta) error {
+	cfg := boxConfig{VM: qemu.VMConfig{CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk, Net: meta.netMode()}}
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("marshal box config: %w", err)
 	}
-	if err := os.WriteFile(configPath(req.Name), data, 0o644); err != nil {
+	if err := os.WriteFile(configPath(id), data, 0o644); err != nil {
 		return fmt.Errorf("write box config: %w", err)
 	}
-	meta := boxMeta{
-		Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey,
-		Status: StatusCreating, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	return nil
+}
+
+func (m boxMeta) netMode() string {
+	if m.Net == "" {
+		return NetOpen
 	}
-	return saveMeta(req.Name, meta)
+	return m.Net
 }

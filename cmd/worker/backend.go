@@ -29,7 +29,7 @@ func (b *Backend) box(inst *qemu.Instance, meta boxMeta) Box {
 	}
 	return Box{
 		ID: inst.Name, Name: inst.Name, Owner: meta.Owner, Status: status,
-		CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk,
+		CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk, Net: meta.netMode(),
 		SSH:       SSHInfo{Host: b.host, Port: inst.SSHPort, User: sshUser},
 		CreatedAt: inst.CreatedAt.UTC().Format(time.RFC3339),
 	}
@@ -38,7 +38,7 @@ func (b *Backend) box(inst *qemu.Instance, meta boxMeta) Box {
 func (b *Backend) pendingBox(id string, meta boxMeta) Box {
 	return Box{
 		ID: id, Name: id, Owner: meta.Owner, Status: meta.Status,
-		CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk,
+		CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk, Net: meta.netMode(),
 		SSH:       SSHInfo{Host: b.host, User: sshUser},
 		CreatedAt: meta.CreatedAt, Error: meta.Error,
 	}

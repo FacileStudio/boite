@@ -22,13 +22,23 @@ type Inventory interface {
 	List() ([]Box, error)
 }
 
-// Maintainer manages qcow2 snapshots on stopped boxes and replaces a box's
-// user SSH key.
-type Maintainer interface {
+// Snapshotter manages qcow2 snapshots on stopped boxes.
+type Snapshotter interface {
 	Snapshot(id, tag string) error
 	Rollback(id, tag string) error
 	Snapshots(id string) ([]Snapshot, error)
+}
+
+// Configurer replaces a box's user SSH key or its egress mode.
+type Configurer interface {
 	SetSSHKey(id, key string) (Box, error)
+	SetNet(id, net string) (Box, error)
+}
+
+// Maintainer manages snapshots and per-box settings.
+type Maintainer interface {
+	Snapshotter
+	Configurer
 }
 
 // Lifecycle is everything the control API needs from the QEMU layer. The

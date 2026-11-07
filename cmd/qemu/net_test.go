@@ -54,3 +54,12 @@ func containsArg(args []string, substr string) bool {
 	}
 	return false
 }
+
+func TestApplyVMConfigRestrictsOffline(t *testing.T) {
+	var offline, open QEMUConfig
+	applyVMConfig(&offline, &BoiteConfig{VM: &VMConfig{Net: "offline"}})
+	applyVMConfig(&open, &BoiteConfig{VM: &VMConfig{Net: "open"}})
+	if !offline.RestrictNet || open.RestrictNet {
+		t.Fatalf("RestrictNet offline=%v open=%v", offline.RestrictNet, open.RestrictNet)
+	}
+}

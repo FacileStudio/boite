@@ -42,6 +42,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /boxes/{id}/stop", s.handleStop)
 	mux.HandleFunc("POST /boxes/{id}/rm", s.handleRemove)
 	mux.HandleFunc("PUT /boxes/{id}/ssh-key", s.handleSSHKey)
+	mux.HandleFunc("PUT /boxes/{id}/net", s.handleNet)
 	mux.HandleFunc("POST /boxes/{id}/snapshot", s.handleSnapshot)
 	mux.HandleFunc("POST /boxes/{id}/rollback", s.handleRollback)
 	mux.HandleFunc("GET /boxes/{id}/snapshots", s.handleSnapshots)

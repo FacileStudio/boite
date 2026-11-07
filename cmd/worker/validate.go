@@ -45,6 +45,11 @@ func (r CreateRequest) Normalize() (CreateRequest, error) {
 	if err := r.normalizeResources(); err != nil {
 		return r, err
 	}
+	net, err := NormalizeNet(r.Net)
+	if err != nil {
+		return r, err
+	}
+	r.Net = net
 	if r.SSHKey != "" {
 		if err := qemu.ValidatePublicKey(r.SSHKey); err != nil {
 			return r, invalid("ssh_key: %v", err)
@@ -78,4 +83,14 @@ func (r *CreateRequest) normalizeResources() error {
 	}
 	r.Disk = match[1] + "G"
 	return nil
+}
+
+// NormalizeNet returns the egress mode net names, NetOpen when it is empty,
+// or ErrInvalid when it is neither open nor offline.
+func NormalizeNet(net string) (string, error) {
+	mode, err := (&qemu.VMConfig{Net: net}).EffectiveNet()
+	if err != nil {
+		return "", invalid("net must be %s or %s", NetOpen, NetOffline)
+	}
+	return mode, nil
 }
