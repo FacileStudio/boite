@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-11-07
+
 ### Added
 
 - Worker boxes take an egress mode. `POST /boxes` accepts `"net": "open"` (default) or `"offline"`, and `PUT /boxes/{id}/net` changes it. Every box reports `net`. Offline reuses `vm.net: offline`: slirp `restrict=on`, with SSH still forwarded. A change applies on the box's next start.
@@ -269,7 +271,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/FacileStudio/boite/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/FacileStudio/boite/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/FacileStudio/boite/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/FacileStudio/boite/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/FacileStudio/boite/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/FacileStudio/boite/compare/v0.7.2...v0.8.0
