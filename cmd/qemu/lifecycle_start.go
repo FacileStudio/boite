@@ -24,7 +24,7 @@ func StartDetached(name string, configPath string) (*Instance, error) {
 		BaseImage: GetBaseImagePath(inst.Distro), OverlayPath: inst.OverlayPath, ConfigDiskPath: inst.ConfigDiskPath,
 		HostFwdPort: inst.SSHPort, PIDFile: GetPIDPath(name), ConsoleLog: GetConsoleLogPath(name),
 	}
-	applyVMConfig(&qemuCfg, cfg)
+	applyVMConfig(&qemuCfg, cfg, GetInstanceDir(name))
 
 	pid, err := launchVM(qemuCfg)
 	if err != nil {

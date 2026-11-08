@@ -7,6 +7,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Security
+
+- `vm.net: open`, the default, now runs each VM behind its own `passt --one-off --no-map-gw` instead of QEMU slirp. Slirp mapped the guest gateway `10.0.2.2` to the host loopback, so any process in a VM could reach services bound to the host's `127.0.0.1`. Guest DNS goes through passt's `--dns-forward 10.0.2.3`, so existing images need no rebake. `offline` is unchanged.
+
+### Added
+
+- `vm.net: open-slirp` keeps the old slirp network as an explicit, documented-unsafe opt-in. `open` fails with a clear error when `passt` is missing instead of falling back. The worker's `net` still takes only `open` or `offline`.
+
+### Changed
+
+- Hosts running `open` boxes need the `passt` package. passt is Linux only: on macOS and Windows set `vm.net: open-slirp` or `offline`.
+
 ## [0.12.0] — 2026-11-07
 
 ### Added

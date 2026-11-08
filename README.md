@@ -25,9 +25,11 @@ go build -o boite .
 
 ## Prerequisites
 
-QEMU, `mkfs.fat` and `mcopy` are required for VM-based sandboxes.
+QEMU, `mkfs.fat` and `mcopy` are required for VM-based sandboxes. The default
+`open` network also needs [passt](https://passt.top) (Linux only); see
+[Egress](#egress).
 
-- Ubuntu/Debian: `sudo apt install qemu-kvm dosfstools mtools`
+- Ubuntu/Debian: `sudo apt install qemu-kvm dosfstools mtools passt`
 - See [QEMU website](https://qemu.org) for other platforms.
 
 ## Usage
@@ -82,7 +84,7 @@ boite rm my-project
 
 Prerequisites on the host:
 
-- `sudo apt install qemu-kvm dosfstools mtools genisoimage`
+- `sudo apt install qemu-kvm dosfstools mtools genisoimage passt`
 - `/dev/kvm` readable by the worker (it runs as root)
 
 Build and install:
@@ -129,7 +131,7 @@ A box is `{"id","name","owner","status","cpus","memory","disk","net","ssh":{"hos
 
 A key set with `PUT /boxes/{id}/ssh-key` is written into a running box at once, and into a stopped box on its next start.
 
-`net` is the box's egress mode, as in [Egress](#egress): `offline` sets slirp `restrict=on`, so the guest reaches nothing while SSH through the forwarded port keeps working. The worker stores it in the box's `boite.yml` and `worker.json`. QEMU reads it at boot, so `PUT /boxes/{id}/net` on a running box changes the reported `net` at once but the box keeps its old mode until a stop and start. Boxes created before this field report `open`.
+`net` is the box's egress mode, as in [Egress](#egress): `open` runs the box behind its own passt, `offline` sets slirp `restrict=on`, so the guest reaches nothing while SSH through the forwarded port keeps working. The worker stores it in the box's `boite.yml` and `worker.json`. QEMU reads it at boot, so `PUT /boxes/{id}/net` on a running box changes the reported `net` at once but the box keeps its old mode until a stop and start. Boxes created before this field report `open`.
 
 Idle stop lives in the caller. The worker never stops a box on its own: the web tier decides when a box is idle and calls `POST /boxes/{id}/stop`.
 
@@ -204,13 +206,41 @@ for one sync and copy everything.
 
 ### Egress
 
-Set `vm.net: offline` in `~/.boite.yml` to deny the guest all outbound
-network access: the restriction is set in the QEMU slirp flags on the host,
-so a root process inside the VM cannot undo it. Inbound SSH through the
+`vm.net` in `~/.boite.yml` picks the guest network. Every mode is enforced
+by host processes, so a root process inside the VM cannot undo it.
+
+| Mode | Network | Outbound | Host loopback |
+|---|---|---|---|
+| `open` (default) | one [passt](https://passt.top) per VM | yes | blocked |
+| `offline` | slirp `restrict=on` | none | blocked |
+| `open-slirp` | slirp | yes | **reachable**: unsafe |
+
+In `open` mode boite starts `passt --one-off --no-map-gw` for each VM, with
+its socket and PID file in the instance directory, and QEMU attaches to it
+with `-netdev stream`. `--no-map-gw` stops passt from aliasing the gateway to
+the host loopback, so a process in the VM (an agent shell, a prompt-injected
+tool) cannot reach services the host binds to `127.0.0.1`: databases,
+`boite-worker`, dev servers. Guest DNS still works: passt forwards queries
+sent to `10.0.2.3` to the host's first resolver. passt exits when QEMU
+disconnects, and `boite stop`, `rm` and a failed start also stop it.
+
+`open` fails with a clear error when `passt` is not installed. boite never
+falls back to slirp on its own.
+
+`open-slirp` is the network boite used before passt. QEMU slirp maps the
+guest gateway `10.0.2.2` to the host loopback and has no option to turn that
+off. Use it only where passt does not exist (macOS, Windows) and nothing
+sensitive listens on the host loopback.
+
+Services bound to other host addresses, such as `0.0.0.0` or a Docker
+bridge, stay reachable from `open` guests, as they were under slirp. Bind
+host services to `127.0.0.1` to hide them from boxes.
+
+`offline` denies the guest all outbound traffic. Inbound SSH through the
 host-forwarded port keeps working, so `boite run`, `exec` and `sync` behave
-as usual. The default is `open` (unrestricted). A per-host allowlist is not
-supported: slirp cannot filter by destination, and in-guest firewall rules
-would be rewritable by the guest's passwordless-root user.
+as usual. A per-host allowlist is not supported: neither backend filters by
+destination, and in-guest firewall rules would be rewritable by the guest's
+passwordless-root user.
 
 ```yaml
 vm:

@@ -64,3 +64,14 @@ func configNet(t *testing.T, id string) string {
 	}
 	return net
 }
+
+func TestNormalizeNetRejectsSlirp(t *testing.T) {
+	for _, net := range []string{"open-slirp", "lan"} {
+		if _, err := NormalizeNet(net); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("net %q: expected ErrInvalid, got %v", net, err)
+		}
+	}
+	if got, err := NormalizeNet(""); err != nil || got != NetOpen {
+		t.Fatalf("empty net = %q, %v", got, err)
+	}
+}

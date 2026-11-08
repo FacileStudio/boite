@@ -15,6 +15,7 @@ func TestEffectiveNet(t *testing.T) {
 		{"open", "open", false},
 		{"offline", "offline", false},
 		{" Offline ", "offline", false},
+		{"open-slirp", "open-slirp", false},
 		{"transparent", "", true},
 	}
 	for _, c := range cases {
@@ -55,11 +56,22 @@ func containsArg(args []string, substr string) bool {
 	return false
 }
 
-func TestApplyVMConfigRestrictsOffline(t *testing.T) {
-	var offline, open QEMUConfig
-	applyVMConfig(&offline, &BoiteConfig{VM: &VMConfig{Net: "offline"}})
-	applyVMConfig(&open, &BoiteConfig{VM: &VMConfig{Net: "open"}})
-	if !offline.RestrictNet || open.RestrictNet {
-		t.Fatalf("RestrictNet offline=%v open=%v", offline.RestrictNet, open.RestrictNet)
+func TestApplyVMConfigPicksNetwork(t *testing.T) {
+	var offline, open, slirp, unset QEMUConfig
+	applyVMConfig(&offline, &BoiteConfig{VM: &VMConfig{Net: "offline"}}, "/vm")
+	applyVMConfig(&open, &BoiteConfig{VM: &VMConfig{Net: "open"}}, "/vm")
+	applyVMConfig(&slirp, &BoiteConfig{VM: &VMConfig{Net: "open-slirp"}}, "/vm")
+	applyVMConfig(&unset, nil, "/vm")
+	if !offline.RestrictNet || offline.Passt != nil {
+		t.Fatalf("offline: RestrictNet=%v Passt=%v", offline.RestrictNet, offline.Passt)
+	}
+	if open.RestrictNet || open.Passt == nil || open.Passt.Socket != "/vm/passt.sock" {
+		t.Fatalf("open: RestrictNet=%v Passt=%+v", open.RestrictNet, open.Passt)
+	}
+	if slirp.RestrictNet || slirp.Passt != nil {
+		t.Fatalf("open-slirp: RestrictNet=%v Passt=%v", slirp.RestrictNet, slirp.Passt)
+	}
+	if unset.Passt == nil {
+		t.Fatal("missing config must default to passt")
 	}
 }

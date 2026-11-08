@@ -42,11 +42,15 @@ type QEMUConfig struct {
 	// RestrictNet sets slirp restrict=on: the guest gets no outbound access,
 	// only inbound SSH via hostfwd. Enforced host-side in the QEMU flags.
 	RestrictNet bool
+	// Passt, when set, attaches the NIC to a per-VM passt process instead of
+	// slirp, so the guest has outbound access but no path to host loopback.
+	Passt *PasstConfig
 }
 
 // BuildQEMUArgs assembles the qemu-system-x86_64 command line for cfg:
 // acceleration flags from detectAcceleration, guest memory/CPU, the overlay
-// and config disk drives, the SSH hostfwd, console log, PID file and VM name.
+// and config disk drives, the NIC from netdevArgs, console log, PID file and
+// VM name.
 func BuildQEMUArgs(cfg QEMUConfig) []string {
 	accelFlag, accelExtra, cpuModel := detectAcceleration()
 	args := []string{}
@@ -64,14 +68,9 @@ func BuildQEMUArgs(cfg QEMUConfig) []string {
 		cpus = 2
 	}
 
-	restrict := "off"
-	if cfg.RestrictNet {
-		restrict = "on"
-	}
 	args = append(args, baseArgs(cfg, cpuModel, memory, cpus)...)
+	args = append(args, netdevArgs(cfg)...)
 	args = append(args,
-		"-netdev", fmt.Sprintf("user,id=net0,restrict=%s,hostfwd=tcp:%s:%d-:22", restrict, SSHBindAddr(), cfg.HostFwdPort),
-		"-device", "virtio-net-pci,netdev=net0",
 		"-serial", fmt.Sprintf("file:%s", cfg.ConsoleLog),
 		"-display", "none",
 		"-daemonize",

@@ -15,11 +15,13 @@ type VMConfig struct {
 	CPUs   int    `yaml:"cpus"`
 	Disk   string `yaml:"disk"`
 	Memory string `yaml:"memory"`
-	// Net is the egress mode: open (default) gives the guest unrestricted
-	// outbound access through slirp; offline sets slirp restrict=on, which
-	// denies all guest-initiated traffic while the SSH hostfwd keeps working.
-	// Enforcement lives in the QEMU process flags on the host, so a
-	// passwordless-root guest cannot undo it.
+	// Net is the egress mode: open (default) gives the guest outbound access
+	// through a per-VM passt that never maps a guest address to the host
+	// loopback; offline sets slirp restrict=on, which denies all
+	// guest-initiated traffic while the SSH hostfwd keeps working; open-slirp
+	// is the unsafe pre-passt network, where 10.0.2.2 reaches host 127.0.0.1.
+	// Enforcement lives in host processes, so a passwordless-root guest
+	// cannot undo it.
 	Net    string `yaml:"net"`
 	Distro string `yaml:"distro"`
 }
@@ -35,16 +37,25 @@ func (v *VMConfig) EffectiveDistro() string {
 // EffectiveNet returns the egress mode, defaulting to open when unset.
 func (v *VMConfig) EffectiveNet() (string, error) {
 	if v == nil || v.Net == "" {
-		return "open", nil
+		return NetOpen, nil
 	}
 	mode := strings.TrimSpace(strings.ToLower(v.Net))
 	switch mode {
-	case "open", "offline":
+	case NetOpen, NetOffline, NetOpenSlirp:
 		return mode, nil
 	default:
-		return "", fmt.Errorf("vm.net %q must be open or offline", v.Net)
+		return "", fmt.Errorf("vm.net %q must be %s, %s or %s", v.Net, NetOpen, NetOffline, NetOpenSlirp)
 	}
 }
+
+const (
+	// NetOpen is the default egress mode: outbound through passt, no host loopback.
+	NetOpen = "open"
+	// NetOffline denies guest-initiated traffic with slirp restrict=on.
+	NetOffline = "offline"
+	// NetOpenSlirp is the unsafe opt-in slirp network that maps 10.0.2.2 to host loopback.
+	NetOpenSlirp = "open-slirp"
+)
 
 // WorkspaceSyncEnabled reports whether the current directory should be synced
 // into the sandbox's /workspace at run time. Sync of the current directory is

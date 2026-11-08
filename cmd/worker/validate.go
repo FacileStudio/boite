@@ -89,7 +89,7 @@ func (r *CreateRequest) normalizeResources() error {
 // or ErrInvalid when it is neither open nor offline.
 func NormalizeNet(net string) (string, error) {
 	mode, err := (&qemu.VMConfig{Net: net}).EffectiveNet()
-	if err != nil {
+	if err != nil || (mode != NetOpen && mode != NetOffline) {
 		return "", invalid("net must be %s or %s", NetOpen, NetOffline)
 	}
 	return mode, nil

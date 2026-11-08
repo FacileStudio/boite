@@ -58,7 +58,7 @@ func startAndFinalizeInstance(p *startFinalizeParams) (*Instance, error) {
 		BaseImage: GetBaseImagePath(p.distro), OverlayPath: p.overlayPath, ConfigDiskPath: p.configDiskPath,
 		HostFwdPort: sshPort + 1, PIDFile: GetPIDPath(p.name), ConsoleLog: GetConsoleLogPath(p.name),
 	}
-	applyVMConfig(&qemuCfg, p.cfg)
+	applyVMConfig(&qemuCfg, p.cfg, GetInstanceDir(p.name))
 
 	pid, err := launchVM(qemuCfg)
 	if err != nil {
@@ -109,13 +109,24 @@ func prepareConfig(instanceDir string, opts CreateOptions, cfg *BoiteConfig) (st
 	return configDiskPath, keyResolution, nil
 }
 
-// launchVM starts qemu with the given config and blocks until its PID file
-// exists, so the caller can rely on the process being alive.
+// launchVM starts passt when the config asks for it, then qemu, and blocks
+// until qemu's PID file exists, so the caller can rely on the process being
+// alive. A failed qemu start stops the passt it was meant to use.
 func launchVM(cfg QEMUConfig) (int, error) {
+	if err := StartPasst(cfg.Passt, cfg.HostFwdPort); err != nil {
+		return 0, err
+	}
+	pid, err := startQEMUProcess(cfg)
+	if err != nil && cfg.Passt != nil {
+		StopPasst(cfg.Passt.PIDFile)
+	}
+	return pid, err
+}
+
+func startQEMUProcess(cfg QEMUConfig) (int, error) {
 	if _, err := StartQEMU(cfg); err != nil {
 		return 0, fmt.Errorf("start qemu: %w", err)
 	}
-
 	pid, err := WaitForPID(cfg.PIDFile, 20)
 	if err != nil {
 		return 0, fmt.Errorf("wait for pid file: %w", err)
@@ -144,8 +155,10 @@ func prepareInstanceDisk(name, distro string, cfg *BoiteConfig) (string, error) 
 
 // Stop powers the instance down: the guest is asked to power off cleanly so
 // its filesystems flush, and only if that fails or stalls is the qemu process
-// killed from the host. The instance is marked stopped either way.
+// killed from the host. The instance is marked stopped either way, and its
+// passt, if any, is stopped once qemu is down.
 func Stop(name string) error {
+	defer StopPasst(NewPasstConfig(GetInstanceDir(name)).PIDFile)
 	inst, err := LoadInstanceState(name)
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)

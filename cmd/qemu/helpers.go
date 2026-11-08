@@ -53,17 +53,21 @@ func setupCleanupHandler(name string) {
 				fmt.Fprintf(os.Stderr, "Warning: failed to stop QEMU: %v\n", err)
 			}
 		}
+		StopPasst(NewPasstConfig(GetInstanceDir(name)).PIDFile)
 		os.Exit(130)
 	}()
 }
 
-func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig) {
+func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig, instanceDir string) {
+	net := NetOpen
 	if cfg != nil && cfg.VM != nil {
 		qemuCfg.Memory = cfg.VM.Memory
 		qemuCfg.CPUs = cfg.VM.CPUs
-		if net, _ := cfg.VM.EffectiveNet(); net == "offline" {
-			qemuCfg.RestrictNet = true
-		}
+		net, _ = cfg.VM.EffectiveNet()
+	}
+	qemuCfg.RestrictNet = net == NetOffline
+	if net == NetOpen {
+		qemuCfg.Passt = NewPasstConfig(instanceDir)
 	}
 }
 
