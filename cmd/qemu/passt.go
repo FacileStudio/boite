@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -124,11 +123,8 @@ func waitForPasst(p *PasstConfig, attempts int) error {
 func StopPasst(pidFile string) error {
 	pid := passtPID(pidFile)
 	if pid > 0 {
-		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil && IsProcessRunning(pid) {
+		if err := KillQEMU(pid); err != nil {
 			return fmt.Errorf("stop passt %d: %w", pid, err)
-		}
-		if err := WaitForProcessExit(pid, 5); err != nil {
-			syscall.Kill(pid, syscall.SIGKILL)
 		}
 	}
 	if err := os.Remove(pidFile); err != nil && !os.IsNotExist(err) {

@@ -2,6 +2,7 @@ package qemu
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -77,5 +78,29 @@ func TestStartPasstRejectsLongSocketPath(t *testing.T) {
 	err := StartPasst(NewPasstConfig(long), 2223)
 	if err == nil || !strings.Contains(err.Error(), "shorter BOITE_DIR") {
 		t.Fatalf("expected socket path length error, got %v", err)
+	}
+}
+
+func TestStartStopPasstLive(t *testing.T) {
+	if _, err := exec.LookPath("passt"); err != nil {
+		t.Skip("passt not installed")
+	}
+	port, err := FindFreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := NewPasstConfig(t.TempDir())
+	if err := StartPasst(p, port); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	pid := passtPID(p.PIDFile)
+	if pid <= 0 {
+		t.Fatal("passt pid not recorded")
+	}
+	if err := StopPasst(p.PIDFile); err != nil {
+		t.Fatalf("stop: %v", err)
+	}
+	if IsProcessRunning(pid) {
+		t.Fatalf("passt %d still running", pid)
 	}
 }
