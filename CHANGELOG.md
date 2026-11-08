@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-11-08
+
 ### Security
 
 - `vm.net: open`, the default, now runs each VM behind its own `passt --one-off --no-map-gw` instead of QEMU slirp. Slirp mapped the guest gateway `10.0.2.2` to the host loopback, so any process in a VM could reach services bound to the host's `127.0.0.1`. Guest DNS goes through passt's `--dns-forward 10.0.2.3`, so existing images need no rebake. `offline` is unchanged.
@@ -237,6 +239,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-11-08
+
 ## [0.1.10] — 2026-09-08
 
 ### Changed
@@ -283,7 +287,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/FacileStudio/boite/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/FacileStudio/boite/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/FacileStudio/boite/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/FacileStudio/boite/compare/v0.9.1...v0.10.0
