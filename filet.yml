@@ -6,6 +6,8 @@ ignore:
   - dist
   - build
   - testdata
+  - node_modules
+  - site
 
 extensions: [.go]
 

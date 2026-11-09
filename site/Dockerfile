@@ -1,10 +1,12 @@
-FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/index.html
-COPY fonts/ /usr/share/nginx/html/fonts/
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+FROM oven/bun:1 AS build
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN for i in 1 2 3 4 5 6; do bun install --frozen-lockfile && exit 0; echo "install failed, retry $i"; sleep $((i * 10)); done; exit 1
+COPY . .
+RUN bun run build
 
-# The ~2 GB base image is served from the host filesystem via a bind mount
-# rather than committed to this image or the repo. Mount a ro directory that
-# holds boite-base.qcow2 over /assets, e.g.
-#   -v /etc/dokploy/boite-assets:/assets:ro
+FROM nginx:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

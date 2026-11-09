@@ -1,0 +1,31 @@
+{
+  "name": "boite-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 5187",
+    "build": "bun scripts/gen-icons.ts && vite build",
+    "preview": "vite preview --port 5187",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "bun scripts/gen-icons.ts && bunx --bun svelte-kit sync && bunx --bun svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@iconify-json/solar": "^1.2.13",
+    "@sveltejs/adapter-static": "^3",
+    "@sveltejs/kit": "^2.53",
+    "@sveltejs/vite-plugin-svelte": "^6",
+    "@tailwindcss/vite": "^4",
+    "@types/node": "^26.6.6",
+    "svelte": "^5.53",
+    "svelte-check": "^4",
+    "tailwindcss": "^4",
+    "typescript": "^5.9",
+    "vite": "^7"
+  },
+  "dependencies": {
+    "@facile/blob": "github:FacileStudio/blob#v0.2.1",
+    "@facile/muse": "github:FacileStudio/muse#v0.16.1",
+    "gsap": "^3.13"
+  }
+}

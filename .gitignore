@@ -1,4 +1,5 @@
 boite
+boite-worker
 bin/
 dist/
 tmp/
@@ -8,6 +9,9 @@ tmp/
 ascii.txt
 boite.qcow2
 boite*.qcow2
+site/node_modules/
+site/build/
+site/.svelte-kit/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
