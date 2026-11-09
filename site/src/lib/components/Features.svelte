@@ -1,76 +1,61 @@
 <script lang="ts">
-  import { Badge, Card, Icon } from "@facile/muse";
+  import { Icon } from "@facile/muse";
+
+  const features = [
+    {
+      title: "Zero cloud-init",
+      icon: "solar:bolt-circle-bold-duotone",
+      desc: "Baked with virt-builder. Boots straight into a ready shell in under 3 seconds.",
+    },
+    {
+      title: "Instant rollback",
+      icon: "solar:history-bold-duotone",
+      desc: "Thin qcow2 copy-on-write overlay. Revert damaged state in milliseconds.",
+    },
+    {
+      title: "SSH workspace sync",
+      icon: "solar:folder-with-files-bold-duotone",
+      desc: "Host directory mounted into /workspace on launch. Edit locally, run isolated.",
+    },
+    {
+      title: "KVM hardware isolation",
+      icon: "solar:cpu-bolt-bold-duotone",
+      desc: "Real virtual machine boundary. Root in the guest cannot reach the host.",
+    },
+    {
+      title: "Egress controls",
+      icon: "solar:shield-check-bold-duotone",
+      desc: "Set vm.net: offline to kill outbound traffic, or restrict egress via passt.",
+    },
+    {
+      title: "Session-scoped secrets",
+      icon: "solar:lock-keyhole-minimalistic-bold-duotone",
+      desc: "Inject Casier keys into guest memory with automatic TTL expiry.",
+    },
+  ];
 </script>
 
 <section id="features" aria-labelledby="features-title" class="flex flex-col gap-6">
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-1.5">
     <h2 id="features-title" class="text-fc-xl font-semibold tracking-tight text-fc-fg sm:text-3xl">
-      Architecture &amp; Security
+      Architecture &amp; security
     </h2>
-    <p class="max-w-2xl text-fc-md text-fc-fg-muted">
-      Built for developers and autonomous systems who need fast disposable environments without host risks.
+    <p class="max-w-xl text-fc-md text-fc-fg-muted">
+      Disposable environments without host risks.
     </p>
   </div>
 
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:bolt-circle-bold-duotone" size={22} />
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {#each features as f (f.title)}
+      <div class="flex flex-col gap-2 rounded-2xl bg-fc-component p-5 sm:p-6">
+        <div class="flex size-9 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
+          <Icon icon={f.icon} size={20} />
+        </div>
+        <h3 class="text-fc-md font-semibold text-fc-fg">{f.title}</h3>
+        <p class="text-fc-sm text-fc-fg-muted">
+          {f.desc}
+        </p>
       </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">Zero Cloud-Init</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Baked with <code>virt-builder</code> at image compile time. No first-boot cloud-init scripts, no apt-get waits, and no slow package installs. Boots directly into a ready shell in under 3 seconds.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:history-bold-duotone" size={22} />
-      </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">Instant Snapshots &amp; Rollback</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Every sandbox writes to a thin qcow2 copy-on-write overlay. Checkpoint state with <code>boite snapshot</code> and restore with <code>boite rollback</code> in milliseconds to discard corrupted environments.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:folder-with-files-bold-duotone" size={22} />
-      </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">SSH Workspace Sync</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Your current host directory mounts automatically into <code>/workspace</code> inside the VM via SSH. Edit code on your host editor; test and compile inside the sandbox.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:cpu-bolt-bold-duotone" size={22} />
-      </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">Hardware KVM Isolation</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Kernel-level virtualization with QEMU and KVM hardware acceleration. Root access in the VM cannot touch your host file system, kernel memory, or docker daemon.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:shield-check-bold-duotone" size={22} />
-      </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">Guest Egress Control</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Isolate network access per sandbox. Set <code>vm.net: offline</code> to block all outbound traffic, or restrict egress with slirp and passt to stop data exfiltration before running untrusted scripts.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-6 sm:p-8">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-fc-surface text-fc-accent">
-        <Icon icon="solar:lock-keyhole-minimalistic-bold-duotone" size={22} />
-      </div>
-      <h3 class="text-fc-md font-semibold text-fc-fg">Session-Scoped Secrets</h3>
-      <p class="text-fc-sm leading-relaxed text-fc-fg-muted">
-        Inject secrets securely from Casier into the guest environment. Tokens stay in memory with automatic TTL expiry and evaporate when the sandbox stops, leaving no traces on disk.
-      </p>
-    </div>
+    {/each}
   </div>
 </section>

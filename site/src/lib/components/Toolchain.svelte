@@ -2,69 +2,32 @@
   import { Badge } from "@facile/muse";
 
   const tools = [
-    {
-      name: "Go 1.26",
-      category: "Compiler",
-      desc: "Native Go runtime, compiler, and testing tools for backend services.",
-    },
-    {
-      name: "Rust & Cargo",
-      category: "Systems",
-      desc: "Full rustc and cargo toolchain ready for bare-metal and systems programming.",
-    },
-    {
-      name: "Bun & Node 24",
-      category: "JavaScript",
-      desc: "High-performance JS runtime, package manager, and full modern Node ecosystem.",
-    },
-    {
-      name: "Playwright & Chromium",
-      category: "Automation",
-      desc: "Pre-baked browser binaries in /opt/playwright for headless agent tasks and web testing.",
-    },
-    {
-      name: "Python 3",
-      category: "Scripting",
-      desc: "Modern Python runtime with venv, pip, and standard data-handling libraries.",
-    },
-    {
-      name: "mise",
-      category: "Runtimes",
-      desc: "Polyglot environment manager to switch language versions per directory.",
-    },
-    {
-      name: "CLI Power Suite",
-      category: "Shell",
-      desc: "fzf, jq, tmux, and Starship prompt with zsh for fast keyboard ergonomics.",
-    },
-    {
-      name: "boite User",
-      category: "Security",
-      desc: "Non-root developer user with passwordless sudo and automated SSH key injection.",
-    },
+    { name: "Go 1.26", role: "Compiler & tools" },
+    { name: "Rust & Cargo", role: "Toolchain & clippy" },
+    { name: "Bun & Node 24", role: "Runtimes & npm" },
+    { name: "Playwright & Chromium", role: "Headless in /opt/playwright" },
+    { name: "Python 3", role: "Virtualenv & pip" },
+    { name: "mise", role: "Polyglot manager" },
+    { name: "tmux, fzf & jq", role: "CLI power tools" },
+    { name: "zsh & Starship", role: "Interactive shell" },
   ];
 </script>
 
 <section id="toolchain" aria-labelledby="toolchain-title" class="flex flex-col gap-6">
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-1.5">
     <h2 id="toolchain-title" class="text-fc-xl font-semibold tracking-tight text-fc-fg sm:text-3xl">
-      Baked-In Toolchains
+      Baked toolchains
     </h2>
-    <p class="max-w-2xl text-fc-md text-fc-fg-muted">
-      Everything needed for development and AI agents is pre-installed in the base image. Zero setup delay.
+    <p class="max-w-xl text-fc-md text-fc-fg-muted">
+      Pre-installed in the base disk image. Zero setup latency.
     </p>
   </div>
 
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
     {#each tools as tool (tool.name)}
-      <div class="flex flex-col gap-3 rounded-2xl bg-fc-component p-5 sm:p-6">
-        <div class="flex items-center justify-between">
-          <span class="text-fc-md font-semibold text-fc-fg">{tool.name}</span>
-          <Badge tone="neutral">{tool.category}</Badge>
-        </div>
-        <p class="text-fc-xs leading-relaxed text-fc-fg-muted sm:text-fc-sm">
-          {tool.desc}
-        </p>
+      <div class="flex flex-col gap-1 rounded-xl bg-fc-component p-4">
+        <span class="font-semibold text-fc-fg">{tool.name}</span>
+        <span class="text-fc-xs text-fc-fg-muted">{tool.role}</span>
       </div>
     {/each}
   </div>

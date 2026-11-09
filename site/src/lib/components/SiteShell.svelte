@@ -19,14 +19,14 @@
     {
       title: "Boite",
       links: [
-        { label: "Bulle Integration", href: "#bulle" },
+        { label: "Bulle & AI", href: "#bulle" },
         { label: "Features", href: "#features" },
-        { label: "Baked Toolchains", href: "#toolchain" },
-        { label: "Download Base Image", href: "#download" },
+        { label: "Toolchain", href: "#toolchain" },
+        { label: "Base image", href: "#download" },
       ],
     },
     {
-      title: "Facile Suite",
+      title: "Facile suite",
       links: [
         { label: "Bulle", href: BULLE_URL, external: true },
         { label: "Casier", href: CASIER_URL, external: true },
@@ -34,10 +34,10 @@
       ],
     },
     {
-      title: "Open Source",
+      title: "Open source",
       links: [
-        { label: "GitHub Repository", href: REPO_URL, external: true },
-        { label: "Install Script", href: "https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh", external: true },
+        { label: "GitHub repository", href: REPO_URL, external: true },
+        { label: "Install script", href: "https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh", external: true },
         { label: "MIT License", href: `${REPO_URL}/blob/main/LICENSE`, external: true },
       ],
     },
@@ -64,7 +64,7 @@
     appName="Boite"
     icon={LOGO}
     homeHref="/"
-    tagline="Bare-metal development sandboxes in QEMU"
+    tagline="QEMU virtual machines for code execution and AI agents"
     {columns}
   />
 </div>

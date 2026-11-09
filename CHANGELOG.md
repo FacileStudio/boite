@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.1] — 2026-11-09
+
+### Changed
+
+- Tightened landing page prose and removed verbose marketing copy.
+- Added syntax color highlighting to all terminal and API code blocks using Prism.
+
 ## [0.14.0] — 2026-11-09
 
 ### Added
@@ -300,7 +307,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/FacileStudio/boite/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/FacileStudio/boite/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/FacileStudio/boite/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/FacileStudio/boite/compare/v0.12.0...v0.13.0

@@ -9,15 +9,15 @@
 </script>
 
 <svelte:head>
-  <title>Boite — Bare-metal development sandboxes in QEMU</title>
+  <title>Boite: QEMU virtual machines for code execution and AI agents</title>
   <meta
     name="description"
-    content="Spun up in seconds from a baked base image with full hardware isolation, instant snapshot rollbacks, and zero host contamination."
+    content="Disposable QEMU virtual machines for code execution and AI agents. KVM isolation, overlay rollbacks, and zero host risk."
   />
-  <meta property="og:title" content="Boite — Bare-metal development sandboxes in QEMU" />
+  <meta property="og:title" content="Boite: QEMU virtual machines for code execution and AI agents" />
   <meta
     property="og:description"
-    content="Spun up in seconds from a baked base image with full hardware isolation, instant snapshot rollbacks, and zero host contamination."
+    content="Disposable QEMU virtual machines for code execution and AI agents. KVM isolation, overlay rollbacks, and zero host risk."
   />
   <meta property="og:url" content="https://boite.facile.studio" />
   <meta name="twitter:card" content="summary_large_image" />
