@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-11-09
+
+### Added
+
+- Redesigned landing page for `boite.facile.studio` using `@facile/muse` components and `@facile/blob` animated agent blob. Highlights Bulle integration, toolchain specs, quick install commands, and direct base image download.
+- SvelteKit static site with multi-stage Docker build and Nginx reverse proxy.
+
 ## [0.13.1] — 2026-11-08
 
 ### Fixed
@@ -293,7 +300,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/FacileStudio/boite/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/FacileStudio/boite/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/FacileStudio/boite/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/FacileStudio/boite/compare/v0.11.0...v0.12.0
