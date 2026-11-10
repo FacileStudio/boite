@@ -308,4 +308,4 @@ Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by 
 
 ## License
 
-MIT
+boite is released under the [GNU General Public License v3.0 only](LICENSE) (`GPL-3.0-only`).

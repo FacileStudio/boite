@@ -7,6 +7,10 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+### Changed
+
+- The licence changes from MIT to GPL-3.0-only. Releases up to and including 0.14.1 stay under MIT; the next release is the first under GPL-3.0-only. See `LICENSE`.
+
 ## [0.14.1] — 2026-11-09
 
 ### Changed
