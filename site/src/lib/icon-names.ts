@@ -1,5 +1,5 @@
 export const ICON_NAMES = [
-  "solar:box-bold-duotone",
+  "solar:box-minimalistic-bold-duotone",
   "solar:cpu-bolt-bold-duotone",
   "solar:bolt-circle-bold-duotone",
   "solar:shield-check-bold-duotone",
