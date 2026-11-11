@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.3] — 2026-11-11
+
+### Fixed
+
+- site: favicons, touch icons, manifest and link preview come from muse v0.19.0's brand generator, with the catalog's English title and description.
+- site: the header and footer logo is the catalog icon, `solar:box-minimalistic-bold-duotone`.
+
 ## [0.14.2] — 2026-11-11
 
 ### Security
