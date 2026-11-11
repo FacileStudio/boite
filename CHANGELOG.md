@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.4] — 2026-11-11
+
+### Fixed
+
+- site: the title, description and link preview describe Boîte as what it is, a CLI for disposable QEMU VM development sandboxes, from muse v0.19.2's catalog.
+
 ## [0.14.3] — 2026-11-11
 
 ### Fixed
@@ -325,7 +331,9 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.2...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.4...HEAD
+[0.14.4]: https://github.com/FacileStudio/boite/releases/tag/v0.14.4
+[0.14.3]: https://github.com/FacileStudio/boite/releases/tag/v0.14.3
 [0.14.2]: https://github.com/FacileStudio/boite/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/FacileStudio/boite/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/FacileStudio/boite/compare/v0.13.1...v0.14.0

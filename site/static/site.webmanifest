@@ -1,7 +1,7 @@
 {
   "name": "Boîte",
   "short_name": "Boîte",
-  "description": "Hosts your private packages, Docker images and binary artifacts on your own server, next to your code.",
+  "description": "A CLI that creates, manages and cleans up disposable QEMU virtual machines as isolated development sandboxes.",
   "icons": [
     {
       "src": "/icon-192.png",
