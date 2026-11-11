@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.2] — 2026-11-11
+
+### Security
+
+- build: Go 1.26.11 (`go` directive, release workflow and mise pins). It fixes GO-2026-6848 to GO-2026-6859 in the standard library and toolchain, which douane reported as unscored gaps and which failed the gate.
+- `douane.yml` permits GO-2026-5932 on `golang.org/x/crypto` until 2027-02-09: its fix exists only as an unreleased x/crypto commit, and boite links `ssh`, `curve25519`, `chacha20` and `blowfish`, never `openpgp`.
+
 ### Changed
 
 - The licence changes from MIT to GPL-3.0-only. Releases up to and including 0.14.1 stay under MIT; the next release is the first under GPL-3.0-only. See `LICENSE`.
@@ -311,7 +318,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Default cloud-init user set to `boite` exclusively.
 - ASCII banner display on shell entry.
 
-[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/boite/compare/v0.14.2...HEAD
+[0.14.2]: https://github.com/FacileStudio/boite/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/FacileStudio/boite/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/FacileStudio/boite/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/FacileStudio/boite/compare/v0.13.0...v0.13.1
