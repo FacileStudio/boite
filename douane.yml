@@ -1,0 +1,5 @@
+permits:
+  - id: GO-2026-5932
+    package: golang.org/x/crypto
+    reason: openpgp deprecation notice; the fix exists only as an unreleased x/crypto commit, and boite links ssh, curve25519, chacha20 and blowfish from x/crypto, never openpgp
+    expires: 2027-02-09
