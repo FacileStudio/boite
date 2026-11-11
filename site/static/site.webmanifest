@@ -1,0 +1,21 @@
+{
+  "name": "Boîte",
+  "short_name": "Boîte",
+  "description": "Hosts your private packages, Docker images and binary artifacts on your own server, next to your code.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#fafafa",
+  "background_color": "#fafafa",
+  "display": "standalone",
+  "start_url": "/"
+}
