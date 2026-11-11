@@ -1,6 +1,6 @@
 [tools]
 # Go version
-go = "1.26"
+go = "1.26.11"
 
 # Node.js/Bun
 bun = "1.3.14"
