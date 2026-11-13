@@ -6,7 +6,7 @@
       "name": "boite-site",
       "dependencies": {
         "@facile/blob": "github:FacileStudio/blob#v0.2.1",
-        "@facile/muse": "github:FacileStudio/muse#v0.16.1",
+        "@facile/muse": "github:FacileStudio/muse#v0.21.0",
         "@types/prismjs": "^1.26.6",
         "gsap": "^3.13",
         "prismjs": "^1.30.0",
@@ -81,7 +81,7 @@
 
     "@facile/blob": ["@facile/blob@github:FacileStudio/blob#0e54ffe", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-blob-0e54ffe", "sha512-7olabx9Sk/ZV+BMJ/YVYpqMFemEXJ7qspN2ardOZN9/aSx3lHtLP3v5X+PS2y/SJ9lgJE3rHgvDamxNtL7C5SA=="],
 
-    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#b25a33c", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-b25a33c", "sha512-p7bnxSj4q2Sd3RtPbJw6njpV1xZHc4RbixVd6ScEaA4iv7eNF/o7VP53xU2lzUDWUiGCfjEBQrW0U15LFwZYkw=="],
+    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#5a6c669", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-5a6c669", "sha512-Sv5uB1AdKGt8ndCqa8Xss0v51Zn208unEDN89+1l1a+LbmhZynj0wyDSS7mQlMzJoXS677sonfGDF79Thw6NnA=="],
 
     "@iconify-json/solar": ["@iconify-json/solar@1.2.14", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-/qHbRF7i8NwZH+RIIc3cyzk8RiQT8TA4FcdpDLJVCWr0LCDxXSgpnnayb5aifAvoqNy9NKHENvgZipLELz4m0w=="],
 
