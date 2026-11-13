@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@facile/blob": "github:FacileStudio/blob#v0.2.1",
-    "@facile/muse": "github:FacileStudio/muse#v0.16.1",
+    "@facile/muse": "github:FacileStudio/muse#v0.21.0",
     "@types/prismjs": "^1.26.6",
     "gsap": "^3.13",
     "prismjs": "^1.30.0"
