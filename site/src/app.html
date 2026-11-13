@@ -35,6 +35,16 @@
         document.documentElement.classList.add(theme);
       })();
     </script>
+    <script>
+      (function () {
+        if (location.hostname !== 'boite.facile.studio') return;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://vision.facile.studio/s.js';
+        s.setAttribute('data-mask', '');
+        document.head.appendChild(s);
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
