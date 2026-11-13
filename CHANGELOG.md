@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.6] — 2026-11-13
+
+### Changed
+
+- site: muse v0.21.0. The theme toggle and the copy buttons on boite.facile.studio show their label as a muse tooltip on hover and keyboard focus.
+
 ## [0.14.5] — 2026-11-13
 
 ### Added
