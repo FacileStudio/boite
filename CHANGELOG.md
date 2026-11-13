@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.14.5] — 2026-11-13
+
+### Added
+
+- site: loads Vision's analytics tracker on boite.facile.studio only, with `data-mask` path masking. nginx sends no CSP, so nothing else changes.
+
 ## [0.14.4] — 2026-11-11
 
 ### Fixed
