@@ -22,4 +22,7 @@ export const ICON_NAMES = [
   "solar:server-square-bold-duotone",
   "solar:play-circle-bold-duotone",
   "solar:folder-with-files-bold-duotone",
+  "solar:smile-circle-bold-duotone",
+  "solar:key-minimalistic-square-bold-duotone",
+  "solar:layers-minimalistic-bold-duotone",
 ] as const;

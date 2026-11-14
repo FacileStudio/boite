@@ -1,0 +1,138 @@
+.td-steps,
+.td-tools ul {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.td-steps {
+  gap: 10px;
+  padding: 18px 16px;
+}
+.td-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 96px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--color-fc-fg) 5%, transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease,
+    background-color 0.35s ease;
+}
+.td-step[data-on] {
+  opacity: 1;
+  transform: none;
+}
+.td-step[data-bad][data-done] {
+  background: color-mix(in oklch, var(--color-fc-danger) 12%, transparent);
+}
+.td-cmd {
+  height: 20px;
+  font-family: var(--font-fc-mono);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: pre;
+  color: var(--color-fc-fg);
+}
+.td-dim {
+  color: var(--color-fc-fg-muted);
+}
+.td-out,
+.td-note,
+.td-ready {
+  transition: opacity 0.35s ease;
+}
+.td-out {
+  height: 18px;
+  font-family: var(--font-fc-mono);
+  font-size: 11px;
+  line-height: 18px;
+  white-space: pre;
+  color: color-mix(in oklab, var(--color-fc-success), var(--color-fc-fg) 30%);
+}
+.td-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fc-success);
+}
+.td-step[data-bad] .td-note {
+  color: var(--color-fc-danger);
+}
+.td-step:not([data-done]) .td-out,
+.td-step:not([data-done]) .td-note {
+  opacity: 0;
+}
+.td-state {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-fc-success);
+  transition: background-color 0.3s ease;
+}
+.td-state[data-bad] {
+  background: var(--color-fc-danger);
+}
+.td-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+}
+.td-tools ul {
+  gap: 8px;
+}
+.td-tools li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--color-fc-fg) 5%, transparent);
+  font-size: 14px;
+}
+.td-name {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--color-fc-fg);
+}
+.td-name code {
+  font-family: var(--font-fc-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-fc-fg-muted);
+}
+.td-ready {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-fc-success);
+  opacity: 0;
+}
+.td-tools li[data-done] .td-ready {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .td-step,
+  .td-out,
+  .td-note,
+  .td-ready {
+    transition: none;
+  }
+}

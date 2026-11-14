@@ -2,29 +2,25 @@
   import type { Snippet } from "svelte";
   import { Button, LandingFooter, LandingHeader, Page, icons } from "@facile/muse";
   import { LOGO } from "$lib/icons";
-  import { BULLE_URL, CASIER_URL, REPO_URL } from "$lib/site";
+  import { rememberLocale, t } from "$lib/i18n/index.svelte";
+  import { BULLE_URL, CASIER_URL, INSTALL_SCRIPT_URL, REPO_URL } from "$lib/site";
   import ThemeButton from "./ThemeButton.svelte";
 
   let { children }: { children: Snippet } = $props();
 
-  const links = [
-    { label: "Bulle", href: "/#bulle" },
-    { label: "Features", href: "/#features" },
-    { label: "Install", href: "/#download" },
-  ];
+  const links = $derived([
+    { label: t("nav.demos"), href: "/#demos" },
+    { label: t("nav.pricing"), href: "/#pricing" },
+    { label: t("nav.install"), href: "/#download" },
+  ]);
 
-  const columns = [
+  const columns = $derived([
     {
-      title: "Boite",
-      links: [
-        { label: "Bulle", href: "/#bulle" },
-        { label: "Features", href: "/#features" },
-        { label: "Install", href: "/#download" },
-        { label: "Downloads", href: "/downloads" },
-      ],
+      title: "Boîte",
+      links: [...links, { label: t("nav.downloads"), href: "/downloads" }],
     },
     {
-      title: "Facile suite",
+      title: t("footer.suite"),
       links: [
         { label: "Bulle", href: BULLE_URL, external: true },
         { label: "Casier", href: CASIER_URL, external: true },
@@ -32,22 +28,22 @@
       ],
     },
     {
-      title: "Open source",
+      title: t("footer.source"),
       links: [
-        { label: "GitHub repository", href: REPO_URL, external: true },
-        { label: "Install script", href: "https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh", external: true },
-        { label: "GPL-3.0 license", href: `${REPO_URL}/blob/main/LICENSE`, external: true },
+        { label: t("footer.repo"), href: REPO_URL, external: true },
+        { label: t("footer.script"), href: INSTALL_SCRIPT_URL, external: true },
+        { label: t("footer.license"), href: `${REPO_URL}/blob/main/LICENSE`, external: true },
       ],
     },
-  ];
+  ]);
 </script>
 
 <div class="flex min-h-dvh w-full flex-col bg-fc-page text-fc-fg">
-  <LandingHeader appName="Boite" icon={LOGO} homeHref="/" {links} skipHref="#main">
+  <LandingHeader appName="Boîte" icon={LOGO} homeHref="/" {links} skipHref="#main">
     {#snippet actions()}
       <ThemeButton />
-      <Button size="sm" class="h-9" href="#download" icon={icons.download}>
-        Install
+      <Button size="sm" class="h-9" href="/#download" icon={icons.download}>
+        {t("nav.install")}
       </Button>
     {/snippet}
   </LandingHeader>
@@ -59,10 +55,11 @@
   </main>
 
   <LandingFooter
-    appName="Boite"
+    appName="Boîte"
     icon={LOGO}
     homeHref="/"
-    tagline="Disposable QEMU virtual machines for your code and your AI agents."
+    tagline={t("footer.tagline")}
     {columns}
+    legal={{ onLocaleChange: rememberLocale }}
   />
 </div>

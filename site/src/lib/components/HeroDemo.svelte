@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Caret, Stage, Terminal, type Act } from "@facile/mise-en-scene";
+  import { t } from "$lib/i18n/index.svelte";
 
   type Kind = "cmd" | "out" | "ok" | "head" | "row" | "gap";
   type Line = { kind: Kind; text: string; value?: string };
@@ -22,10 +23,12 @@
     { cmd: "boite rollback demo clean", out: [{ kind: "ok", text: "✓ 'demo' rolled back to snapshot 'clean'" }] },
   ];
 
-  let lines = $state<Line[]>([]);
+  const FIRST: Line[] = [{ kind: "cmd", text: SCRIPT[0].cmd }, ...SCRIPT[0].out];
+
+  let lines = $state<Line[]>([...FIRST]);
 
   function reset() {
-    lines = [];
+    lines = [...FIRST];
   }
 
   function poster() {
@@ -33,8 +36,8 @@
   }
 
   async function script(act: Act) {
-    await act.wait(700);
-    for (const step of SCRIPT) {
+    await act.wait(900);
+    for (const step of SCRIPT.slice(1)) {
       lines.push({ kind: "cmd", text: "" });
       const at = lines.length - 1;
       await act.type(step.cmd, (v) => (lines[at].text = v), 55);
@@ -45,9 +48,9 @@
       }
       await act.wait(900);
     }
-    await act.wait(2000);
+    await act.wait(2400);
     reset();
-    await act.wait(500);
+    await act.wait(900);
   }
 </script>
 
@@ -55,7 +58,7 @@
   width={600}
   height={420}
   compact={{ below: 520, width: 358, height: 400 }}
-  label="A terminal creates a Boite sandbox, snapshots it, breaks it, then rolls it back."
+  label={t("hero.demoLabel")}
   {script}
   {reset}
   {poster}

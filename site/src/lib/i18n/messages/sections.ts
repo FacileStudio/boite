@@ -1,0 +1,95 @@
+import type { Row } from "../row";
+
+/** Features, suite connections, plan note, install and developer block. */
+export const sections = {
+  "features.title": ["Why a real machine", "Pourquoi une vraie machine", "Por qué una máquina de verdad", "Warum eine echte Maschine"],
+  "features.line": [
+    "A container shares your kernel. A Boîte boots its own, under KVM.",
+    "Un conteneur partage votre noyau. Une Boîte démarre le sien, sous KVM.",
+    "Un contenedor comparte tu núcleo. Una Boîte arranca el suyo, con KVM.",
+    "Ein Container teilt Ihren Kernel. Eine Boîte startet ihren eigenen, unter KVM.",
+  ],
+  "features.vm.title": ["Root stays inside", "Root reste dedans", "Root se queda dentro", "Root bleibt drinnen"],
+  "features.vm.text": [
+    "Root in the machine has no way onto your host.",
+    "Root dans la machine n'a aucun accès à votre poste.",
+    "Root en la máquina no tiene acceso a tu equipo.",
+    "Root in der Maschine kommt nicht an Ihren Rechner.",
+  ],
+  "features.workspace.title": ["Your folder, copied in", "Votre dossier, copié dedans", "Tu carpeta, copiada dentro", "Ihr Ordner, hineinkopiert"],
+  "features.workspace.text": [
+    "boite run copies the current folder into /workspace.",
+    "boite run copie le dossier courant dans /workspace.",
+    "boite run copia la carpeta actual en /workspace.",
+    "boite run kopiert den aktuellen Ordner nach /workspace.",
+  ],
+  "features.offline.title": ["Offline on demand", "Hors ligne à la demande", "Sin red cuando quieras", "Offline auf Wunsch"],
+  "features.offline.text": [
+    "Set vm.net to offline and the machine reaches nothing. SSH still works.",
+    "Réglez vm.net sur offline et la machine ne joint plus rien. SSH marche toujours.",
+    "Pon vm.net en offline y la máquina no llega a nada. SSH sigue funcionando.",
+    "Setzen Sie vm.net auf offline, dann erreicht die Maschine nichts. SSH geht weiter.",
+  ],
+  "features.distro.title": ["Debian, Alpine or NixOS", "Debian, Alpine ou NixOS", "Debian, Alpine o NixOS", "Debian, Alpine oder NixOS"],
+  "features.distro.text": [
+    "Pick the system with boite create --distro.",
+    "Choisissez le système avec boite create --distro.",
+    "Elige el sistema con boite create --distro.",
+    "Wählen Sie das System mit boite create --distro.",
+  ],
+  "with.bulle": [
+    "Bulle runs its code in a Boîte, never on your machine.",
+    "Bulle lance son code dans une Boîte, jamais sur votre machine.",
+    "Bulle ejecuta su código en una Boîte, nunca en tu máquina.",
+    "Bulle führt Code in einer Boîte aus, nie auf Ihrem Rechner.",
+  ],
+  "with.casier": [
+    "Your secrets reach the machine without a .env file.",
+    "Vos secrets arrivent dans la machine, sans fichier .env.",
+    "Tus secretos llegan a la máquina sin archivo .env.",
+    "Ihre Secrets kommen ohne .env-Datei in die Maschine.",
+  ],
+  "plan.title": ["Pricing", "Tarifs", "Precios", "Preise"],
+  "plan.note": [
+    "Free and open source (GPL-3.0), for Linux. No Linux? Bulle already works in a Boîte, with the Pro plan (€9/month).",
+    "Gratuit et open source (GPL-3.0), pour Linux. Pas de Linux ? Bulle travaille déjà dans une Boîte, avec l'offre Pro (9 €/mois).",
+    "Gratis y de código abierto (GPL-3.0), para Linux. ¿Sin Linux? Bulle ya trabaja en una Boîte, con el plan Pro (9 €/mes).",
+    "Kostenlos und Open Source (GPL-3.0), für Linux. Kein Linux? Bulle arbeitet schon in einer Boîte, mit dem Pro-Tarif (9 €/Monat).",
+  ],
+  "plan.suite": [
+    "One subscription covers every Facile app.",
+    "Un seul abonnement couvre toutes les apps Facile.",
+    "Una sola suscripción cubre todas las apps de Facile.",
+    "Ein Abo deckt alle Facile-Apps ab.",
+  ],
+  "plan.bulle": ["Discover Bulle", "Découvrir Bulle", "Descubrir Bulle", "Bulle entdecken"],
+  "plan.all": ["See all pricing", "Voir tous les tarifs", "Ver todos los precios", "Alle Preise ansehen"],
+  "install.title": ["Install", "Installer", "Instalar", "Installieren"],
+  "install.line": [
+    "Install on Linux with KVM: a 2.2 GB image, then boite create. The CLI checks the image's SHA-256 on first run.",
+    "Installation sur Linux avec KVM : une image de 2,2 Go, puis boite create. La CLI vérifie le SHA-256 de l'image au premier lancement.",
+    "Instalación en Linux con KVM: una imagen de 2,2 GB y luego boite create. La CLI comprueba el SHA-256 de la imagen al primer arranque.",
+    "Installation unter Linux mit KVM: ein 2,2-GB-Image, dann boite create. Die CLI prüft beim ersten Start den SHA-256 des Images.",
+  ],
+  "install.image": ["Base image, Debian 13 qcow2", "Image de base, Debian 13 qcow2", "Imagen base, Debian 13 qcow2", "Basis-Image, Debian 13 qcow2"],
+  "install.script": ["Script", "Script", "Script", "Skript"],
+  "install.baseImage": ["Base image", "Image de base", "Imagen base", "Basis-Image"],
+  "dev.line": [
+    "QEMU and KVM under the hood, a qcow2 overlay per machine, everything from the terminal.",
+    "QEMU et KVM sous le capot, un overlay qcow2 par machine, tout depuis le terminal.",
+    "QEMU y KVM por dentro, un overlay qcow2 por máquina, todo desde la terminal.",
+    "QEMU und KVM unter der Haube, ein qcow2-Overlay pro Maschine, alles im Terminal.",
+  ],
+  "dev.cli": [
+    "create, run, exec, snapshot, rollback, sync and env.",
+    "create, run, exec, snapshot, rollback, sync et env.",
+    "create, run, exec, snapshot, rollback, sync y env.",
+    "create, run, exec, snapshot, rollback, sync und env.",
+  ],
+  "dev.source": [
+    "GPL-3.0 on GitHub. Read it, fork it, send a patch.",
+    "GPL-3.0 sur GitHub. Lisez-le, forkez-le, proposez un correctif.",
+    "GPL-3.0 en GitHub. Léelo, haz un fork, manda un parche.",
+    "GPL-3.0 auf GitHub. Lesen, forken, Patch schicken.",
+  ],
+} satisfies Record<string, Row>;
