@@ -1,7 +1,7 @@
 {
   "name": "Boîte",
   "short_name": "Boîte",
-  "description": "A CLI that creates, manages and cleans up disposable QEMU virtual machines as isolated development sandboxes.",
+  "description": "A throwaway machine for your code and your AI agents. Take a snapshot, break everything, roll back in one command.",
   "icons": [
     {
       "src": "/icon-192.png",
