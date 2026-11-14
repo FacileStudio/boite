@@ -6,10 +6,9 @@
       "name": "boite-site",
       "dependencies": {
         "@facile/blob": "github:FacileStudio/blob#v0.2.1",
-        "@facile/muse": "github:FacileStudio/muse#v0.21.0",
-        "@types/prismjs": "^1.26.6",
+        "@facile/mise-en-scene": "github:FacileStudio/mise-en-scene#v0.2.1",
+        "@facile/muse": "github:FacileStudio/muse#v0.22.0",
         "gsap": "^3.13",
-        "prismjs": "^1.30.0",
       },
       "devDependencies": {
         "@iconify-json/solar": "^1.2.13",
@@ -81,7 +80,9 @@
 
     "@facile/blob": ["@facile/blob@github:FacileStudio/blob#0e54ffe", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-blob-0e54ffe", "sha512-7olabx9Sk/ZV+BMJ/YVYpqMFemEXJ7qspN2ardOZN9/aSx3lHtLP3v5X+PS2y/SJ9lgJE3rHgvDamxNtL7C5SA=="],
 
-    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#5a6c669", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-5a6c669", "sha512-Sv5uB1AdKGt8ndCqa8Xss0v51Zn208unEDN89+1l1a+LbmhZynj0wyDSS7mQlMzJoXS677sonfGDF79Thw6NnA=="],
+    "@facile/mise-en-scene": ["@facile/mise-en-scene@github:FacileStudio/mise-en-scene#29d936d", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-mise-en-scene-29d936d", "sha512-ZWvqtesVLNlH4i+oEBHh/obcLTDhdK+JFtnQYnwxrfEERCG2F111AxzEJ9syJkp2NFztic+oz/o4Y6pSh/KCtA=="],
+
+    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#29caf55", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-29caf55", "sha512-dPAphXD+ACLqFSXG1SJppNrXHtq/ZjYyQNupPirJ7U6HPqA6JKNLpJz8WYUc2pVPsFeBqt0+G4AuofO78qt9tQ=="],
 
     "@iconify-json/solar": ["@iconify-json/solar@1.2.14", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-/qHbRF7i8NwZH+RIIc3cyzk8RiQT8TA4FcdpDLJVCWr0LCDxXSgpnnayb5aifAvoqNy9NKHENvgZipLELz4m0w=="],
 
@@ -201,8 +202,6 @@
 
     "@types/node": ["@types/node@26.6.6", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog=="],
 
-    "@types/prismjs": ["@types/prismjs@1.26.6", "", {}, "sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw=="],
-
     "acorn": ["acorn@8.19.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw=="],
 
     "aria-query": ["aria-query@5.3.1", "", {}, "sha512-Z/ZeOgVl7bcSYZ/u/rh0fOpvEpq//LZmdbkXyc7syVzjPAhfOa9ebsdTSjEBDU4vs5nC98Kfduj1uFo0qyET3g=="],
@@ -284,8 +283,6 @@
     "picomatch": ["picomatch@4.0.7", "", {}, "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="],
 
     "postcss": ["postcss@8.5.32", "", { "dependencies": { "nanoid": "^3.3.20", "picocolors": "^1.1.1", "source-map-js": "^1.2.2" } }, "sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g=="],
-
-    "prismjs": ["prismjs@1.30.0", "", {}, "sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw=="],
 
     "readdirp": ["readdirp@4.1.2", "", {}, "sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg=="],
 
