@@ -7,6 +7,19 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-11-14
+
+### Changed
+
+- site: the landing leads with "Break things safely." and says what Boîte gives you: a throwaway machine for your code and your AI agents, rolled back in one command. "Install for free" is the main button, "Try it in Bulle" the second, with a line for visitors without Linux.
+- site: the page and the downloads page read in French, English, Spanish and German. The browser language or the footer picker chooses, and the choice is remembered. The theme follows the system until the visitor picks one.
+- site: three demo tiles: Bulle testing code in its own machine, a snapshot and rollback after `rm -rf /usr`, and the toolchains ready in a new machine. Demos animate opacity and transform only, and never open on an empty window.
+- site: muse v0.24.0 blocks: `FeatureSplit` for why a real machine, `WorksWith` for Bulle and Casier, `ForDevelopers` for the CLI and the source. A pricing note says Boîte is free and points to Bulle's Pro plan and the Suite pricing.
+
+### Removed
+
+- site: the separate Bulle section and the closing call to action; their content moved into the tiles, the suite block and the pricing note.
+
 ## [0.16.0] — 2026-11-14
 
 ### Added
