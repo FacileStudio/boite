@@ -1,10 +1,8 @@
 export const SITE_URL = "https://boite.facile.studio";
 export const REPO_URL = "https://github.com/FacileStudio/boite";
+export const RELEASES_URL = `${REPO_URL}/releases`;
 export const BULLE_URL = "https://bulle.facile.studio";
 export const CASIER_URL = "https://casier.facile.studio";
 export const INSTALL_CMD = "curl -fsSL https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh | bash";
-export const CREATE_CMD = "boite create my-sandbox";
 export const BASE_IMAGE_URL = "/base.qcow2";
-export const BASE_IMAGE_NAME = "boite.qcow2";
-export const BASE_IMAGE_SIZE = "~2 GB";
-export const BASE_IMAGE_OS = "Debian 13 (Trixie)";
+export const BASE_IMAGE_SIZE = "2.2 GB";

@@ -8,21 +8,18 @@
   let { children }: { children: Snippet } = $props();
 
   const links = [
-    { label: "Bulle & AI", href: "#bulle" },
+    { label: "Bulle", href: "#bulle" },
     { label: "Features", href: "#features" },
-    { label: "Toolchain", href: "#toolchain" },
-    { label: "CLI & API", href: "#commands" },
-    { label: "Download", href: "#download" },
+    { label: "Install", href: "#download" },
   ];
 
   const columns = [
     {
       title: "Boite",
       links: [
-        { label: "Bulle & AI", href: "#bulle" },
+        { label: "Bulle", href: "#bulle" },
         { label: "Features", href: "#features" },
-        { label: "Toolchain", href: "#toolchain" },
-        { label: "Base image", href: "#download" },
+        { label: "Install", href: "#download" },
       ],
     },
     {
@@ -38,7 +35,7 @@
       links: [
         { label: "GitHub repository", href: REPO_URL, external: true },
         { label: "Install script", href: "https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh", external: true },
-        { label: "MIT License", href: `${REPO_URL}/blob/main/LICENSE`, external: true },
+        { label: "GPL-3.0 license", href: `${REPO_URL}/blob/main/LICENSE`, external: true },
       ],
     },
   ];
@@ -49,7 +46,7 @@
     {#snippet actions()}
       <ThemeButton />
       <Button size="sm" class="h-9" href="#download" icon={icons.download}>
-        Base image
+        Install
       </Button>
     {/snippet}
   </LandingHeader>
@@ -64,7 +61,7 @@
     appName="Boite"
     icon={LOGO}
     homeHref="/"
-    tagline="QEMU virtual machines for code execution and AI agents"
+    tagline="Disposable QEMU virtual machines for your code and your AI agents."
     {columns}
   />
 </div>
