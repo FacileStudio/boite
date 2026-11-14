@@ -7,6 +7,17 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-11-14
+
+### Added
+
+- site: a `/downloads` page lists every install option: the base image, the install script, `facile install boite`, the base image `curl`, and links to the releases and `checksums.txt`. The footer links to it.
+
+### Changed
+
+- site: muse v0.23.0 and mise-en-scene v0.2.2. The landing install section shows only the visitor's device: the base image and commands on a Linux or other desktop, an "All downloads" link to `/downloads` on a phone. The footer is left-aligned on phones.
+- site: the header and footer section links point to `/#bulle`, `/#features` and `/#download`, so they work from `/downloads`.
+
 ## [0.15.0] — 2026-11-14
 
 ### Changed
