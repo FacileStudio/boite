@@ -7,6 +7,18 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-11-14
+
+### Changed
+
+- site: a shorter landing on muse v0.22.0 with the Magnetik font. The hero shows a terminal demo of `create`, `snapshot` and `rollback`, and the Bulle section shows an agent running tests in a Boite VM, both built with mise-en-scene v0.2.1.
+- site: the install section uses muse `DownloadSection` with the base image, the install script, `facile install boite` and links to the releases and `checksums.txt`.
+- site: the footer names the GPL-3.0 license instead of MIT.
+
+### Removed
+
+- site: the toolchain, CLI and worker API sections, and the Prism code blocks.
+
 ## [0.14.6] — 2026-11-13
 
 ### Changed
