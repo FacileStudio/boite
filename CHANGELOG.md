@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.17.1] — 2026-11-14
+
+### Changed
+
+- site: new share image and web manifest description: "A throwaway machine for your code and your AI agents. Take a snapshot, break everything, roll back in one command."
+- site: muse v0.25.1; long install commands wrap between words and path segments on narrow screens instead of scrolling.
+
 ## [0.17.0] — 2026-11-14
 
 ### Changed
