@@ -7,6 +7,10 @@
   import ClosingCta from "$lib/components/ClosingCta.svelte";
 </script>
 
+<svelte:head>
+  <title>Boîte · Disposable VM sandboxes for development</title>
+</svelte:head>
+
 <SiteShell>
   <Hero />
   <BulleSection />

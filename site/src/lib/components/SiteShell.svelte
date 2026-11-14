@@ -8,18 +8,19 @@
   let { children }: { children: Snippet } = $props();
 
   const links = [
-    { label: "Bulle", href: "#bulle" },
-    { label: "Features", href: "#features" },
-    { label: "Install", href: "#download" },
+    { label: "Bulle", href: "/#bulle" },
+    { label: "Features", href: "/#features" },
+    { label: "Install", href: "/#download" },
   ];
 
   const columns = [
     {
       title: "Boite",
       links: [
-        { label: "Bulle", href: "#bulle" },
-        { label: "Features", href: "#features" },
-        { label: "Install", href: "#download" },
+        { label: "Bulle", href: "/#bulle" },
+        { label: "Features", href: "/#features" },
+        { label: "Install", href: "/#download" },
+        { label: "Downloads", href: "/downloads" },
       ],
     },
     {
