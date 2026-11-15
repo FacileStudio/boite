@@ -45,6 +45,10 @@ type QEMUConfig struct {
 	// Passt, when set, attaches the NIC to a per-VM passt process instead of
 	// slirp, so the guest has outbound access but no path to host loopback.
 	Passt *PasstConfig
+	// Egress, when set, adds a guestfwd rule that hands every guest
+	// connection to 10.0.2.100:3128 to the boite egress proxy. Together with
+	// RestrictNet it is the only way out of an allowlist guest.
+	Egress *EgressConfig
 }
 
 // BuildQEMUArgs assembles the qemu-system-x86_64 command line for cfg:

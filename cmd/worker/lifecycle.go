@@ -32,7 +32,7 @@ type Snapshotter interface {
 // Configurer replaces a box's user SSH key or its egress mode.
 type Configurer interface {
 	SetSSHKey(id, key string) (Box, error)
-	SetNet(id, net string) (Box, error)
+	SetNet(id, net string, allow []string) (Box, error)
 }
 
 // Maintainer manages snapshots and per-box settings.

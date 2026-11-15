@@ -18,6 +18,11 @@ type boxMeta struct {
 	Disk   string `json:"disk"`
 	SSHKey string `json:"ssh_key,omitempty"`
 	Net    string `json:"net,omitempty"`
+	// NetAllow holds the extra hosts of an allowlist box.
+	NetAllow []string `json:"net_allow,omitempty"`
+	// GuestProxy records that the guest carries the egress proxy settings
+	// written by the worker, so a later switch away can remove them.
+	GuestProxy bool `json:"guest_proxy,omitempty"`
 
 	Status    string `json:"status,omitempty"`
 	Error     string `json:"error,omitempty"`
@@ -61,7 +66,7 @@ func writeBoxFiles(req CreateRequest) error {
 		return fmt.Errorf("create box dir: %w", err)
 	}
 	meta := boxMeta{
-		Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey, Net: req.Net,
+		Owner: req.Owner, CPUs: req.CPUs, Memory: req.Memory, Disk: req.Disk, SSHKey: req.SSHKey, Net: req.Net, NetAllow: req.NetAllow,
 		Status: StatusCreating, CreatedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 	if err := writeBoxConfig(req.Name, meta); err != nil {
@@ -71,7 +76,7 @@ func writeBoxFiles(req CreateRequest) error {
 }
 
 func writeBoxConfig(id string, meta boxMeta) error {
-	cfg := boxConfig{VM: qemu.VMConfig{CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk, Net: meta.netMode()}}
+	cfg := boxConfig{VM: qemu.VMConfig{CPUs: meta.CPUs, Memory: meta.Memory, Disk: meta.Disk, Net: meta.netMode(), NetAllow: meta.NetAllow}}
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("marshal box config: %w", err)

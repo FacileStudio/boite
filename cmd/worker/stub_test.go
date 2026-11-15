@@ -177,7 +177,7 @@ func (s *stubLife) SetSSHKey(id, key string) (Box, error) {
 	return *box, nil
 }
 
-func (s *stubLife) SetNet(id, net string) (Box, error) {
+func (s *stubLife) SetNet(id, net string, allow []string) (Box, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.record("net " + id + " " + net)
@@ -185,7 +185,7 @@ func (s *stubLife) SetNet(id, net string) (Box, error) {
 	if !ok {
 		return Box{}, ErrNotFound
 	}
-	box.Net = net
+	box.Net, box.NetAllow = net, allow
 	return *box, nil
 }
 

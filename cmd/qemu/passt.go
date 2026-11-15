@@ -72,6 +72,9 @@ func netdevArgs(cfg QEMUConfig) []string {
 	if cfg.Passt != nil {
 		netdev = "stream,id=net0,server=off,addr.type=unix,addr.path=" + cfg.Passt.Socket
 	}
+	if cfg.Egress != nil {
+		netdev += "," + cfg.Egress.guestfwd()
+	}
 	return []string{"-netdev", netdev, "-device", "virtio-net-pci,netdev=net0"}
 }
 

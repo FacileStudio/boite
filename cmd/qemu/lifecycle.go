@@ -113,6 +113,9 @@ func prepareConfig(instanceDir string, opts CreateOptions, cfg *BoiteConfig) (st
 // until qemu's PID file exists, so the caller can rely on the process being
 // alive. A failed qemu start stops the passt it was meant to use.
 func launchVM(cfg QEMUConfig) (int, error) {
+	if err := cfg.Egress.Prepare(); err != nil {
+		return 0, err
+	}
 	if err := StartPasst(cfg.Passt, cfg.HostFwdPort); err != nil {
 		return 0, err
 	}

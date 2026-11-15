@@ -59,6 +59,17 @@ type routeCase struct {
 	code                             string
 }
 
+func netRouteCases() []routeCase {
+	return []routeCase{
+		{"create allowlist", "POST", "/boxes", `{"name":"new","owner":"b","net":"allowlist","net_allow":["a.example.com"]}`, StatusStopped, 202, ""},
+		{"create allow without mode", "POST", "/boxes", `{"name":"new","owner":"b","net_allow":["a.example.com"]}`, StatusStopped, 400, "invalid"},
+		{"create allow ip", "POST", "/boxes", `{"name":"new","owner":"b","net":"allowlist","net_allow":["1.2.3.4"]}`, StatusStopped, 400, "invalid"},
+		{"net allowlist", "PUT", "/boxes/dev/net", `{"net":"allowlist","net_allow":["a.example.com"]}`, StatusRunning, 200, ""},
+		{"net allow bad host", "PUT", "/boxes/dev/net", `{"net":"allowlist","net_allow":["a b.com"]}`, StatusStopped, 400, "invalid"},
+		{"net open with allow", "PUT", "/boxes/dev/net", `{"net":"open","net_allow":["a.example.com"]}`, StatusStopped, 400, "invalid"},
+	}
+}
+
 func routeCases() []routeCase {
 	return []routeCase{
 		{"create", "POST", "/boxes", `{"name":"new","owner":"bob"}`, StatusStopped, 202, ""},
@@ -93,7 +104,7 @@ func routeCases() []routeCase {
 }
 
 func TestRoutes(t *testing.T) {
-	for _, c := range routeCases() {
+	for _, c := range append(routeCases(), netRouteCases()...) {
 		t.Run(c.name, func(t *testing.T) {
 			_, h := seeded(t, c.status)
 			rec := do(h, c.method, c.path, c.body)

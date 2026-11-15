@@ -33,7 +33,7 @@ func (b *Backend) Fail(box Box, msg string) error {
 		return fmt.Errorf("create box dir: %w", err)
 	}
 	return saveMeta(box.ID, boxMeta{
-		Owner: box.Owner, CPUs: box.CPUs, Memory: box.Memory, Disk: box.Disk, Net: box.Net,
+		Owner: box.Owner, CPUs: box.CPUs, Memory: box.Memory, Disk: box.Disk, Net: box.Net, NetAllow: box.NetAllow,
 		Status: StatusError, Error: msg, CreatedAt: box.CreatedAt,
 	})
 }

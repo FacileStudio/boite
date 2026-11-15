@@ -65,9 +65,13 @@ func applyVMConfig(qemuCfg *QEMUConfig, cfg *BoiteConfig, instanceDir string) {
 		qemuCfg.CPUs = cfg.VM.CPUs
 		net, _ = cfg.VM.EffectiveNet()
 	}
-	qemuCfg.RestrictNet = net == NetOffline
+	qemuCfg.RestrictNet = net == NetOffline || net == NetAllowlist
 	if net == NetOpen {
 		qemuCfg.Passt = NewPasstConfig(instanceDir)
+	}
+	if net == NetAllowlist {
+		hosts, _ := cfg.VM.EffectiveNetAllow()
+		qemuCfg.Egress = NewEgressConfig(instanceDir, hosts)
 	}
 }
 

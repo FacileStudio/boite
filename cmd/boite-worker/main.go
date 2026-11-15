@@ -7,10 +7,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/FacileStudio/boite/cmd/egress"
 	"github.com/FacileStudio/boite/cmd/worker"
 )
 
 func main() {
+	if served, code := egress.MaybeServe(os.Args); served {
+		os.Exit(code)
+	}
 	if err := run(); err != nil {
 		slog.Error("boite-worker", "err", err)
 		os.Exit(1)

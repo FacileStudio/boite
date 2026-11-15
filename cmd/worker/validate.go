@@ -45,11 +45,11 @@ func (r CreateRequest) Normalize() (CreateRequest, error) {
 	if err := r.normalizeResources(); err != nil {
 		return r, err
 	}
-	net, err := NormalizeNet(r.Net)
+	net, allow, err := NormalizeNetConfig(r.Net, r.NetAllow)
 	if err != nil {
 		return r, err
 	}
-	r.Net = net
+	r.Net, r.NetAllow = net, allow
 	if r.SSHKey != "" {
 		if err := qemu.ValidatePublicKey(r.SSHKey); err != nil {
 			return r, invalid("ssh_key: %v", err)
@@ -85,12 +85,19 @@ func (r *CreateRequest) normalizeResources() error {
 	return nil
 }
 
-// NormalizeNet returns the egress mode net names, NetOpen when it is empty,
-// or ErrInvalid when it is neither open nor offline.
-func NormalizeNet(net string) (string, error) {
-	mode, err := (&qemu.VMConfig{Net: net}).EffectiveNet()
-	if err != nil || (mode != NetOpen && mode != NetOffline) {
-		return "", invalid("net must be %s or %s", NetOpen, NetOffline)
+// NormalizeNetConfig returns the egress mode net names (NetOpen when empty)
+// and the cleaned extra hosts. It fails with ErrInvalid when the mode is not
+// open, offline or allowlist, when a host entry is malformed, or when extra
+// hosts come with a mode other than allowlist.
+func NormalizeNetConfig(net string, allow []string) (string, []string, error) {
+	cfg := &qemu.VMConfig{Net: net, NetAllow: allow}
+	mode, err := cfg.EffectiveNet()
+	if err != nil || (mode != NetOpen && mode != NetOffline && mode != NetAllowlist) {
+		return "", nil, invalid("net must be %s, %s or %s", NetOpen, NetOffline, NetAllowlist)
 	}
-	return mode, nil
+	hosts, err := cfg.EffectiveNetAllow()
+	if err != nil {
+		return "", nil, invalid("%v", err)
+	}
+	return mode, hosts, nil
 }

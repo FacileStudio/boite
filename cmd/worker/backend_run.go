@@ -22,7 +22,25 @@ func (b *Backend) Start(id string) (Box, error) {
 	if err := qemu.ApplyAuthorizedKeys(inst, userKeys(meta)); err != nil {
 		return Box{}, err
 	}
+	if meta, err = b.syncGuestProxy(id, inst, meta); err != nil {
+		return Box{}, err
+	}
 	return b.box(inst, meta), nil
+}
+
+// syncGuestProxy installs the egress proxy settings in an allowlist guest, and
+// removes them once from a guest that left allowlist mode. Boxes that never
+// used allowlist mode are not touched.
+func (b *Backend) syncGuestProxy(id string, inst *qemu.Instance, meta boxMeta) (boxMeta, error) {
+	want := meta.netMode() == NetAllowlist
+	if !want && !meta.GuestProxy {
+		return meta, nil
+	}
+	if err := qemu.ApplyGuestProxy(inst, want); err != nil {
+		return meta, err
+	}
+	meta.GuestProxy = want
+	return meta, saveMeta(id, meta)
 }
 
 // Stop powers a box off and returns its stopped state.

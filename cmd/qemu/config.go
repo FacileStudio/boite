@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/boite/cmd/egress"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,8 +23,11 @@ type VMConfig struct {
 	// is the unsafe pre-passt network, where 10.0.2.2 reaches host 127.0.0.1.
 	// Enforcement lives in host processes, so a passwordless-root guest
 	// cannot undo it.
-	Net    string `yaml:"net"`
-	Distro string `yaml:"distro"`
+	Net string `yaml:"net"`
+	// NetAllow lists the extra hosts of an allowlist box, on top of the
+	// built-in defaults. It is rejected in every other mode.
+	NetAllow []string `yaml:"net_allow,omitempty"`
+	Distro   string   `yaml:"distro"`
 }
 
 // EffectiveDistro returns the configured distribution, defaulting to debian when unset.
@@ -41,11 +45,31 @@ func (v *VMConfig) EffectiveNet() (string, error) {
 	}
 	mode := strings.TrimSpace(strings.ToLower(v.Net))
 	switch mode {
-	case NetOpen, NetOffline, NetOpenSlirp:
+	case NetOpen, NetOffline, NetAllowlist, NetOpenSlirp:
 		return mode, nil
 	default:
-		return "", fmt.Errorf("vm.net %q must be %s, %s or %s", v.Net, NetOpen, NetOffline, NetOpenSlirp)
+		return "", fmt.Errorf("vm.net %q must be %s, %s, %s or %s", v.Net, NetOpen, NetOffline, NetAllowlist, NetOpenSlirp)
 	}
+}
+
+// EffectiveNetAllow returns the validated extra hosts of an allowlist box. It
+// fails when the entries are malformed or when the mode is not allowlist.
+func (v *VMConfig) EffectiveNetAllow() ([]string, error) {
+	mode, err := v.EffectiveNet()
+	if err != nil {
+		return nil, err
+	}
+	if v == nil || len(v.NetAllow) == 0 {
+		return nil, nil
+	}
+	if mode != NetAllowlist {
+		return nil, fmt.Errorf("vm.net_allow needs vm.net: %s", NetAllowlist)
+	}
+	hosts, err := egress.ValidateHosts(v.NetAllow)
+	if err != nil {
+		return nil, fmt.Errorf("vm.net_allow: %w", err)
+	}
+	return hosts, nil
 }
 
 const (
@@ -53,6 +77,9 @@ const (
 	NetOpen = "open"
 	// NetOffline denies guest-initiated traffic with slirp restrict=on.
 	NetOffline = "offline"
+	// NetAllowlist reaches only the built-in registry hosts plus vm.net_allow,
+	// through a host-side HTTP proxy behind slirp restrict=on.
+	NetAllowlist = "allowlist"
 	// NetOpenSlirp is the unsafe opt-in slirp network that maps 10.0.2.2 to host loopback.
 	NetOpenSlirp = "open-slirp"
 )
@@ -192,7 +219,7 @@ func LoadBoiteConfig(path string) (*BoiteConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
-	if _, err := cfg.VM.EffectiveNet(); err != nil {
+	if _, err := cfg.VM.EffectiveNetAllow(); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 
