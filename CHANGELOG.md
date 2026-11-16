@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-11-16
+
 ### Added
 
 - worker: `net` mode `allowlist` with `net_allow` extra hosts on `POST /boxes` and `PUT /boxes/{id}/net`, enforced by slirp `restrict=on` plus a host-side filtering HTTP proxy (`vm.net: allowlist`, `vm.net_allow`).
