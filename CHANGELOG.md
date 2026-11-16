@@ -7,6 +7,12 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 
 ## [Unreleased]
 
+## [0.18.1] — 2026-11-16
+
+### Changed
+
+- site: muse v0.32.0 for the landing page (Magnetik typeface, Tabs and option cards at button height). The worker and the CLI are unchanged.
+
 ## [0.18.0] — 2026-11-16
 
 ### Added
