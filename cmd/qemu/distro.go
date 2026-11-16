@@ -6,7 +6,15 @@ import (
 )
 
 // DefaultDistro is the default distribution when none is specified.
-const DefaultDistro = "debian"
+const DefaultDistro = "flux"
+
+// LegacyDistro is the distribution of instances and flat package lists that
+// predate the distro setting: an empty recorded distro means Debian.
+const LegacyDistro = "debian"
+
+// FluxImageSHA256 pins the Flux base image. Rebuild it with
+// scripts/bake-flux.sh and update this together with the uploaded flux.qcow2.
+const FluxImageSHA256 = "TODO-pin-flux-qcow2-sha256-after-ci-build"
 
 // DistroSpec defines the image and package configuration for a guest distribution.
 type DistroSpec struct {
@@ -19,11 +27,24 @@ type DistroSpec struct {
 
 // ValidDistros returns the list of supported distribution names.
 func ValidDistros() []string {
-	return []string{"debian", "alpine", "nixos"}
+	return []string{"flux", "debian", "alpine"}
+}
+
+// distroAliases maps retired distro names to the distro that replaced them.
+// nixos instances and configs keep working as flux, the Facile NixOS build.
+func distroAliases() map[string]string {
+	return map[string]string{"nixos": "flux"}
 }
 
 func builtInDistros() map[string]DistroSpec {
 	return map[string]DistroSpec{
+		"flux": {
+			Name:       "flux",
+			ImageName:  "flux.qcow2",
+			URL:        "https://boite.facile.studio/flux.qcow2",
+			SHA256:     FluxImageSHA256,
+			PkgManager: "nix",
+		},
 		"debian": {
 			Name:       "debian",
 			ImageName:  "debian.qcow2",
@@ -38,21 +59,18 @@ func builtInDistros() map[string]DistroSpec {
 			SHA256:     "",
 			PkgManager: "apk",
 		},
-		"nixos": {
-			Name:       "nixos",
-			ImageName:  "nixos.qcow2",
-			URL:        "https://boite.facile.studio/nixos.qcow2",
-			SHA256:     "e8cd77eb6686d7407e049f1e3024bd7a1ab05cf9d2a2da36562b8ca77ef5e67e",
-			PkgManager: "nix",
-		},
 	}
 }
 
-// GetDistro returns the DistroSpec for the given name, defaulting to debian when empty.
+// GetDistro returns the DistroSpec for the given name, defaulting to flux when
+// empty and resolving aliases such as nixos.
 func GetDistro(name string) (DistroSpec, error) {
 	distro := strings.TrimSpace(strings.ToLower(name))
 	if distro == "" {
 		distro = DefaultDistro
+	}
+	if canonical, ok := distroAliases()[distro]; ok {
+		distro = canonical
 	}
 	spec, ok := builtInDistros()[distro]
 	if !ok {

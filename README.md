@@ -311,6 +311,7 @@ vm:
   cpus: 2
   memory: 2G
   disk: 20G
+  distro: flux             # flux (default) | debian | alpine
 
 sync: true
 
@@ -329,12 +330,15 @@ env:
 
 provision:
   packages:
-    - nala
+    flux:
+      - ripgrep
+    debian:
+      - nala
   commands:
     - 'curl -fsSL https://get.facile.studio | bash'
 ```
 
-The toolchain, packages, dotfiles, SSH host keys and the `boite` user are baked into the base image by `scripts/bake-image.sh` (see **Default Image**). The config tunes VM resources, sync, and per-instance provisioning. `provision.packages` are apt packages installed into a fresh instance, and `provision.commands` are shell commands run as the `boite` user, both applied once at create right after firstboot. It is the successor to the old `cloud_init.runcmd` / `cloud_init.packages` section: steps run as `boite` over SSH (use `sudo` for anything needing root; the user has passwordless sudo), and the base image already carries the toolchain, so you only add what is not baked in.
+The toolchain, packages, SSH setup and the `boite` user are baked into the base image (see **Default Image**). The config tunes VM resources, sync, and per-instance provisioning. `provision.packages` are installed into a fresh instance with the distro's package manager (`nix profile add` on Flux, apt on Debian, apk on Alpine; a flat list applies to Debian only, keyed lists take `common`, `flux`, `debian` and `alpine`), and `provision.commands` are shell commands run as the `boite` user, both applied once at create right after firstboot. It is the successor to the old `cloud_init.runcmd` / `cloud_init.packages` section: steps run as `boite` over SSH (use `sudo` for anything needing root; the user has passwordless sudo), and the base image already carries the toolchain, so you only add what is not baked in.
 
 ### Environment
 
@@ -350,11 +354,15 @@ Manage the store from the host with `boite env list|get|set|delete <name>`.
 
 ## Default Image
 
-Boite uses a baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`. The bake installs the toolchain, creates the `boite` user, regenerates SSH host keys, configures the network and lays down the dotfiles, then purges cloud-init. At runtime the only per-instance input — the SSH public key (or the generated per-VM key) — is written onto a small vfat config disk and installed by a firstboot oneshot. The baked image is pinned by URL and SHA256 in `cmd/qemu/paths.go`; rebuild and repin when Debian or the toolchain changes.
+Boite boots [Flux](https://github.com/FacileStudio/Flux), the Facile NixOS distribution, in its headless profile: zsh, Neovim, mise, bun, git and the Facile CLIs, with no desktop. `scripts/bake-flux.sh` builds the image with `nix build github:FacileStudio/Flux#boite` (pass a second argument to build another flake ref, such as a local checkout) and falls back to the `nixos/nix` Docker image on hosts without Nix. The image is pinned by URL and SHA256 in `cmd/qemu/distro.go` (`FluxImageSHA256`); rebuild and repin when Flux changes. `nixos` is accepted as an alias of `flux`, so existing configs and instances keep working.
+
+`--distro debian` (or `vm.distro: debian`) selects the baked [Debian 13 (Trixie)](https://www.debian.org/) image built by `scripts/bake-image.sh` via `virt-builder`, which carries the toolchain listed under **Features**. It is pinned in `cmd/qemu/paths.go`. `--distro alpine` selects the Alpine image from `scripts/bake-alpine.sh`.
+
+On every distro the only per-instance input, the SSH public key (or the generated per-VM key), is written onto a small vfat config disk and installed by a firstboot oneshot.
 
 ## Features
 
-- **Pre-configured tools**: Go 1.26, Bun, Rust, Node 24 with Playwright 1.64.1 and Chromium (`/opt/playwright`, `/opt/ms-playwright`), mise, git, fzf, jq, tmux, wget, make, tiroir, starship
+- **Pre-configured tools** (Debian image): Go 1.26, Bun, Rust, Node 24 with Playwright 1.64.1 and Chromium (`/opt/playwright`, `/opt/ms-playwright`), mise, git, fzf, jq, tmux, wget, make, tiroir, starship
 - **Secure VM isolation**: Full virtual machine separation from host
 - **Workspace sync**: Current directory copied into /workspace on every `run`
 - **Custom shell configuration**: Bakes `.zshrc` and `.tmux.conf` into the base image

@@ -48,7 +48,7 @@ func GetBaseImagePath(distro string) string {
 		name = spec.ImageName
 	}
 	dest := filepath.Join(GetCacheDir(), name)
-	if (distro == "" || distro == "debian") && !pathExists(dest) {
+	if err == nil && spec.Name == LegacyDistro && !pathExists(dest) {
 		legacy := filepath.Join(GetCacheDir(), BaseImageName)
 		if pathExists(legacy) {
 			return legacy

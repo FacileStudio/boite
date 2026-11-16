@@ -10,7 +10,7 @@ func TestValidDistros(t *testing.T) {
 	if len(distros) != 3 {
 		t.Fatalf("expected 3 valid distros, got %d", len(distros))
 	}
-	expected := []string{"debian", "alpine", "nixos"}
+	expected := []string{"flux", "debian", "alpine"}
 	for i, name := range expected {
 		if distros[i] != name {
 			t.Errorf("expected distro %d to be %s, got %s", i, name, distros[i])
@@ -25,10 +25,12 @@ func TestGetDistro(t *testing.T) {
 		wantPkg    string
 		shouldFail bool
 	}{
-		{name: "", wantName: "debian", wantPkg: "apt"},
+		{name: "", wantName: "flux", wantPkg: "nix"},
+		{name: "flux", wantName: "flux", wantPkg: "nix"},
 		{name: "debian", wantName: "debian", wantPkg: "apt"},
 		{name: "alpine", wantName: "alpine", wantPkg: "apk"},
-		{name: "nixos", wantName: "nixos", wantPkg: "nix"},
+		{name: "nixos", wantName: "flux", wantPkg: "nix"},
+		{name: " NixOS ", wantName: "flux", wantPkg: "nix"},
 		{name: "ubuntu", shouldFail: true},
 	}
 
@@ -73,8 +75,9 @@ func TestGetBaseImagePath(t *testing.T) {
 		t.Errorf("expected alpine image path to end with alpine.qcow2, got: %s", alpPath)
 	}
 
-	nixPath := GetBaseImagePath("nixos")
-	if !strings.HasSuffix(nixPath, "nixos.qcow2") {
-		t.Errorf("expected nixos image path to end with nixos.qcow2, got: %s", nixPath)
+	for _, name := range []string{"", "flux", "nixos"} {
+		if p := GetBaseImagePath(name); !strings.HasSuffix(p, "flux.qcow2") {
+			t.Errorf("expected %q image path to end with flux.qcow2, got: %s", name, p)
+		}
 	}
 }

@@ -126,7 +126,7 @@ func renderInstanceTableQEMU(instances []*qemu.Instance) string {
 	for _, inst := range instances {
 		d := inst.Distro
 		if d == "" {
-			d = qemu.DefaultDistro
+			d = qemu.LegacyDistro
 		}
 		t.Row(inst.Name, inst.Status, d, fmt.Sprintf("%d", inst.SSHPort), inst.CreatedAt.Format("2006-01-02 15:04"))
 	}
