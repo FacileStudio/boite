@@ -99,9 +99,7 @@ func parseDiskGB(value string) int {
 func WaitForSSH(port, timeoutSeconds int) error {
 	addr := net.JoinHostPort(SSHDialHost(), strconv.Itoa(port))
 	for i := range timeoutSeconds {
-		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
-		if err == nil {
-			conn.Close()
+		if sshBannerReady(addr) {
 			ProgressDone(fmt.Sprintf("SSH up on %s (%ds)", addr, i+2))
 			return nil
 		}

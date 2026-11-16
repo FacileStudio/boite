@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"net"
 	"strings"
 	"testing"
 )
@@ -37,5 +38,25 @@ func TestHostFwdUsesBindAddr(t *testing.T) {
 	joined = strings.Join(BuildQEMUArgs(QEMUConfig{HostFwdPort: 2223}), " ")
 	if !strings.Contains(joined, "hostfwd=tcp:127.0.0.1:2223-:22") {
 		t.Fatalf("default hostfwd changed: %s", joined)
+	}
+}
+
+func TestSSHBannerReady(t *testing.T) {
+	for banner, want := range map[string]bool{"": false, "SSH-2.0-OpenSSH\r\n": true, "HTTP/1.1": false} {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		go func() {
+			c, err := ln.Accept()
+			if err == nil {
+				c.Write([]byte(banner))
+				c.Close()
+			}
+		}()
+		if got := sshBannerReady(ln.Addr().String()); got != want {
+			t.Errorf("banner %q: got %v, want %v", banner, got, want)
+		}
+		ln.Close()
 	}
 }
