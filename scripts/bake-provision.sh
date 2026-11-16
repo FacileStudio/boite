@@ -25,8 +25,11 @@ chmod 440 /etc/sudoers.d/boite
 
 # Hostname. The virt-builder template leaves "unassigned-hostname"; every
 # sandbox should be named boite so the shell prompt and hostname are stable.
+# The /etc/hosts line keeps sudo from waiting on DNS timeouts in guests with
+# no resolver (offline and allowlist modes).
 echo boite > /etc/hostname
 hostnamectl set-hostname boite 2>/dev/null || true
+grep -q ' boite$' /etc/hosts || echo '127.0.1.1 boite' >> /etc/hosts
 
 # Networking. The virt-builder debian-13 template predicts a "ens2" NIC, but
 # under QEMU the virtio NIC is renamed eth0 -> ens3 (and sometimes ens18),

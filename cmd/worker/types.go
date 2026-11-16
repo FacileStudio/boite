@@ -21,8 +21,9 @@ const (
 )
 
 const (
-	NetOpen    = "open"
-	NetOffline = "offline"
+	NetOpen      = "open"
+	NetOffline   = "offline"
+	NetAllowlist = "allowlist"
 )
 
 // CreateRequest is the body of POST /boxes. Zero resources take defaults and
@@ -35,6 +36,9 @@ type CreateRequest struct {
 	Disk   string `json:"disk"`
 	SSHKey string `json:"ssh_key"`
 	Net    string `json:"net"`
+	// NetAllow is the list of extra hosts for net "allowlist". Absent or
+	// empty means the built-in defaults only.
+	NetAllow []string `json:"net_allow,omitempty"`
 }
 
 // SSHInfo tells a client where and as whom to open an SSH session.
@@ -46,17 +50,18 @@ type SSHInfo struct {
 
 // Box is the API view of one sandbox. The ID is the sandbox name.
 type Box struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name"`
-	Owner     string  `json:"owner"`
-	Status    string  `json:"status"`
-	CPUs      int     `json:"cpus"`
-	Memory    string  `json:"memory"`
-	Disk      string  `json:"disk"`
-	SSH       SSHInfo `json:"ssh"`
-	Net       string  `json:"net"`
-	CreatedAt string  `json:"created_at"`
-	Error     string  `json:"error,omitempty"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Owner     string   `json:"owner"`
+	Status    string   `json:"status"`
+	CPUs      int      `json:"cpus"`
+	Memory    string   `json:"memory"`
+	Disk      string   `json:"disk"`
+	SSH       SSHInfo  `json:"ssh"`
+	Net       string   `json:"net"`
+	NetAllow  []string `json:"net_allow,omitempty"`
+	CreatedAt string   `json:"created_at"`
+	Error     string   `json:"error,omitempty"`
 }
 
 // Snapshot is one internal qcow2 snapshot on a box's overlay disk.
@@ -71,7 +76,8 @@ type tagRequest struct {
 }
 
 type netRequest struct {
-	Net string `json:"net"`
+	Net      string   `json:"net"`
+	NetAllow []string `json:"net_allow"`
 }
 
 type keyRequest struct {

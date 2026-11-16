@@ -122,16 +122,16 @@ Every request needs `Authorization: Bearer <BOITE_WORKER_TOKEN>`. Errors are `{"
 | `POST /boxes/{id}/stop` | | 200 box |
 | `POST /boxes/{id}/rm` | | 204. Works in every status. On a creating box it cancels a queued create at once, or waits for the running create to end and removes the result. |
 | `PUT /boxes/{id}/ssh-key` | `{"ssh_key"}` replaces the user key | 200 box |
-| `PUT /boxes/{id}/net` | `{"net"}`, `open` or `offline` | 200 box |
+| `PUT /boxes/{id}/net` | `{"net"}`, `open`, `offline` or `allowlist`; with `allowlist` an optional `"net_allow": ["host", ...]` replaces the box's extra hosts | 200 box |
 | `POST /boxes/{id}/snapshot` | `{"tag"}` | 201 `{"id","tag"}` |
 | `POST /boxes/{id}/rollback` | `{"tag"}` | 200 `{"id","tag"}` |
 | `GET /boxes/{id}/snapshots` | | 200 `[{"id","tag","created_at"}]` |
 
-A box is `{"id","name","owner","status","cpus","memory","disk","net","ssh":{"host","port","user"},"created_at"}`; `id` equals `name` (lowercase letters, digits, dashes, max 40). `status` is `running`, `stopped`, `creating` or `error`. A creating box has `ssh.port` 0 until it is up. An `error` box carries an `"error"` string and stays listed until you `rm` it. After a worker restart, boxes left `creating` become `error` with the message `interrupted`. Start, stop, key and snapshot calls on a creating or error box answer 409 `not_ready` (snapshots answer `not_stopped`). Snapshot, rollback and snapshot listing need a stopped box and answer 409 `not_stopped` otherwise. A second call on a box that is mid-operation answers 409 `busy`.
+A box is `{"id","name","owner","status","cpus","memory","disk","net","net_allow","ssh":{"host","port","user"},"created_at"}`; `net_allow` is present only for `allowlist` boxes with extra hosts; `id` equals `name` (lowercase letters, digits, dashes, max 40). `status` is `running`, `stopped`, `creating` or `error`. A creating box has `ssh.port` 0 until it is up. An `error` box carries an `"error"` string and stays listed until you `rm` it. After a worker restart, boxes left `creating` become `error` with the message `interrupted`. Start, stop, key and snapshot calls on a creating or error box answer 409 `not_ready` (snapshots answer `not_stopped`). Snapshot, rollback and snapshot listing need a stopped box and answer 409 `not_stopped` otherwise. A second call on a box that is mid-operation answers 409 `busy`.
 
 A key set with `PUT /boxes/{id}/ssh-key` is written into a running box at once, and into a stopped box on its next start.
 
-`net` is the box's egress mode, as in [Egress](#egress): `open` runs the box behind its own passt, `offline` sets slirp `restrict=on`, so the guest reaches nothing while SSH through the forwarded port keeps working. The worker stores it in the box's `boite.yml` and `worker.json`. QEMU reads it at boot, so `PUT /boxes/{id}/net` on a running box changes the reported `net` at once but the box keeps its old mode until a stop and start. Boxes created before this field report `open`.
+`net` is the box's egress mode, as in [Egress](#egress): `open` runs the box behind its own passt, `offline` sets slirp `restrict=on`, so the guest reaches nothing while SSH through the forwarded port keeps working, and `allowlist` reaches only the built-in registry hosts plus the box's `net_allow` entries through a host-side proxy. `POST /boxes` takes the same `net` and `net_allow`. `net_allow` entries are `host`, `*.host` (subdomains only) or `host:port`, at most 64, and are refused unless `net` is `allowlist`; `PUT` replaces the whole list, so omitting it clears it. Old clients that send only `{"net"}` keep working. The worker stores it in the box's `boite.yml` and `worker.json`. QEMU reads it at boot, so `PUT /boxes/{id}/net` on a running box changes the reported `net` at once but the box keeps its old mode until a stop and start. Boxes created before this field report `open`.
 
 Idle stop lives in the caller. The worker never stops a box on its own: the web tier decides when a box is idle and calls `POST /boxes/{id}/stop`.
 
@@ -151,7 +151,63 @@ The sync is a plain file copy over SSH, not a mount: the VM's `/workspace` is a
 bounded snapshot, never a live handle into your host tree. This is what keeps a
 compromised guest from reaching your files.
 
-### Configuration
+#`allowlist` lets the guest reach a list of hosts and nothing else. boite
+starts QEMU with slirp `restrict=on`, which drops every guest-initiated
+packet, and adds one `guestfwd` rule that hands each guest TCP connection to
+`10.0.2.100:3128` to a boite process on the host. That process is an HTTP
+forward proxy: it serves `CONNECT host:port` (HTTPS, no TLS interception) and
+`http://` requests only when the host is on the list, resolves the name
+itself, and refuses any address that is not public unicast, so an allowed
+name cannot reach the host loopback, a LAN or a cloud metadata address. Denied
+requests answer 403 and are appended to `egress.log` in the instance
+directory. The rules live in QEMU's command line and in files on the host, so
+a root user in the guest cannot change them. The guest cannot reach UDP,
+ICMP, raw DNS or any IP directly; there is no guest DNS, the proxy resolves
+names.
+
+```yaml
+vm:
+  net: allowlist
+  net_allow: [api.example.com, "*.cdn.example.org", git.example.net:9418]
+```
+
+The built-in list covers `deb.debian.org`, `security.debian.org`,
+`dl-cdn.alpinelinux.org`, `cache.nixos.org`, `registry.npmjs.org`,
+`registry.yarnpkg.com`, `pypi.org`, `files.pythonhosted.org`, `crates.io`,
+`index.crates.io`, `static.crates.io`, `proxy.golang.org`, `sum.golang.org`,
+`github.com`, `api.github.com`, `codeload.github.com` and the GitHub content
+hosts `objects.`, `raw.` and `release-assets.githubusercontent.com` (full
+list: `cmd/egress/defaults.go`). Matching is on the whole host name,
+lowercased: `github.com` does not match `evilgithub.com` or
+`sub.github.com`, and `*.example.org` matches `a.example.org` but not
+`example.org`. IP literals are refused in the list and in requests. A host
+entry covers ports 80 and 443; `host:port` covers that port only.
+
+Tools learn about the proxy from the guest environment. The worker writes
+`http_proxy`, `https_proxy` (both cases) and `no_proxy` into `/etc/environment`
+and `/etc/profile.d/boite-egress.sh`, and an apt drop-in at
+`/etc/apt/apt.conf.d/99boite-egress`, over SSH after each start of an
+`allowlist` box, so no image rebake is needed. They are a convenience, not the
+enforcement: unsetting them in the guest only makes the network fail. Leaving
+`allowlist` removes them on the next start. The CLI does not write them; set
+`http_proxy=http://10.0.2.100:3128` yourself there. The guest settings assume
+a Debian-style guest with `sudo`.
+
+What does not work through it:
+
+- `ssh`, `git@github.com:` URLs and `git://`: use `https://` remotes.
+- Anything that needs guest DNS or a direct socket: `dig`, `ping`, tools that
+  ignore proxy variables.
+- Plain-text protocols other than HTTP, and HTTPS to a host not on the list.
+
+What it does not stop: data sent to a listed host. Anything the guest can
+write to GitHub (a repository, a gist, an issue) or to a registry it can
+publish to leaves the box through the list. The proxy filters on the CONNECT
+host and does not read TLS, so it cannot tell which account a request
+belongs to, and a listed host that fronts other tenants can be asked for
+another one (domain fronting). Keep extra hosts to what the box needs.
+
+## Configuration
 
 Sync is disabled by default. Turn it on per machine with `sync: true`, disable
 it again with `false`:
@@ -213,6 +269,7 @@ by host processes, so a root process inside the VM cannot undo it.
 |---|---|---|---|
 | `open` (default) | one [passt](https://passt.top) per VM | yes | blocked |
 | `offline` | slirp `restrict=on` | none | blocked |
+| `allowlist` | slirp `restrict=on` plus a host-side HTTP proxy | listed hosts only, ports 80 and 443 | blocked |
 | `open-slirp` | slirp | yes | **reachable**: unsafe |
 
 In `open` mode boite starts `passt --one-off --no-map-gw` for each VM, with
@@ -238,9 +295,7 @@ host services to `127.0.0.1` to hide them from boxes.
 
 `offline` denies the guest all outbound traffic. Inbound SSH through the
 host-forwarded port keeps working, so `boite run`, `exec` and `sync` behave
-as usual. A per-host allowlist is not supported: neither backend filters by
-destination, and in-guest firewall rules would be rewritable by the guest's
-passwordless-root user.
+as usual.
 
 ```yaml
 vm:
