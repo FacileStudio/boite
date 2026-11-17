@@ -23,8 +23,8 @@
 ### Quick Start
 
 ```bash
-# Install (via Facile or from source)
-facile install boite
+# Install (via kit or from source)
+kit add boite
 
 # Create a new sandbox VM
 boite create my-project

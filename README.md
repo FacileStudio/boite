@@ -8,12 +8,12 @@ CLI tool to create, manage, and clean up virtual machine-based development sandb
 curl -fsSL https://raw.githubusercontent.com/FacileStudio/boite/main/install.sh | bash
 ```
 
-Installs to `~/.local/bin` via [facile](https://github.com/FacileStudio/facile), the suite installer. Pass `--bin-dir <dir>` to change that, `--source` to build from source, `--no-skill` to skip AI agent skill registration.
+Installs to `~/.local/bin` via [kit](https://github.com/FacileStudio/kit), the Facile package manager. Pass `--bin-dir <dir>` to change that, `--source` to build from source, `--no-skill` to skip AI agent skill registration.
 
-Already have `facile`:
+Already have `kit`:
 
 ```sh
-facile install boite
+kit add boite
 ```
 
 ### Build from source

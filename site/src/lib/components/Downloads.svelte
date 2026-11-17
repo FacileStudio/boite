@@ -11,7 +11,7 @@
 
   const commands: CliCommand[] = $derived([
     { label: t("install.script"), command: INSTALL_CMD },
-    { label: "Facile", command: "facile install boite" },
+    { label: "kit", command: "kit add boite" },
     { label: t("install.baseImage"), command: `curl -LO ${SITE_URL}${BASE_IMAGE_URL}` },
   ]);
 </script>
