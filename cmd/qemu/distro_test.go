@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -71,13 +72,14 @@ func TestEffectiveDistro(t *testing.T) {
 
 func TestGetBaseImagePath(t *testing.T) {
 	alpPath := GetBaseImagePath("alpine")
-	if !strings.HasSuffix(alpPath, "alpine.qcow2") {
-		t.Errorf("expected alpine image path to end with alpine.qcow2, got: %s", alpPath)
+	if !strings.Contains(filepath.Base(alpPath), "alpine") || !strings.HasSuffix(alpPath, ".qcow2") {
+		t.Errorf("expected an alpine qcow2 image path, got: %s", alpPath)
 	}
 
+	want := "flux-" + FluxImageSHA256[:12] + ".qcow2"
 	for _, name := range []string{"", "flux", "nixos"} {
-		if p := GetBaseImagePath(name); !strings.HasSuffix(p, "flux.qcow2") {
-			t.Errorf("expected %q image path to end with flux.qcow2, got: %s", name, p)
+		if p := GetBaseImagePath(name); filepath.Base(p) != want {
+			t.Errorf("expected %q image path to end with %s, got: %s", name, want, p)
 		}
 	}
 }

@@ -12,9 +12,12 @@ const DefaultDistro = "flux"
 // predate the distro setting: an empty recorded distro means Debian.
 const LegacyDistro = "debian"
 
-// FluxImageSHA256 pins the Flux base image. Rebuild it with
-// scripts/bake-flux.sh and update this together with the uploaded flux.qcow2.
-const FluxImageSHA256 = "TODO-pin-flux-qcow2-sha256-after-ci-build"
+// FluxImageSHA256 pins the Flux base image published by the Flux release workflow.
+// Bump it with FluxImageURL on each Flux release (see SHA256SUMS next to the image).
+const FluxImageSHA256 = "98f3cbf75f75d427423735f65c0a376b370be3b1a894c3a8659254570b3a96bc"
+
+// FluxImageURL is the Flux base image for Boite VMs, served by flux.facile.studio.
+const FluxImageURL = "https://flux.facile.studio/releases/v0.2.0/flux-boite-0.2.0-x86_64-linux.qcow2"
 
 // DistroSpec defines the image and package configuration for a guest distribution.
 type DistroSpec struct {
@@ -41,7 +44,7 @@ func builtInDistros() map[string]DistroSpec {
 		"flux": {
 			Name:       "flux",
 			ImageName:  "flux.qcow2",
-			URL:        "https://boite.facile.studio/flux.qcow2",
+			URL:        FluxImageURL,
 			SHA256:     FluxImageSHA256,
 			PkgManager: "nix",
 		},
