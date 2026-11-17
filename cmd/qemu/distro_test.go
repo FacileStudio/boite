@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ func TestValidDistros(t *testing.T) {
 	if len(distros) != 3 {
 		t.Fatalf("expected 3 valid distros, got %d", len(distros))
 	}
-	expected := []string{"debian", "alpine", "nixos"}
+	expected := []string{"flux", "debian", "alpine"}
 	for i, name := range expected {
 		if distros[i] != name {
 			t.Errorf("expected distro %d to be %s, got %s", i, name, distros[i])
@@ -25,10 +26,12 @@ func TestGetDistro(t *testing.T) {
 		wantPkg    string
 		shouldFail bool
 	}{
-		{name: "", wantName: "debian", wantPkg: "apt"},
+		{name: "", wantName: "flux", wantPkg: "nix"},
+		{name: "flux", wantName: "flux", wantPkg: "nix"},
 		{name: "debian", wantName: "debian", wantPkg: "apt"},
 		{name: "alpine", wantName: "alpine", wantPkg: "apk"},
-		{name: "nixos", wantName: "nixos", wantPkg: "nix"},
+		{name: "nixos", wantName: "flux", wantPkg: "nix"},
+		{name: " NixOS ", wantName: "flux", wantPkg: "nix"},
 		{name: "ubuntu", shouldFail: true},
 	}
 
@@ -69,12 +72,14 @@ func TestEffectiveDistro(t *testing.T) {
 
 func TestGetBaseImagePath(t *testing.T) {
 	alpPath := GetBaseImagePath("alpine")
-	if !strings.HasSuffix(alpPath, "alpine.qcow2") {
-		t.Errorf("expected alpine image path to end with alpine.qcow2, got: %s", alpPath)
+	if !strings.Contains(filepath.Base(alpPath), "alpine") || !strings.HasSuffix(alpPath, ".qcow2") {
+		t.Errorf("expected an alpine qcow2 image path, got: %s", alpPath)
 	}
 
-	nixPath := GetBaseImagePath("nixos")
-	if !strings.HasSuffix(nixPath, "nixos.qcow2") {
-		t.Errorf("expected nixos image path to end with nixos.qcow2, got: %s", nixPath)
+	want := "flux-" + FluxImageSHA256[:12] + ".qcow2"
+	for _, name := range []string{"", "flux", "nixos"} {
+		if p := GetBaseImagePath(name); filepath.Base(p) != want {
+			t.Errorf("expected %q image path to end with %s, got: %s", name, want, p)
+		}
 	}
 }

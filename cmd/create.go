@@ -16,23 +16,26 @@ func newCreateCmd() *cobra.Command {
 		Use:   "create <name>",
 		Short: "Create a new development sandbox",
 		Long: `Create a new development sandbox VM with development tools pre-installed.
-Uses cached Debian 13 image with Copy-on-Write overlay.
+Uses the cached Flux (Facile NixOS) base image with a Copy-on-Write overlay.
 Use --no-mount so 'boite run' never syncs a workspace into /workspace for this instance.`,
 		Args: cobra.ExactArgs(1),
 		Run:  runCreate,
 	}
 	createCmd.Flags().Bool("no-mount", false, "Create VM without mounting workspace")
 	createCmd.Flags().Bool("generate-key", false, "Generate a unique SSH key pair for this VM instead of using your existing ~/.ssh key")
-	createCmd.Flags().StringP("distro", "d", "", "Guest distribution (debian, alpine, nixos)")
-	createCmd.Flags().Bool("nixos", false, "Use NixOS guest distribution (shorthand for --distro nixos)")
+	createCmd.Flags().StringP("distro", "d", "", "Guest distribution (flux, debian, alpine; nixos is an alias of flux)")
+	createCmd.Flags().Bool("flux", false, "Use Flux guest distribution (shorthand for --distro flux)")
+	createCmd.Flags().Bool("nixos", false, "Alias of --flux")
 	createCmd.Flags().Bool("alpine", false, "Use Alpine guest distribution (shorthand for --distro alpine)")
 	createCmd.Flags().Bool("debian", false, "Use Debian guest distribution (shorthand for --distro debian)")
 	return createCmd
 }
 
 func extractDistroFlag(cmd *cobra.Command) string {
-	if n, _ := cmd.Flags().GetBool("nixos"); n {
-		return "nixos"
+	for _, name := range []string{"flux", "nixos"} {
+		if n, _ := cmd.Flags().GetBool(name); n {
+			return "flux"
+		}
 	}
 	if a, _ := cmd.Flags().GetBool("alpine"); a {
 		return "alpine"
@@ -93,21 +96,19 @@ func buildCreateOptions(cmd *cobra.Command, name, distro, cfgPath string) qemu.C
 }
 
 func resolveCreateDistro(flagVal, cfgPath string) (string, error) {
-	if flagVal != "" {
-		spec, err := qemu.GetDistro(flagVal)
+	name := flagVal
+	if name == "" {
+		cfg, err := qemu.LoadBoiteConfig(cfgPath)
 		if err != nil {
 			return "", err
 		}
-		return spec.Name, nil
+		name = qemu.ResolveDistro("", cfg)
 	}
-	cfg, err := qemu.LoadBoiteConfig(cfgPath)
+	spec, err := qemu.GetDistro(name)
 	if err != nil {
 		return "", err
 	}
-	if cfg != nil && cfg.VM != nil {
-		return cfg.VM.EffectiveDistro(), nil
-	}
-	return qemu.DefaultDistro, nil
+	return spec.Name, nil
 }
 
 // isConfigPresent reports whether a config file is available for this run.

@@ -29,9 +29,10 @@ func TestDistroSpecificPackages(t *testing.T) {
 	verifyDistroPackages(t, cfg, "debian", "nala")
 	verifyDistroPackages(t, cfg, "alpine", "bash")
 	verifyDistroPackages(t, cfg, "nixos", "ripgrep")
+	verifyDistroPackages(t, cfg, "flux", "ripgrep")
 }
 
-func TestFlatListPackagesOnlyAppliesToDefaultDistro(t *testing.T) {
+func TestFlatListPackagesOnlyAppliesToLegacyDistro(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "boite.yml")
 	contents := "provision:\n  packages:\n    - nala\n"
@@ -49,8 +50,8 @@ func TestFlatListPackagesOnlyAppliesToDefaultDistro(t *testing.T) {
 		t.Fatalf("expected nala for debian, got %v", debPkgs)
 	}
 
-	nixPkgs, _ := cfg.Provision.ForDistro("nixos")
+	nixPkgs, _ := cfg.Provision.ForDistro("flux")
 	if len(nixPkgs) != 0 {
-		t.Fatalf("expected no packages for nixos when flat list, got %v", nixPkgs)
+		t.Fatalf("expected no packages for flux when flat list, got %v", nixPkgs)
 	}
 }

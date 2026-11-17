@@ -3,6 +3,7 @@ package qemu
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -41,14 +42,19 @@ func GetInstanceDir(name string) string {
 }
 
 // GetBaseImagePath returns where the downloaded base image lives in the cache.
+// A pinned image carries the start of its SHA256 in the file name, so a new
+// pin downloads a new file while existing overlays keep their backing image.
 func GetBaseImagePath(distro string) string {
 	spec, err := GetDistro(distro)
 	name := distro + ".qcow2"
 	if err == nil && spec.ImageName != "" {
 		name = spec.ImageName
 	}
+	if err == nil && len(spec.SHA256) >= 12 {
+		name = strings.TrimSuffix(name, ".qcow2") + "-" + spec.SHA256[:12] + ".qcow2"
+	}
 	dest := filepath.Join(GetCacheDir(), name)
-	if (distro == "" || distro == "debian") && !pathExists(dest) {
+	if err == nil && spec.Name == LegacyDistro && !pathExists(dest) {
 		legacy := filepath.Join(GetCacheDir(), BaseImageName)
 		if pathExists(legacy) {
 			return legacy

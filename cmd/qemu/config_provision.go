@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -56,8 +57,8 @@ func (p *PackagesConfig) specificFor(name string) []string {
 		return p.Debian
 	case "alpine":
 		return p.Alpine
-	case "nixos":
-		return p.NixOS
+	case "flux", "nixos":
+		return slices.Concat(p.NixOS, p.Distros["flux"])
 	default:
 		if p.Distros != nil {
 			return p.Distros[name]
@@ -71,7 +72,7 @@ func (p *PackagesConfig) ForDistro(distro string) []string {
 		return nil
 	}
 	if len(p.List) > 0 {
-		if strings.EqualFold(distro, DefaultDistro) {
+		if strings.EqualFold(distro, LegacyDistro) {
 			return p.List
 		}
 		return nil
