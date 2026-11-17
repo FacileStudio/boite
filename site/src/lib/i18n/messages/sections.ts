@@ -30,12 +30,18 @@ export const sections = {
     "Pon vm.net en offline y la máquina no llega a nada. SSH sigue funcionando.",
     "Setzen Sie vm.net auf offline, dann erreicht die Maschine nichts. SSH geht weiter.",
   ],
-  "features.distro.title": ["Debian, Alpine or NixOS", "Debian, Alpine ou NixOS", "Debian, Alpine o NixOS", "Debian, Alpine oder NixOS"],
+  "features.distro.title": ["Flux by default", "Flux par défaut", "Flux por defecto", "Standardmäßig Flux"],
   "features.distro.text": [
-    "Pick the system with boite create --distro.",
-    "Choisissez le système avec boite create --distro.",
-    "Elige el sistema con boite create --distro.",
-    "Wählen Sie das System mit boite create --distro.",
+    "Flux, the Facile Linux, comes ready. Debian and Alpine stay one flag away: boite create --distro.",
+    "Flux, le Linux de Facile, est prêt d’office. Debian et Alpine restent à un flag : boite create --distro.",
+    "Flux, el Linux de Facile, viene listo. Debian y Alpine siguen a un flag: boite create --distro.",
+    "Flux, das Linux von Facile, ist sofort bereit. Debian und Alpine bleiben einen Schalter entfernt: boite create --distro.",
+  ],
+  "with.flux": [
+    "Every Boîte runs Flux, the Facile Linux, with your tools already there.",
+    "Chaque Boîte tourne sous Flux, le Linux de Facile, avec vos outils déjà là.",
+    "Cada Boîte funciona con Flux, el Linux de Facile, con tus herramientas ya listas.",
+    "Jede Boîte läuft mit Flux, dem Linux von Facile, Ihre Tools sind schon da.",
   ],
   "with.bulle": [
     "Bulle runs its code in a Boîte, never on your machine.",
@@ -71,7 +77,7 @@ export const sections = {
     "Instalación en Linux con KVM: una imagen de 2,2 GB y luego boite create. La CLI comprueba el SHA-256 de la imagen al primer arranque.",
     "Installation unter Linux mit KVM: ein 2,2-GB-Image, dann boite create. Die CLI prüft beim ersten Start den SHA-256 des Images.",
   ],
-  "install.image": ["Base image, Debian 13 qcow2", "Image de base, Debian 13 qcow2", "Imagen base, Debian 13 qcow2", "Basis-Image, Debian 13 qcow2"],
+  "install.image": ["Base image, Flux qcow2", "Image de base, Flux qcow2", "Imagen base, Flux qcow2", "Basis-Image, Flux qcow2"],
   "install.script": ["Script", "Script", "Script", "Skript"],
   "install.baseImage": ["Base image", "Image de base", "Imagen base", "Basis-Image"],
   "dev.line": [

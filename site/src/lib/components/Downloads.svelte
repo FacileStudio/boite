@@ -1,7 +1,7 @@
 <script lang="ts">
   import { DownloadSection, LANDING_HEADING, type CliCommand, type DownloadEntry } from "@facile/muse";
   import { t } from "$lib/i18n/index.svelte";
-  import { BASE_IMAGE_SIZE, BASE_IMAGE_URL, INSTALL_CMD, RELEASES_URL, SITE_URL } from "$lib/site";
+  import { BASE_IMAGE_SIZE, BASE_IMAGE_URL, INSTALL_CMD, RELEASES_URL } from "$lib/site";
 
   let { page = false }: { page?: boolean } = $props();
 
@@ -12,7 +12,7 @@
   const commands: CliCommand[] = $derived([
     { label: t("install.script"), command: INSTALL_CMD },
     { label: "Facile", command: "facile install boite" },
-    { label: t("install.baseImage"), command: `curl -LO ${SITE_URL}${BASE_IMAGE_URL}` },
+    { label: t("install.baseImage"), command: `curl -LO ${BASE_IMAGE_URL}` },
   ]);
 </script>
 
